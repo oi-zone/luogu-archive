@@ -21,7 +21,7 @@
     "^[./]"
   ],
   "importOrderTypeScriptVersion": "5.8.3",
-  "tailwindStylesheet": "./apps/web/src/app/globals.css",
+  "tailwindStylesheet": "./apps/web/app/globals.css",
   "plugins": [
     "@ianvs/prettier-plugin-sort-imports",
     "prettier-plugin-tailwindcss"
