@@ -1,4 +1,9 @@
-// Make lint-staged happy
+// @ts-check
 
-/** @type {import("eslint").Linter.Config} */
-export default [{}];
+import { config } from "@wangxinhe/eslint-config/base";
+import { defineConfig, globalIgnores } from "eslint/config";
+
+export default defineConfig([
+  ...config(import.meta.dirname),
+  globalIgnores(["packages/remark-lda-lfm"]),
+]);
