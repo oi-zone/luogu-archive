@@ -2,5 +2,3 @@
 packages:
   - "apps/*"
   - "packages/*"
-overrides:
-  "@luogu-discussion-archive/archive>@prisma/client": "../database"
