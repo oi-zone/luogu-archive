@@ -1,0 +1,24 @@
+{
+  "name": "@luogu-discussion-archive/crawler",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@lgjs/request": "^0.1.0",
+    "@luogu-discussion-archive/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@lgjs/types": "^0.1.1",
+    "@luogu-discussion-archive/typescript-config": "workspace:*",
+    "@types/node": "^20.19.24",
+    "typescript": "^5.9.3"
+  }
+}
