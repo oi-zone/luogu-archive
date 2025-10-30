@@ -1,0 +1,48 @@
+model User {
+  id        Int      @id
+  updatedAt DateTime @updatedAt
+
+  userSnapshots UserSnapshot[]
+
+  activities     Activity[]
+  paste          Paste[]
+  judgements     Judgement[]
+  postSnapshots  PostSnapshot[]
+  replySnapshots ReplySnapshot[]
+
+  postTakedowns     PostTakedown[]
+  replyTakedowns    ReplyTakedown[]
+  activityTakedowns ActivityTakedown[]
+}
+
+model UserSnapshot {
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  name  String
+  badge String?
+
+  isAdmin  Boolean
+  isBanned Boolean
+  isRoot   Boolean?
+
+  color    Color
+  ccfLevel Int
+
+  until DateTime @updatedAt
+  time  DateTime @default(now())
+
+  @@id([userId, time])
+  @@index([userId])
+  @@index([userId, time(sort: Desc)])
+}
+
+enum Color {
+  Cheater
+  Gray
+  Blue
+  Green
+  Orange
+  Red
+  Purple
+}

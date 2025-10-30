@@ -8,6 +8,9 @@
       "default": "./dist/index.js"
     }
   },
+  "prisma": {
+    "schema": "./prisma"
+  },
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",

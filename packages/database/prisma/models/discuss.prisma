@@ -1,0 +1,91 @@
+model Post {
+  id         Int            @id
+  time       DateTime       @db.Timestamp(0)
+  snapshots  PostSnapshot[]
+  replyCount Int
+  replies    Reply[]
+
+  takedown PostTakedown?
+
+  @@index([time])
+  @@index([replyCount(sort: Desc)])
+}
+
+model PostSnapshot {
+  post   Post @relation(fields: [postId], references: [id])
+  postId Int
+
+  author   User @relation(fields: [authorId], references: [id])
+  authorId Int
+
+  time      DateTime @default(now())
+  until     DateTime @updatedAt
+  title     String
+  forum     Forum    @relation(fields: [forumSlug], references: [slug])
+  forumSlug String
+
+  content String @db.Text
+
+  @@id([postId, time])
+  @@index([postId])
+  @@index([authorId])
+  @@index([postId, time(sort: Desc)])
+}
+
+model PostTakedown {
+  post   Post @relation(fields: [postId], references: [id])
+  postId Int  @id
+
+  submitter   User @relation(fields: [submitterId], references: [id])
+  submitterId Int
+
+  reason String
+}
+
+model Reply {
+  id Int @id
+
+  post   Post @relation(fields: [postId], references: [id])
+  postId Int
+
+  time DateTime @db.Timestamp(0)
+
+  snapshots ReplySnapshot[]
+  takedown  ReplyTakedown?
+
+  @@index([postId])
+  @@index([time])
+}
+
+model ReplySnapshot {
+  reply   Reply @relation(fields: [replyId], references: [id])
+  replyId Int
+
+  author   User @relation(fields: [authorId], references: [id])
+  authorId Int
+
+  time    DateTime @default(now())
+  until   DateTime @updatedAt
+  content String   @db.Text
+
+  @@id([replyId, time])
+  @@index([replyId])
+  @@index([authorId])
+  @@index([replyId, time(sort: Desc)])
+}
+
+model ReplyTakedown {
+  reply   Reply @relation(fields: [replyId], references: [id])
+  replyId Int   @id
+
+  submitter   User @relation(fields: [submitterId], references: [id])
+  submitterId Int
+
+  reason String
+}
+
+model Forum {
+  slug         String         @id
+  name         String
+  PostSnapshot PostSnapshot[]
+}

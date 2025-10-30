@@ -1,0 +1,14 @@
+model Judgement {
+  time DateTime @db.Timestamp(0)
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  reason            String
+  permissionGranted Int
+  permissionRevoked Int
+
+  @@id([time, userId])
+  @@index([time(sort: Desc)])
+  @@index([userId])
+}

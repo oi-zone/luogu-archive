@@ -1,0 +1,23 @@
+model Paste {
+  id   String   @id @db.Char(8)
+  time DateTime @db.Timestamp(0)
+
+  user      User            @relation(fields: [userId], references: [id])
+  userId    Int
+  snapshots PasteSnapshot[]
+
+  @@index([userId])
+}
+
+model PasteSnapshot {
+  paste   Paste  @relation(fields: [pasteId], references: [id])
+  pasteId String @db.Char(8)
+
+  time   DateTime @default(now())
+  until  DateTime @updatedAt
+  public Boolean
+  data   String?
+
+  @@id([pasteId, time])
+  @@index([pasteId, time(sort: Desc)])
+}
