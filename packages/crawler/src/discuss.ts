@@ -3,6 +3,7 @@ import type { Forum, PostDetails, Reply } from "@lgjs/types";
 import { prisma } from "@luogu-discussion-archive/db";
 
 import { client } from "./client.js";
+import { PgAdvisoryLock } from "./locks.js";
 import { saveUser } from "./user.js";
 
 const saveForum = (forum: Forum) =>
@@ -25,6 +26,8 @@ export async function saveReply(
 ) {
   await saveUser(reply.author, now);
   return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Reply}::INT4, ${reply.id}::INT4);`;
+
     const lastSnapshot = await tx.replySnapshot.findFirst({
       where: {
         replyId: reply.id,
@@ -71,6 +74,8 @@ export async function saveReply(
 export async function savePost(post: PostDetails, now: Date | string) {
   await Promise.all([saveUser(post.author, now), saveForum(post.forum)]);
   return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Post}::INT4, ${post.id}::INT4);`;
+
     const lastSnapshot = await tx.postSnapshot.findFirst({
       where: {
         postId: post.id,

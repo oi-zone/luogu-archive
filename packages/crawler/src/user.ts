@@ -2,8 +2,12 @@ import type { UserSummary } from "@lgjs/types";
 
 import { prisma } from "@luogu-discussion-archive/db";
 
+import { PgAdvisoryLock } from "./locks.js";
+
 export const saveUser = (user: UserSummary, now: Date | string) =>
   prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.User}::INT4, ${user.uid}::INT4);`;
+
     const lastSnapshot = await tx.userSnapshot.findFirst({
       where: {
         userId: user.uid,
