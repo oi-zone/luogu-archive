@@ -15,12 +15,15 @@ export const saveUser = (user: UserSummary, now: Date | string) =>
     if (
       lastSnapshot &&
       lastSnapshot.name === user.name &&
+      lastSnapshot.slogan === (user.slogan ?? "") &&
       lastSnapshot.badge === user.badge &&
       lastSnapshot.isAdmin === user.isAdmin &&
       lastSnapshot.isBanned === user.isBanned &&
-      lastSnapshot.isRoot === (user.isRoot ?? null) &&
+      lastSnapshot.isRoot === (user.isRoot ?? false) &&
       lastSnapshot.color === user.color &&
-      lastSnapshot.ccfLevel === user.ccfLevel
+      lastSnapshot.ccfLevel === user.ccfLevel &&
+      lastSnapshot.xcpcLevel === user.xcpcLevel &&
+      lastSnapshot.background === (user.background ?? "")
     )
       return tx.userSnapshot.update({
         where: { userId_time: { userId: user.uid, time: lastSnapshot.time } },
@@ -35,12 +38,15 @@ export const saveUser = (user: UserSummary, now: Date | string) =>
           },
         },
         name: user.name,
+        slogan: user.slogan ?? "",
         badge: user.badge,
         isAdmin: user.isAdmin,
         isBanned: user.isBanned,
-        isRoot: user.isRoot ?? null,
+        isRoot: user.isRoot ?? false,
         color: user.color,
         ccfLevel: user.ccfLevel,
+        xcpcLevel: user.xcpcLevel,
+        background: user.background ?? "",
         time: now,
         until: now,
       },
