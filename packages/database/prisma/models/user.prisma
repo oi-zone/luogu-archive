@@ -28,12 +28,12 @@ model UserSnapshot {
   xcpcLevel  Int
   background String
 
-  time  DateTime
-  until DateTime
+  capturedAt DateTime @db.Timestamp(0)
+  lastSeenAt DateTime @db.Timestamp(0)
 
-  @@id([userId, time])
+  @@id([userId, capturedAt])
   @@index([userId])
-  @@index([userId, time(sort: Desc)])
+  @@index([userId, capturedAt(sort: Desc)])
 }
 
 enum Color {

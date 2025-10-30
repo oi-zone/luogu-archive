@@ -9,7 +9,7 @@ export const saveUser = (user: UserSummary, now: Date | string) =>
         userId: user.uid,
       },
       orderBy: {
-        time: "desc",
+        capturedAt: "desc",
       },
     });
     if (
@@ -26,8 +26,13 @@ export const saveUser = (user: UserSummary, now: Date | string) =>
       lastSnapshot.background === (user.background ?? "")
     )
       return tx.userSnapshot.update({
-        where: { userId_time: { userId: user.uid, time: lastSnapshot.time } },
-        data: { until: now },
+        where: {
+          userId_capturedAt: {
+            userId: user.uid,
+            capturedAt: lastSnapshot.capturedAt,
+          },
+        },
+        data: { lastSeenAt: now },
       });
     return tx.userSnapshot.create({
       data: {
@@ -47,8 +52,8 @@ export const saveUser = (user: UserSummary, now: Date | string) =>
         ccfLevel: user.ccfLevel,
         xcpcLevel: user.xcpcLevel,
         background: user.background ?? "",
-        time: now,
-        until: now,
+        capturedAt: now,
+        lastSeenAt: now,
       },
     });
   });

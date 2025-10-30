@@ -30,7 +30,7 @@ export async function saveReply(
         replyId: reply.id,
       },
       orderBy: {
-        time: "desc",
+        capturedAt: "desc",
       },
     });
     if (
@@ -40,9 +40,12 @@ export async function saveReply(
     )
       return tx.replySnapshot.update({
         where: {
-          replyId_time: { replyId: reply.id, time: lastSnapshot.time },
+          replyId_capturedAt: {
+            replyId: reply.id,
+            capturedAt: lastSnapshot.capturedAt,
+          },
         },
-        data: { until: now },
+        data: { lastSeenAt: now },
       });
     return tx.replySnapshot.create({
       data: {
@@ -58,8 +61,8 @@ export async function saveReply(
         },
         author: { connect: { id: reply.author.uid } },
         content: reply.content,
-        time: now,
-        until: now,
+        capturedAt: now,
+        lastSeenAt: now,
       },
     });
   });
@@ -73,7 +76,7 @@ export async function savePost(post: PostDetails, now: Date | string) {
         postId: post.id,
       },
       orderBy: {
-        time: "desc",
+        capturedAt: "desc",
       },
     });
     if (
@@ -84,8 +87,13 @@ export async function savePost(post: PostDetails, now: Date | string) {
       lastSnapshot.content === post.content
     )
       return tx.postSnapshot.update({
-        where: { postId_time: { postId: post.id, time: lastSnapshot.time } },
-        data: { until: now },
+        where: {
+          postId_capturedAt: {
+            postId: post.id,
+            capturedAt: lastSnapshot.capturedAt,
+          },
+        },
+        data: { lastSeenAt: now },
       });
     return tx.postSnapshot.create({
       data: {
@@ -103,8 +111,8 @@ export async function savePost(post: PostDetails, now: Date | string) {
         author: { connect: { id: post.author.uid } },
         forum: { connect: { slug: post.forum.slug } },
         content: post.content,
-        time: now,
-        until: now,
+        capturedAt: now,
+        lastSeenAt: now,
       },
     });
   });

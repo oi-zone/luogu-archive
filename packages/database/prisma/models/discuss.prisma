@@ -18,18 +18,19 @@ model PostSnapshot {
   author   User @relation(fields: [authorId], references: [id])
   authorId Int
 
-  time      DateTime @default(now())
-  until     DateTime @updatedAt
   title     String
-  forum     Forum    @relation(fields: [forumSlug], references: [slug])
+  forum     Forum  @relation(fields: [forumSlug], references: [slug])
   forumSlug String
 
   content String @db.Text
 
-  @@id([postId, time])
+  capturedAt DateTime @db.Timestamp(0)
+  lastSeenAt DateTime @db.Timestamp(0)
+
+  @@id([postId, capturedAt])
   @@index([postId])
   @@index([authorId])
-  @@index([postId, time(sort: Desc)])
+  @@index([postId, capturedAt(sort: Desc)])
 }
 
 model PostTakedown {
@@ -64,14 +65,15 @@ model ReplySnapshot {
   author   User @relation(fields: [authorId], references: [id])
   authorId Int
 
-  time    DateTime @default(now())
-  until   DateTime @updatedAt
-  content String   @db.Text
+  content String @db.Text
 
-  @@id([replyId, time])
+  capturedAt DateTime @db.Timestamp(0)
+  lastSeenAt DateTime @db.Timestamp(0)
+
+  @@id([replyId, capturedAt])
   @@index([replyId])
   @@index([authorId])
-  @@index([replyId, time(sort: Desc)])
+  @@index([replyId, capturedAt(sort: Desc)])
 }
 
 model ReplyTakedown {
