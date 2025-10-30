@@ -4,8 +4,17 @@ import { prisma } from "@luogu-discussion-archive/db";
 
 import { PgAdvisoryLock } from "./locks.js";
 
-export const saveUser = (user: UserSummary, now: Date | string) =>
-  prisma.$transaction(async (tx) => {
+const saveUser = (uid: number) =>
+  prisma.user.upsert({
+    where: { id: uid },
+    create: { id: uid },
+    update: { id: uid },
+  });
+
+export async function saveUserSnapshot(user: UserSummary, now: Date | string) {
+  await saveUser(user.uid);
+
+  return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.User}::INT4, ${user.uid}::INT4);`;
 
     const lastSnapshot = await tx.userSnapshot.findFirst({
@@ -16,6 +25,7 @@ export const saveUser = (user: UserSummary, now: Date | string) =>
         capturedAt: "desc",
       },
     });
+
     if (
       lastSnapshot &&
       lastSnapshot.name === user.name &&
@@ -38,14 +48,10 @@ export const saveUser = (user: UserSummary, now: Date | string) =>
         },
         data: { lastSeenAt: now },
       });
+
     return tx.userSnapshot.create({
       data: {
-        user: {
-          connectOrCreate: {
-            where: { id: user.uid },
-            create: { id: user.uid },
-          },
-        },
+        userId: user.uid,
         name: user.name,
         slogan: user.slogan ?? "",
         badge: user.badge,
@@ -61,3 +67,4 @@ export const saveUser = (user: UserSummary, now: Date | string) =>
       },
     });
   });
+}

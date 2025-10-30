@@ -1,10 +1,16 @@
-import type { Forum, PostDetails, Reply } from "@lgjs/types";
+import type {
+  Forum,
+  Post,
+  PostDetails,
+  Reply,
+  ReplySummary,
+} from "@lgjs/types";
 
 import { prisma } from "@luogu-discussion-archive/db";
 
 import { client } from "./client.js";
 import { PgAdvisoryLock } from "./locks.js";
-import { saveUser } from "./user.js";
+import { saveUserSnapshot } from "./user.js";
 
 const saveForum = (forum: Forum) =>
   prisma.forum.upsert({
@@ -19,12 +25,30 @@ const saveForum = (forum: Forum) =>
     },
   });
 
-export async function saveReply(
+const saveReply = (reply: ReplySummary, postId: number) =>
+  prisma.reply.upsert({
+    where: { id: reply.id },
+    create: {
+      id: reply.id,
+      postId,
+      time: new Date(reply.time * 1000),
+    },
+    update: {
+      postId,
+      time: new Date(reply.time * 1000),
+    },
+  });
+
+async function saveReplySnapshot(
   reply: Reply,
   postId: number,
   now: Date | string,
 ) {
-  await saveUser(reply.author, now);
+  await Promise.all([
+    saveUserSnapshot(reply.author, now),
+    saveReply(reply, postId),
+  ]);
+
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Reply}::INT4, ${reply.id}::INT4);`;
 
@@ -36,6 +60,7 @@ export async function saveReply(
         capturedAt: "desc",
       },
     });
+
     if (
       lastSnapshot &&
       lastSnapshot.authorId === reply.author.uid &&
@@ -50,19 +75,11 @@ export async function saveReply(
         },
         data: { lastSeenAt: now },
       });
+
     return tx.replySnapshot.create({
       data: {
-        reply: {
-          connectOrCreate: {
-            where: { id: reply.id },
-            create: {
-              id: reply.id,
-              time: new Date(reply.time * 1000),
-              post: { connect: { id: postId } },
-            },
-          },
-        },
-        author: { connect: { id: reply.author.uid } },
+        replyId: reply.id,
+        authorId: reply.author.uid,
         content: reply.content,
         capturedAt: now,
         lastSeenAt: now,
@@ -71,8 +88,27 @@ export async function saveReply(
   });
 }
 
-export async function savePost(post: PostDetails, now: Date | string) {
-  await Promise.all([saveUser(post.author, now), saveForum(post.forum)]);
+const savePost = async (post: Post) =>
+  prisma.post.upsert({
+    where: { id: post.id },
+    create: {
+      id: post.id,
+      time: new Date(post.time * 1000),
+      replyCount: post.replyCount,
+    },
+    update: {
+      time: new Date(post.time * 1000),
+      replyCount: post.replyCount,
+    },
+  });
+
+export async function savePostSnapshot(post: PostDetails, now: Date | string) {
+  await Promise.all([
+    saveUserSnapshot(post.author, now),
+    saveForum(post.forum),
+    savePost(post),
+  ]);
+
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Post}::INT4, ${post.id}::INT4);`;
 
@@ -84,6 +120,7 @@ export async function savePost(post: PostDetails, now: Date | string) {
         capturedAt: "desc",
       },
     });
+
     if (
       lastSnapshot &&
       lastSnapshot.title === post.title &&
@@ -100,21 +137,13 @@ export async function savePost(post: PostDetails, now: Date | string) {
         },
         data: { lastSeenAt: now },
       });
+
     return tx.postSnapshot.create({
       data: {
-        post: {
-          connectOrCreate: {
-            where: { id: post.id },
-            create: {
-              id: post.id,
-              time: new Date(post.time * 1000),
-              replyCount: post.replyCount,
-            },
-          },
-        },
+        postId: post.id,
         title: post.title,
-        author: { connect: { id: post.author.uid } },
-        forum: { connect: { slug: post.forum.slug } },
+        authorId: post.author.uid,
+        forumSlug: post.forum.slug,
         content: post.content,
         capturedAt: now,
         lastSeenAt: now,
@@ -129,10 +158,10 @@ export async function fetchPost(id: number, page: number) {
   ).json();
   if (status !== 200) throw new Error();
   const now = new Date(time * 1000);
-  await savePost(data.post, now);
+  await savePostSnapshot(data.post, now);
   await Promise.all(
     (data.replies.result as Reply[]).map((reply) =>
-      saveReply(reply, data.post.id, now),
+      saveReplySnapshot(reply, data.post.id, now),
     ),
   );
 }
