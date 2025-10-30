@@ -2,11 +2,11 @@ model User {
   id        Int            @id
   snapshots UserSnapshot[]
 
-  activities     Activity[]
-  pastes         Paste[]
-  judgements     Judgement[]
-  postSnapshots  PostSnapshot[]
-  replySnapshots ReplySnapshot[]
+  activities    Activity[]
+  pastes        Paste[]
+  judgements    Judgement[]
+  postSnapshots PostSnapshot[]
+  replies       Reply[]
 
   postTakedowns     PostTakedown[]
   replyTakedowns    ReplyTakedown[]

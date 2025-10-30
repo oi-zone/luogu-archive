@@ -49,21 +49,22 @@ model Reply {
   post   Post @relation(fields: [postId], references: [id])
   postId Int
 
+  author   User @relation(fields: [authorId], references: [id])
+  authorId Int
+
   time DateTime @db.Timestamp(0)
 
   snapshots ReplySnapshot[]
   takedown  ReplyTakedown?
 
   @@index([postId])
+  @@index([authorId])
   @@index([time])
 }
 
 model ReplySnapshot {
   reply   Reply @relation(fields: [replyId], references: [id])
   replyId Int
-
-  author   User @relation(fields: [authorId], references: [id])
-  authorId Int
 
   content String @db.Text
 
@@ -72,7 +73,6 @@ model ReplySnapshot {
 
   @@id([replyId, capturedAt])
   @@index([replyId])
-  @@index([authorId])
   @@index([replyId, capturedAt(sort: Desc)])
 }
 

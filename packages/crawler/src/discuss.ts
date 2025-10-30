@@ -25,29 +25,35 @@ const saveForum = (forum: Forum) =>
     },
   });
 
-const saveReply = (reply: ReplySummary, postId: number) =>
-  prisma.reply.upsert({
+async function saveReply(
+  reply: ReplySummary,
+  postId: number,
+  now: Date | string,
+) {
+  await saveUserSnapshot(reply.author, now);
+
+  return prisma.reply.upsert({
     where: { id: reply.id },
     create: {
       id: reply.id,
       postId,
+      authorId: reply.author.uid,
       time: new Date(reply.time * 1000),
     },
     update: {
       postId,
+      authorId: reply.author.uid,
       time: new Date(reply.time * 1000),
     },
   });
+}
 
 async function saveReplySnapshot(
   reply: Reply,
   postId: number,
   now: Date | string,
 ) {
-  await Promise.all([
-    saveUserSnapshot(reply.author, now),
-    saveReply(reply, postId),
-  ]);
+  await saveReply(reply, postId, now);
 
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Reply}::INT4, ${reply.id}::INT4);`;
@@ -61,11 +67,7 @@ async function saveReplySnapshot(
       },
     });
 
-    if (
-      lastSnapshot &&
-      lastSnapshot.authorId === reply.author.uid &&
-      lastSnapshot.content === reply.content
-    )
+    if (lastSnapshot && lastSnapshot.content === reply.content)
       return tx.replySnapshot.update({
         where: {
           replyId_capturedAt: {
@@ -79,7 +81,6 @@ async function saveReplySnapshot(
     return tx.replySnapshot.create({
       data: {
         replyId: reply.id,
-        authorId: reply.author.uid,
         content: reply.content,
         capturedAt: now,
         lastSeenAt: now,
@@ -159,9 +160,19 @@ export async function fetchPost(id: number, page: number) {
   if (status !== 200) throw new Error();
   const now = new Date(time * 1000);
   await savePostSnapshot(data.post, now);
+
+  const replies = data.replies.result as Reply[];
+  if (data.post.pinnedReply) replies.push(data.post.pinnedReply);
   await Promise.all(
-    (data.replies.result as Reply[]).map((reply) =>
-      saveReplySnapshot(reply, data.post.id, now),
-    ),
+    replies
+      .map(
+        (reply) =>
+          saveReplySnapshot(reply, data.post.id, now) as Promise<object>,
+      )
+      .concat(
+        data.post.recentReply
+          ? saveReply(data.post.recentReply, data.post.id, now)
+          : [],
+      ),
   );
 }
