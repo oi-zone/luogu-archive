@@ -1,4 +1,8 @@
-import { client, STREAM_KEY, type Task } from "@luogu-discussion-archive/redis";
+import {
+  client,
+  STREAM_IMMEDIATE,
+  type Task,
+} from "@luogu-discussion-archive/redis";
 
 import { GROUP_NAME } from "./config.js";
 import { perform } from "./tasks.js";
@@ -13,7 +17,7 @@ export async function consume(consumerName: string) {
     const result = await client.xReadGroup(
       GROUP_NAME,
       consumerName,
-      [{ key: STREAM_KEY, id }],
+      [{ key: STREAM_IMMEDIATE, id }],
       { BLOCK: 0, COUNT: 1 },
     );
 
@@ -27,7 +31,7 @@ export async function consume(consumerName: string) {
     for (const { id, message } of messages) {
       lastId = id;
       await perform(message as unknown as Task);
-      await client.xAckDel(STREAM_KEY, GROUP_NAME, id, "ACKED");
+      await client.xAckDel(STREAM_IMMEDIATE, GROUP_NAME, id, "ACKED");
     }
   }
 }

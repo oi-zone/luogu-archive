@@ -1,5 +1,9 @@
 import { fetchDiscuss } from "@luogu-discussion-archive/crawler";
-import { client, STREAM_KEY, type Task } from "@luogu-discussion-archive/redis";
+import {
+  client,
+  STREAM_IMMEDIATE,
+  type Task,
+} from "@luogu-discussion-archive/redis";
 
 export async function perform(task: Task) {
   switch (task.type) {
@@ -11,7 +15,7 @@ export async function perform(task: Task) {
 
       if (!task.page)
         for (let i = numPages; i >= 1; i--) {
-          await client.xAdd(STREAM_KEY, "*", {
+          await client.xAdd(STREAM_IMMEDIATE, "*", {
             type: "discuss",
             id: task.id,
             page: String(i),
