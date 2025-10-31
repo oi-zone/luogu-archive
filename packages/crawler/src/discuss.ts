@@ -153,9 +153,10 @@ export async function savePostSnapshot(post: PostDetails, now: Date | string) {
   });
 }
 
-export async function fetchPost(id: number, page: number) {
+/** @returns the number of pages */
+export async function fetchDiscuss(id: number, page: number): Promise<number> {
   const { status, data, time } = await (
-    await client.get("discuss.show", { params: { id, page } })
+    await client.get("discuss.show", { params: { id }, query: { page } })
   ).json();
   if (status !== 200) throw new Error();
   const now = new Date(time * 1000);
@@ -175,4 +176,7 @@ export async function fetchPost(id: number, page: number) {
           : [],
       ),
   );
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return Math.ceil(data.replies.count / data.replies.perPage!);
 }

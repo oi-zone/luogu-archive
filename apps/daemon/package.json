@@ -1,0 +1,18 @@
+{
+  "name": "@luogu-discussion-archive/redis",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@luogu-discussion-archive/crawler": "workspace:*",
+    "@luogu-discussion-archive/redis": "workspace:*"
+  },
+  "devDependencies": {
+    "@luogu-discussion-archive/typescript-config": "workspace:*",
+    "@types/node": "^20.19.24",
+    "typescript": "^5.9.3"
+  }
+}
