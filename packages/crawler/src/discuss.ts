@@ -153,8 +153,15 @@ export async function savePostSnapshot(post: PostDetails, now: Date | string) {
   });
 }
 
-/** @returns the number of pages */
-export async function fetchDiscuss(id: number, page: number): Promise<number> {
+interface DiscussResult {
+  numPages: number;
+  numNewReplies: number;
+}
+
+export async function fetchDiscuss(
+  id: number,
+  page: number,
+): Promise<DiscussResult> {
   const { status, data, time } = await (
     await client.get("discuss.show", { params: { id }, query: { page } })
   ).json();
@@ -164,19 +171,20 @@ export async function fetchDiscuss(id: number, page: number): Promise<number> {
 
   const replies = data.replies.result as Reply[];
   if (data.post.pinnedReply) replies.push(data.post.pinnedReply);
-  await Promise.all(
-    replies
-      .map(
-        (reply) =>
-          saveReplySnapshot(reply, data.post.id, now) as Promise<object>,
-      )
-      .concat(
-        data.post.recentReply
-          ? saveReply(data.post.recentReply, data.post.id, now)
-          : [],
-      ),
-  );
+  const [replySnapshots] = await Promise.all([
+    Promise.all(
+      replies.map((reply) => saveReplySnapshot(reply, data.post.id, now)),
+    ),
+    ...(data.post.recentReply
+      ? [saveReply(data.post.recentReply, data.post.id, now)]
+      : []),
+  ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return Math.ceil(data.replies.count / data.replies.perPage!);
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    numPages: Math.ceil(data.replies.count / data.replies.perPage!),
+    numNewReplies: replySnapshots.filter(
+      ({ capturedAt }) => capturedAt.getTime() === now.getTime(),
+    ).length,
+  };
 }

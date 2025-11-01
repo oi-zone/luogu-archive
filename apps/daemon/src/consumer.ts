@@ -48,7 +48,7 @@ export async function consume(consumerName: string) {
     if (!messages.length) checkingBacklog[stream] = false;
 
     for (const { id, message } of messages) {
-      await perform(message as unknown as Task);
+      await perform(message as unknown as Task, stream);
       await client.xAckDel(stream, GROUP_NAME, id, "ACKED");
       lastId[stream] = id;
     }
