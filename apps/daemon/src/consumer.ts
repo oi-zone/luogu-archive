@@ -1,37 +1,56 @@
 import {
   client,
   STREAM_IMMEDIATE,
+  STREAM_ROUTINE,
   type Task,
 } from "@luogu-discussion-archive/redis";
 
-import { GROUP_NAME } from "./config.js";
+import { BLOCK_IMM_MS, GROUP_NAME } from "./config.js";
 import { perform } from "./tasks.js";
 
 export async function consume(consumerName: string) {
-  let lastId = "0-0";
-  let checkingBacklog = true;
+  const lastId = { [STREAM_IMMEDIATE]: "0-0", [STREAM_ROUTINE]: "0-0" };
+  const checkingBacklog = { [STREAM_IMMEDIATE]: true, [STREAM_ROUTINE]: true };
 
   for (;;) {
-    const id = checkingBacklog ? lastId : ">";
-
-    const result = await client.xReadGroup(
+    let result = await client.xReadGroup(
       GROUP_NAME,
       consumerName,
-      [{ key: STREAM_IMMEDIATE, id }],
-      { BLOCK: 0, COUNT: 1 },
+      [
+        {
+          key: STREAM_IMMEDIATE,
+          id: checkingBacklog[STREAM_IMMEDIATE]
+            ? lastId[STREAM_IMMEDIATE]
+            : ">",
+        },
+      ],
+      { BLOCK: BLOCK_IMM_MS, COUNT: 1 },
+    );
+
+    result ??= await client.xReadGroup(
+      GROUP_NAME,
+      consumerName,
+      [
+        {
+          key: STREAM_ROUTINE,
+          id: checkingBacklog[STREAM_ROUTINE] ? lastId[STREAM_ROUTINE] : ">",
+        },
+      ],
+      { COUNT: 1 },
     );
 
     if (!result) continue;
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const messages = result[0]!.messages;
+    const { name, messages } = result[0]!;
+    const stream = name as typeof STREAM_IMMEDIATE | typeof STREAM_ROUTINE;
 
-    if (!messages.length) checkingBacklog = false;
+    if (!messages.length) checkingBacklog[stream] = false;
 
     for (const { id, message } of messages) {
-      lastId = id;
       await perform(message as unknown as Task);
-      await client.xAckDel(STREAM_IMMEDIATE, GROUP_NAME, id, "ACKED");
+      await client.xAckDel(stream, GROUP_NAME, id, "ACKED");
+      lastId[stream] = id;
     }
   }
 }
