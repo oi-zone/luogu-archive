@@ -1,0 +1,7 @@
+model Problem {
+  pid        String @id
+  title      String
+  difficulty Int?
+
+  solutions Article[]
+}

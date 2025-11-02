@@ -3,6 +3,7 @@ model User {
   snapshots UserSnapshot[]
 
   activities    Activity[]
+  articles      Article[]
   pastes        Paste[]
   judgements    Judgement[]
   postSnapshots PostSnapshot[]

@@ -6,4 +6,4 @@ export const client: RedisClientPoolType = createClientPool();
 
 export type Task =
   | { type: "discuss"; id: string; page?: string }
-  | { type: "paste"; id: string };
+  | { type: "article"; lid: string };

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { fetchDiscuss } from "@luogu-discussion-archive/crawler";
+import { fetchArticle, fetchDiscuss } from "@luogu-discussion-archive/crawler";
 import {
   client,
   STREAM_IMMEDIATE,
@@ -54,8 +54,9 @@ export async function perform(task: Task, stream: string) {
 
       break;
     }
-    case "paste":
-      // Process paste task
+
+    case "article":
+      await fetchArticle(task.lid);
       break;
   }
 }
