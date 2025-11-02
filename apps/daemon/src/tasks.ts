@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { fetchArticle, fetchDiscuss } from "@luogu-discussion-archive/crawler";
+import {
+  fetchArticle,
+  fetchArticleReplies,
+  fetchDiscuss,
+} from "@luogu-discussion-archive/crawler";
 import {
   client,
   STREAM_IMMEDIATE,
@@ -57,6 +61,30 @@ export async function perform(task: Task, stream: string) {
 
     case "article":
       await fetchArticle(task.lid);
+      await client.xAdd(STREAM_IMMEDIATE, "*", {
+        type: "articleReplies",
+        lid: task.lid,
+      } satisfies Task);
       break;
+
+    case "articleReplies": {
+      const { lastReplyId, lastReplySaved } = await fetchArticleReplies(
+        task.lid,
+        task.after ? parseInt(task.after) : undefined,
+      );
+
+      if (lastReplyId)
+        await client.xAdd(
+          lastReplySaved ? STREAM_ROUTINE : STREAM_IMMEDIATE,
+          "*",
+          {
+            type: "articleReplies",
+            lid: task.lid,
+            after: String(lastReplyId),
+          } satisfies Task,
+        );
+
+      break;
+    }
   }
 }

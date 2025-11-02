@@ -1,2 +1,5 @@
-export { fetchArticle } from "./article.js";
+export {
+  fetchArticle,
+  fetchReplies as fetchArticleReplies,
+} from "./article.js";
 export { fetchDiscuss } from "./discuss.js";

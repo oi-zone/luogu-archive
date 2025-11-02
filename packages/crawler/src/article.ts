@@ -1,4 +1,4 @@
-import type { ArticleDetails } from "@lgjs/types";
+import type { ArticleDetails, Comment } from "@lgjs/types";
 
 import { prisma, type ArticleCollection } from "@luogu-discussion-archive/db";
 
@@ -106,4 +106,51 @@ export async function fetchArticle(lid: string) {
   const now = new Date(time * 1000);
 
   await saveArticleSnapshot(data.article, now);
+}
+
+async function saveReply(lid: string, reply: Comment, now: Date | string) {
+  await saveUserSnapshot(reply.author, now);
+
+  return prisma.articleReply.upsert({
+    where: { id: reply.id },
+    create: {
+      id: reply.id,
+      articleId: lid,
+      authorId: reply.author.uid,
+      time: new Date(reply.time * 1000),
+      content: reply.content,
+      updatedAt: now,
+    },
+    update: {
+      articleId: lid,
+      authorId: reply.author.uid,
+      time: new Date(reply.time * 1000),
+      content: reply.content,
+      updatedAt: now,
+    },
+  });
+}
+
+export async function fetchReplies(lid: string, after?: number) {
+  // Here we don't have the server time, so just use local time
+  const now = new Date();
+
+  const { replySlice } = await (
+    await client.get("article.replies", {
+      params: { lid },
+      query: { sort: "time-d", ...(after ? { after } : {}) },
+    })
+  ).json();
+
+  const lastReplyId = replySlice[replySlice.length - 1]?.id;
+  if (!lastReplyId) return { lastReplyId: null, lastReplySaved: null };
+
+  const lastReplySaved = await prisma.articleReply.findUnique({
+    select: { updatedAt: true },
+    where: { id: lastReplyId },
+  });
+
+  await Promise.all(replySlice.map((reply) => saveReply(lid, reply, now)));
+
+  return { lastReplyId, lastReplySaved };
 }

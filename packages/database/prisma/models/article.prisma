@@ -16,6 +16,7 @@ model Article {
   adminNote      String?
 
   snapshots ArticleSnapshot[]
+  replies   ArticleReply[]
 
   @@index([time])
   @@index([authorId])
@@ -45,4 +46,20 @@ model ArticleCollection {
   name String
 
   articles Article[]
+}
+
+model ArticleReply {
+  id        Int      @id
+  article   Article  @relation(fields: [articleId], references: [lid])
+  articleId String   @db.Char(8)
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+  time      DateTime @db.Timestamp(0)
+  content   String
+
+  updatedAt DateTime @updatedAt
+
+  @@index([articleId])
+  @@index([authorId])
+  @@index([time])
 }
