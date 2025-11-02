@@ -6,6 +6,7 @@ import {
   fetchArticleReplies,
   fetchDiscuss,
   fetchJudgement,
+  fetchPaste,
 } from "@luogu-discussion-archive/crawler";
 import {
   client,
@@ -87,6 +88,10 @@ export async function perform(task: Task, stream: string) {
 
       break;
     }
+
+    case "paste":
+      await fetchPaste(task.id);
+      break;
 
     case "judgement":
       await fetchJudgement();

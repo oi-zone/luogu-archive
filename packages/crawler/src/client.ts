@@ -8,6 +8,7 @@ export const client = new RequestClient({
   baseUrl: "https://www.luogu.com",
   headers: {
     cookie,
+    "x-luogu-type": "content-only",
     "x-lentille-request": "content-only",
     "user-agent": userAgent,
   },
