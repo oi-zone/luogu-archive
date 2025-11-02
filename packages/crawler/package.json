@@ -16,7 +16,7 @@
     "@luogu-discussion-archive/db": "workspace:*"
   },
   "devDependencies": {
-    "@lgjs/types": "^0.1.1",
+    "@lgjs/types": "^0.1.2",
     "@luogu-discussion-archive/typescript-config": "workspace:*",
     "@types/node": "^20.19.24",
     "typescript": "^5.9.3"

@@ -5,8 +5,8 @@ model Judgement {
   userId Int
 
   reason            String
-  permissionGranted Int
-  permissionRevoked Int
+  revokedPermission Int
+  addedPermission   Int
 
   @@id([time, userId])
   @@index([time(sort: Desc)])

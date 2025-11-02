@@ -5,6 +5,7 @@ import {
   fetchArticle,
   fetchArticleReplies,
   fetchDiscuss,
+  fetchJudgement,
 } from "@luogu-discussion-archive/crawler";
 import {
   client,
@@ -86,5 +87,9 @@ export async function perform(task: Task, stream: string) {
 
       break;
     }
+
+    case "judgement":
+      await fetchJudgement();
+      break;
   }
 }
