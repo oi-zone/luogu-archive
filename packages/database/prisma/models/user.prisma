@@ -30,8 +30,8 @@ model UserSnapshot {
   xcpcLevel  Int
   background String
 
-  capturedAt DateTime @db.Timestamp(0)
-  lastSeenAt DateTime @db.Timestamp(0)
+  capturedAt DateTime
+  lastSeenAt DateTime
 
   @@id([userId, capturedAt])
   @@index([userId])
