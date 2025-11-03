@@ -1,3 +1,4 @@
+import logger from "@luogu-discussion-archive/logging";
 import { client } from "@luogu-discussion-archive/redis";
 
 import { consume } from "./consumer.js";
@@ -13,11 +14,12 @@ await client.connect();
 
 await Promise.all(
   consumers.map((name) => {
-    const start = (): Promise<void> =>
-      consume(name).catch(() =>
-        new Promise((resolve) => setTimeout(resolve, 10000)).then(start),
-      );
-    return start();
+    const log = logger.child({ consumer: name });
+    log.info({ consumer: name }, "Starting consumer");
+    return consume(name).catch((err: unknown) => {
+      log.fatal({ consumer: name, err }, "Consumer crashed");
+      throw err;
+    });
   }),
 );
 

@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@luogu-discussion-archive/crawler": "workspace:*",
+    "@luogu-discussion-archive/logging": "workspace:*",
     "@luogu-discussion-archive/redis": "workspace:*"
   },
   "devDependencies": {

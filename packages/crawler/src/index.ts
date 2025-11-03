@@ -5,3 +5,5 @@ export {
 export { fetchDiscuss } from "./discuss.js";
 export { fetchJudgement } from "./judgement.js";
 export { fetchPaste } from "./paste.js";
+
+export { AccessError } from "./error.js";

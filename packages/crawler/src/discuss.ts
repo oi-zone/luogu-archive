@@ -8,7 +8,8 @@ import type {
 
 import { prisma } from "@luogu-discussion-archive/db";
 
-import { client } from "./client.js";
+import { clientLentille } from "./client.js";
+import { AccessError } from "./error.js";
 import { PgAdvisoryLock } from "./locks.js";
 import { saveUserSnapshot } from "./user.js";
 
@@ -155,9 +156,13 @@ export async function savePostSnapshot(post: PostDetails, now: Date | string) {
 
 export async function fetchDiscuss(id: number, page: number) {
   const { status, data, time } = await (
-    await client.get("discuss.show", { params: { id }, query: { page } })
+    await clientLentille.get("discuss.show", {
+      params: { id },
+      query: { page },
+    })
   ).json();
-  if (status !== 200) throw new Error();
+  if (status !== 200)
+    throw new AccessError("Failed to fetch discussion", status);
   const now = new Date(time * 1000);
   await savePostSnapshot(data.post, now);
 

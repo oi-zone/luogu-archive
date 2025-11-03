@@ -2,7 +2,8 @@ import type { ArticleDetails, Comment } from "@lgjs/types";
 
 import { prisma, type ArticleCollection } from "@luogu-discussion-archive/db";
 
-import { client } from "./client.js";
+import { clientLentille } from "./client.js";
+import { AccessError } from "./error.js";
 import { saveProblem } from "./problem.js";
 import { saveUserSnapshot } from "./user.js";
 
@@ -100,9 +101,9 @@ async function saveArticleSnapshot(
 
 export async function fetchArticle(lid: string) {
   const { status, data, time } = await (
-    await client.get("article.show", { params: { lid } })
+    await clientLentille.get("article.show", { params: { lid } })
   ).json();
-  if (status !== 200) throw new Error();
+  if (status !== 200) throw new AccessError("Failed to fetch article", status);
   const now = new Date(time * 1000);
 
   await saveArticleSnapshot(data.article, now);
@@ -136,7 +137,7 @@ export async function fetchReplies(lid: string, after?: number) {
   const now = new Date();
 
   const { replySlice } = await (
-    await client.get("article.replies", {
+    await clientLentille.get("article.replies", {
       params: { lid },
       query: { sort: "time-d", ...(after ? { after } : {}) },
     })

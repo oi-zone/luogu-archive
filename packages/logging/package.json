@@ -1,7 +1,6 @@
 {
-  "name": "@luogu-discussion-archive/redis",
+  "name": "@luogu-discussion-archive/logging",
   "version": "0.0.0",
-  "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -12,11 +11,15 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@luogu-discussion-archive/logging": "workspace:*",
-    "redis": "^5.9.0"
+    "pino": "^9.14.0"
+  },
+  "optionalDependencies": {
+    "@logtail/pino": "^0.5.6"
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
+    "@types/node": "^20.19.24",
+    "pino-pretty": "^13.1.2",
     "typescript": "^5.9.3"
   }
 }

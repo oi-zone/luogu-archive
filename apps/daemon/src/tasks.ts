@@ -12,7 +12,7 @@ import {
   client,
   STREAM_IMMEDIATE,
   STREAM_ROUTINE,
-  type Task,
+  type Job,
 } from "@luogu-discussion-archive/redis";
 
 import { REPLY_PAGE_CACHE_TTL_SEC } from "./config.js";
@@ -21,7 +21,7 @@ const SCRIPT_SET_IF_GREATER = await readFile(
   path.join(import.meta.dirname, "../set_if_greater.lua"),
 );
 
-export async function perform(task: Task, stream: string) {
+export async function perform(task: Job, stream: string) {
   switch (task.type) {
     case "discuss": {
       const noNewRepliesKey = `discuss.no-new-replies.${task.id}`;
@@ -34,7 +34,7 @@ export async function perform(task: Task, stream: string) {
             type: "discuss",
             id: task.id,
             page: String(parseInt(task.page)),
-          } satisfies Task);
+          } satisfies Job);
           break;
         }
       }
@@ -50,7 +50,7 @@ export async function perform(task: Task, stream: string) {
             type: "discuss",
             id: task.id,
             page: String(i),
-          } satisfies Task);
+          } satisfies Job);
         }
       else if (numNewReplies < numReplies)
         await client.eval(SCRIPT_SET_IF_GREATER, {
@@ -66,7 +66,7 @@ export async function perform(task: Task, stream: string) {
       await client.xAdd(STREAM_IMMEDIATE, "*", {
         type: "articleReplies",
         lid: task.lid,
-      } satisfies Task);
+      } satisfies Job);
       break;
 
     case "articleReplies": {
@@ -83,7 +83,7 @@ export async function perform(task: Task, stream: string) {
             type: "articleReplies",
             lid: task.lid,
             after: String(lastReplyId),
-          } satisfies Task,
+          } satisfies Job,
         );
 
       break;
