@@ -39,7 +39,7 @@ export async function perform(task: Task, stream: string) {
         }
       }
 
-      const { numPages, numNewReplies } = await fetchDiscuss(
+      const { numPages, numReplies, numNewReplies } = await fetchDiscuss(
         parseInt(task.id),
         parseInt(task.page ?? "1"),
       );
@@ -52,7 +52,7 @@ export async function perform(task: Task, stream: string) {
             page: String(i),
           } satisfies Task);
         }
-      else if (!numNewReplies)
+      else if (numNewReplies < numReplies)
         await client.eval(SCRIPT_SET_IF_GREATER, {
           keys: [noNewRepliesKey],
           arguments: [task.page, "EX", String(REPLY_PAGE_CACHE_TTL_SEC)],

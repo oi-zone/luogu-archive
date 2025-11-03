@@ -153,15 +153,7 @@ export async function savePostSnapshot(post: PostDetails, now: Date | string) {
   });
 }
 
-interface DiscussResult {
-  numPages: number;
-  numNewReplies: number;
-}
-
-export async function fetchDiscuss(
-  id: number,
-  page: number,
-): Promise<DiscussResult> {
+export async function fetchDiscuss(id: number, page: number) {
   const { status, data, time } = await (
     await client.get("discuss.show", { params: { id }, query: { page } })
   ).json();
@@ -183,6 +175,7 @@ export async function fetchDiscuss(
   return {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     numPages: Math.ceil(data.replies.count / data.replies.perPage!),
+    numReplies: replies.length,
     numNewReplies: replySnapshots.filter(
       ({ capturedAt }) => capturedAt.getTime() === now.getTime(),
     ).length,
