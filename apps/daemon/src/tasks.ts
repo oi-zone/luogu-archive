@@ -44,7 +44,7 @@ export async function perform(task: Job, stream: string) {
         parseInt(task.page ?? "1"),
       );
 
-      if (!task.page)
+      if (!task.page && numPages > 1)
         for (let i = numPages; i >= 1; i--) {
           await client.xAdd(STREAM_IMMEDIATE, "*", {
             type: "discuss",
@@ -55,7 +55,7 @@ export async function perform(task: Job, stream: string) {
       else if (numNewReplies < numReplies)
         await client.eval(SCRIPT_SET_IF_GREATER, {
           keys: [noNewRepliesKey],
-          arguments: [task.page, "EX", String(REPLY_PAGE_CACHE_TTL_SEC)],
+          arguments: [task.page ?? "1", "EX", String(REPLY_PAGE_CACHE_TTL_SEC)],
         });
 
       break;
