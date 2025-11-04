@@ -159,6 +159,19 @@ importers:
         specifier: ^0.5.6
         version: 0.5.6(pino@9.14.0)
 
+  packages/query:
+    dependencies:
+      '@luogu-discussion-archive/db':
+        specifier: workspace:*
+        version: link:../database
+    devDependencies:
+      '@luogu-discussion-archive/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/redis:
     dependencies:
       '@luogu-discussion-archive/logging':
