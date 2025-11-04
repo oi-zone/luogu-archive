@@ -13,16 +13,18 @@ import { AccessError } from "./error.js";
 import { PgAdvisoryLock } from "./locks.js";
 import { saveUserSnapshot } from "./user.js";
 
-const saveForum = (forum: Forum) =>
+const saveForum = (forum: Forum, now: Date | string) =>
   prisma.forum.upsert({
     where: { slug: forum.slug },
     update: {
       slug: forum.slug,
       name: forum.name,
+      updatedAt: now,
     },
     create: {
       slug: forum.slug,
       name: forum.name,
+      updatedAt: now,
     },
   });
 
@@ -90,25 +92,31 @@ async function saveReplySnapshot(
   });
 }
 
-const savePost = async (post: Post) =>
+const savePost = async (post: Post, now: Date | string) =>
   prisma.post.upsert({
     where: { id: post.id },
     create: {
       id: post.id,
       time: new Date(post.time * 1000),
       replyCount: post.replyCount,
+      topped: post.topped,
+      locked: post.locked,
+      updatedAt: now,
     },
     update: {
       time: new Date(post.time * 1000),
       replyCount: post.replyCount,
+      topped: post.topped,
+      locked: post.locked,
+      updatedAt: now,
     },
   });
 
 export async function savePostSnapshot(post: PostDetails, now: Date | string) {
   await Promise.all([
     saveUserSnapshot(post.author, now),
-    saveForum(post.forum),
-    savePost(post),
+    saveForum(post.forum, now),
+    savePost(post, now),
   ]);
 
   return prisma.$transaction(async (tx) => {

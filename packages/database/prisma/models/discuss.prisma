@@ -1,9 +1,14 @@
 model Post {
-  id         Int            @id
-  time       DateTime       @db.Timestamp(0)
-  snapshots  PostSnapshot[]
+  id         Int      @id
+  time       DateTime @db.Timestamp(0)
+  topped     Boolean
+  locked     Boolean
   replyCount Int
-  replies    Reply[]
+
+  updatedAt DateTime
+
+  snapshots PostSnapshot[]
+  replies   Reply[]
 
   takedown PostTakedown?
 
@@ -87,7 +92,10 @@ model ReplyTakedown {
 }
 
 model Forum {
-  slug         String         @id
-  name         String
-  PostSnapshot PostSnapshot[]
+  slug String @id
+  name String
+
+  updatedAt DateTime
+
+  postSnapshots PostSnapshot[]
 }

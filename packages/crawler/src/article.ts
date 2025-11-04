@@ -22,7 +22,7 @@ const saveCollection = (collection: ArticleCollection) =>
 async function saveArticle(article: ArticleDetails, now: Date | string) {
   await Promise.all([
     saveUserSnapshot(article.author, now),
-    ...(article.solutionFor ? [saveProblem(article.solutionFor)] : []),
+    ...(article.solutionFor ? [saveProblem(article.solutionFor, now)] : []),
     ...(article.collection ? [saveCollection(article.collection)] : []),
   ]);
 

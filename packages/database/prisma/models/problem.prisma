@@ -3,5 +3,7 @@ model Problem {
   title      String
   difficulty Int?
 
+  updatedAt DateTime
+
   solutions Article[]
 }
