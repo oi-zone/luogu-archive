@@ -118,12 +118,15 @@ const savePost = async (post: Post, now: Date | string) =>
     },
   });
 
-export async function savePostSnapshot(post: PostDetails, now: Date | string) {
-  await Promise.all([
-    saveUserSnapshot(post.author, now),
-    saveForum(post.forum, now),
+const savePostMeta = (post: Post, now: Date | string) =>
+  Promise.all([
     savePost(post, now),
+    saveForum(post.forum, now),
+    saveUserSnapshot(post.author, now),
   ]);
+
+export async function savePostSnapshot(post: PostDetails, now: Date | string) {
+  await savePostMeta(post, now);
 
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Post}::INT4, ${post.id}::INT4);`;
@@ -177,18 +180,18 @@ export async function fetchDiscuss(id: number, page: number) {
   ).json();
   if (status !== 200)
     throw new AccessError("Failed to fetch discussion", status);
-  const now = new Date(time * 1000);
-  await savePostSnapshot(data.post, now);
 
+  const now = new Date(time * 1000);
   const replies = data.replies.result as Reply[];
   if (data.post.pinnedReply) replies.push(data.post.pinnedReply);
   const [replySnapshots] = await Promise.all([
     Promise.all(
       replies.map((reply) => saveReplySnapshot(reply, data.post.id, now)),
     ),
-    ...(data.post.recentReply
-      ? [saveReply(data.post.recentReply, data.post.id, now)]
-      : []),
+    data.post.recentReply
+      ? saveReply(data.post.recentReply, data.post.id, now)
+      : Promise.resolve(),
+    savePostSnapshot(data.post, now),
   ]);
 
   return {
@@ -199,4 +202,27 @@ export async function fetchDiscuss(id: number, page: number) {
       ({ capturedAt }) => capturedAt.getTime() === now.getTime(),
     ).length,
   };
+}
+
+export async function listDiscuss(forum?: string | null, page?: number) {
+  const { status, data, time } = await (
+    await clientLentille.get("discuss.list", {
+      query: { ...(forum ? { forum } : {}), ...(page ? { page } : {}) },
+    })
+  ).json();
+  if (status !== 200)
+    throw new AccessError("Failed to list discussions", status);
+
+  const now = new Date(time * 1000);
+  const posts = data.posts.result as Post[];
+  return Promise.all(
+    posts.map(async (post) =>
+      Promise.all([
+        savePostMeta(post, now),
+        post.recentReply
+          ? saveReply(post.recentReply, post.id, now)
+          : Promise.resolve(),
+      ]).then(([[{ id }]]) => id),
+    ),
+  );
 }
