@@ -11,22 +11,28 @@ import { prisma } from "@luogu-discussion-archive/db";
 import { clientLentille } from "./client.js";
 import { AccessError } from "./error.js";
 import { PgAdvisoryLock } from "./locks.js";
+import { saveProblem } from "./problem.js";
 import { saveUserSnapshot } from "./user.js";
 
-const saveForum = (forum: Forum, now: Date | string) =>
-  prisma.forum.upsert({
+async function saveForum(forum: Forum, now: Date | string) {
+  if (forum.problem) await saveProblem(forum.problem, now);
+
+  return prisma.forum.upsert({
     where: { slug: forum.slug },
     update: {
       slug: forum.slug,
       name: forum.name,
+      problemId: forum.problem?.pid ?? null,
       updatedAt: now,
     },
     create: {
       slug: forum.slug,
       name: forum.name,
+      problemId: forum.problem?.pid ?? null,
       updatedAt: now,
     },
   });
+}
 
 async function saveReply(
   reply: ReplySummary,

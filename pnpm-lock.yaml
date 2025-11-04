@@ -105,8 +105,8 @@ importers:
         version: link:../database
     devDependencies:
       '@lgjs/types':
-        specifier: ^0.1.2
-        version: 0.1.2
+        specifier: ^0.1.3
+        version: 0.1.3
       '@luogu-discussion-archive/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
@@ -564,8 +564,8 @@ packages:
   '@lgjs/request@0.1.0':
     resolution: {integrity: sha512-22ZR+x80Sz7CuO7fcrnIwLO09cl3V20B2Bir+dg6g4DTJOZBvSo5awoqcyDsCIleAwXruJ3yh19txNoGTh6WwA==}
 
-  '@lgjs/types@0.1.2':
-    resolution: {integrity: sha512-SfMClhYSiOjvrS8x7MrLJWpm7ovUMeAO0ItM7GtLi67u4cI6luc7gNtacGMb/zjvtn914YREHYe/JrmcWSqZgw==}
+  '@lgjs/types@0.1.3':
+    resolution: {integrity: sha512-Bu9TrBRImfhIeZROQxDsCIcgjqiAiN6Aj7AKBYLcwbw2nDVSKRNyoGp6hTwvVmDLt2T7upjPLt5KzBzcdin5Gg==}
 
   '@logtail/core@0.5.6':
     resolution: {integrity: sha512-wbExeqFgH8mfEJ0N1X1KmBZVmh1oGyQLtHo329O9TvDqyL3tmyQnXbtEHwB0whfCKrkzHPZvWAamcv/Y8uPOZw==}
@@ -3261,10 +3261,10 @@ snapshots:
 
   '@lgjs/request@0.1.0':
     dependencies:
-      '@lgjs/types': 0.1.2
+      '@lgjs/types': 0.1.3
       universal-user-agent: 7.0.3
 
-  '@lgjs/types@0.1.2': {}
+  '@lgjs/types@0.1.3': {}
 
   '@logtail/core@0.5.6':
     dependencies:

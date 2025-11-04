@@ -95,6 +95,9 @@ model Forum {
   slug String @id
   name String
 
+  problem   Problem? @relation(fields: [problemId], references: [pid])
+  problemId String?  @unique
+
   updatedAt DateTime
 
   postSnapshots PostSnapshot[]
