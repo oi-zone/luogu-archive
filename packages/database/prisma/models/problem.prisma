@@ -5,6 +5,6 @@ model Problem {
 
   updatedAt DateTime
 
-  forum     Forum?
-  solutions Article[]
+  forum             Forum?
+  solutionSnapshots ArticleSnapshot[]
 }

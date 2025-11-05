@@ -1,4 +1,4 @@
-import type { ArticleDetails, Comment } from "@lgjs/types";
+import type { Article, ArticleDetails, Comment } from "@lgjs/types";
 
 import { prisma, type ArticleCollection } from "@luogu-discussion-archive/db";
 
@@ -19,12 +19,8 @@ const saveCollection = (collection: ArticleCollection) =>
     },
   });
 
-async function saveArticle(article: ArticleDetails, now: Date | string) {
-  await Promise.all([
-    saveUserSnapshot(article.author, now),
-    ...(article.solutionFor ? [saveProblem(article.solutionFor, now)] : []),
-    ...(article.collection ? [saveCollection(article.collection)] : []),
-  ]);
+async function saveArticle(article: Article, now: Date | string) {
+  await saveUserSnapshot(article.author, now);
 
   return prisma.article.upsert({
     where: { lid: article.lid },
@@ -35,11 +31,7 @@ async function saveArticle(article: ArticleDetails, now: Date | string) {
       upvote: article.upvote,
       replyCount: article.replyCount,
       favorCount: article.favorCount,
-      status: article.status,
-      solutionForPid: article.solutionFor?.pid ?? null,
-      promoteStatus: article.promoteStatus,
-      collectionId: article.collection?.id ?? null,
-      adminNote: article.adminNote,
+      updatedAt: now,
     },
     update: {
       time: new Date(article.time * 1000),
@@ -47,20 +39,25 @@ async function saveArticle(article: ArticleDetails, now: Date | string) {
       upvote: article.upvote,
       replyCount: article.replyCount,
       favorCount: article.favorCount,
-      status: article.status,
-      solutionForPid: article.solutionFor?.pid ?? null,
-      promoteStatus: article.promoteStatus,
-      collectionId: article.collection?.id ?? null,
-      adminNote: article.adminNote,
+      updatedAt: now,
     },
   });
 }
+
+const saveArticleMeta = (article: Article, now: Date | string) =>
+  Promise.all([
+    saveArticle(article, now),
+    article.solutionFor
+      ? saveProblem(article.solutionFor, now)
+      : Promise.resolve(),
+    article.collection ? saveCollection(article.collection) : Promise.resolve(),
+  ]);
 
 async function saveArticleSnapshot(
   article: ArticleDetails,
   now: Date | string,
 ) {
-  await saveArticle(article, now);
+  await saveArticleMeta(article, now);
 
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${parseInt(article.lid, 36)});`;
@@ -74,7 +71,8 @@ async function saveArticleSnapshot(
       lastSnapshot &&
       lastSnapshot.title === article.title &&
       lastSnapshot.category === article.category &&
-      lastSnapshot.content === article.content
+      lastSnapshot.content === article.content &&
+      lastSnapshot.adminNote === article.adminNote
     )
       return tx.articleSnapshot.update({
         where: {
@@ -91,7 +89,12 @@ async function saveArticleSnapshot(
         articleId: article.lid,
         title: article.title,
         category: article.category,
+        status: article.status,
+        solutionForPid: article.solutionFor?.pid ?? null,
+        promoteStatus: article.promoteStatus,
+        collectionId: article.collection?.id ?? null,
         content: article.content,
+        adminNote: article.adminNote,
         capturedAt: now,
         lastSeenAt: now,
       },
@@ -106,7 +109,27 @@ export async function fetchArticle(lid: string) {
   if (status !== 200) throw new AccessError("Failed to fetch article", status);
   const now = new Date(time * 1000);
 
-  await saveArticleSnapshot(data.article, now);
+  return saveArticleSnapshot(data.article, now);
+}
+
+export async function listArticles(collection: number | null, page?: number) {
+  const { status, data, time } = await (
+    await (collection
+      ? clientLentille.get("article.collection", {
+          params: { id: collection },
+          ...(page ? { query: { page } } : {}),
+        })
+      : clientLentille.get("article.list", page ? { query: { page } } : {}))
+  ).json();
+  if (status !== 200) throw new AccessError("Failed to list articles", status);
+
+  const now = new Date(time * 1000);
+  const articles = data.articles.result as Article[];
+  return Promise.all(
+    articles.map(async (article) =>
+      saveArticleMeta(article, now).then(([{ lid }]) => lid),
+    ),
+  );
 }
 
 async function saveReply(lid: string, reply: Comment, now: Date | string) {
