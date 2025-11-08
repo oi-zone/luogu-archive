@@ -162,12 +162,15 @@ export async function fetchReplies(lid: string, after?: number) {
   // Here we don't have the server time, so just use local time
   const now = new Date();
 
-  const { replySlice } = await (
+  const response = await (
     await clientLentille.get("article.replies", {
       params: { lid },
       query: { sort: "time-d", ...(after ? { after } : {}) },
     })
   ).json();
+  if (!Object.hasOwn(response, "replySlice"))
+    throw new Error(JSON.stringify(response));
+  const { replySlice } = response;
 
   const lastReplyId = replySlice[replySlice.length - 1]?.id;
   if (!lastReplyId) return { lastReplyId: null, lastReplySaved: null };
