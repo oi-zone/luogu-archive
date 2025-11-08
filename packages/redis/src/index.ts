@@ -10,6 +10,8 @@ client.on("error", (err) => {
 });
 
 export type Job =
+  | { type: "listDiscuss"; forum?: string; page?: string }
+  | { type: "listArticles"; collection?: string; page?: string }
   | { type: "discuss"; id: string; page?: string }
   | { type: "article"; lid: string }
   | { type: "articleReplies"; lid: string; after?: string }

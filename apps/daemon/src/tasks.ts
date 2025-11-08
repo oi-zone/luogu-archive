@@ -7,6 +7,8 @@ import {
   fetchDiscuss,
   fetchJudgement,
   fetchPaste,
+  listArticles,
+  listDiscuss,
 } from "@luogu-discussion-archive/crawler";
 import {
   client,
@@ -23,6 +25,38 @@ const SCRIPT_SET_IF_GREATER = await readFile(
 
 export async function perform(task: Job, stream: string) {
   switch (task.type) {
+    case "listDiscuss": {
+      const discussions = await listDiscuss(
+        task.forum,
+        task.page ? parseInt(task.page) : undefined,
+      );
+      await Promise.all(
+        discussions.map((id) =>
+          client.xAdd(STREAM_IMMEDIATE, "*", {
+            type: "discuss",
+            id: String(id),
+          } satisfies Job),
+        ),
+      );
+      break;
+    }
+
+    case "listArticles": {
+      const articles = await listArticles(
+        task.collection ? parseInt(task.collection) : undefined,
+        task.page ? parseInt(task.page) : undefined,
+      );
+      await Promise.all(
+        articles.map((lid) =>
+          client.xAdd(STREAM_IMMEDIATE, "*", {
+            type: "article",
+            lid,
+          } satisfies Job),
+        ),
+      );
+      break;
+    }
+
     case "discuss": {
       const noNewRepliesKey = `discuss.no-new-replies.${task.id}`;
       if (task.page && stream !== STREAM_ROUTINE) {

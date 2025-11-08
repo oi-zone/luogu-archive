@@ -204,7 +204,7 @@ export async function fetchDiscuss(id: number, page: number) {
   };
 }
 
-export async function listDiscuss(forum?: string | null, page?: number) {
+export async function listDiscuss(forum: string | null = null, page?: number) {
   const { status, data, time } = await (
     await clientLentille.get("discuss.list", {
       query: { ...(forum ? { forum } : {}), ...(page ? { page } : {}) },

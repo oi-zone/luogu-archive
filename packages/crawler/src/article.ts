@@ -112,7 +112,10 @@ export async function fetchArticle(lid: string) {
   return saveArticleSnapshot(data.article, now);
 }
 
-export async function listArticles(collection: number | null, page?: number) {
+export async function listArticles(
+  collection: number | null = null,
+  page?: number,
+) {
   const { status, data, time } = await (
     await (collection
       ? clientLentille.get("article.collection", {
