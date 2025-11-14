@@ -120,6 +120,9 @@ export async function perform(task: Job, stream: string) {
           } satisfies Job,
         );
 
+      await new Promise((resolve) =>
+        setTimeout(resolve, (1 + Math.random()) * 1000),
+      );
       break;
     }
 

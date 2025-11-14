@@ -94,7 +94,7 @@ export async function consume(consumerName: string) {
             break;
           }
 
-          const delay = JOB_RETRY_DELAY_MS * attempt;
+          const delay = JOB_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
           jobLog.info({ attempt, delay }, "Retrying job after delay");
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
