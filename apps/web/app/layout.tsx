@@ -3,6 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 
+import { AppShell } from "@/components/layout/app-shell";
+import { QueryProvider } from "@/components/query/query-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -20,15 +24,22 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal?: React.ReactNode;
 }>) {
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider>
+          <QueryProvider>
+            <AppShell>{children}</AppShell>
+            {modal}
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

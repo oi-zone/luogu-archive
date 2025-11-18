@@ -1,0 +1,150 @@
+"use client";
+
+import * as React from "react";
+import {
+  History,
+  Reply,
+  SquareArrowOutUpRight,
+  SquareCheckBig,
+} from "lucide-react";
+import Link from "next/link";
+
+import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
+import { cn } from "@/lib/utils";
+import { useClipboard } from "@/hooks/use-clipboard";
+import { Button } from "@/components/ui/button";
+
+type StatRowProps = {
+  label: string;
+  value: string;
+  hint?: string;
+};
+
+function StatRow({ label, value, hint }: StatRowProps) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+        {label}
+      </dt>
+      <dd className="text-foreground text-sm font-medium">{value}</dd>
+      {hint ? (
+        <span className="text-muted-foreground/70 text-xs">{hint}</span>
+      ) : null}
+    </div>
+  );
+}
+
+export default function DiscussionOperationPanel({
+  discussion,
+  className,
+}: {
+  discussion: {
+    id: number;
+    replyCount: number;
+    capturedAt: Date;
+    lastSeenAt: Date;
+    snapshotsCount: number;
+  };
+  className?: string;
+}) {
+  const { copy: copyLink, copied: copiedLink } = useClipboard();
+  const { copy: copySnapshotLink, copied: copiedSnapshotLink } = useClipboard();
+  const openWayback = React.useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#wayback") return;
+    window.location.hash = "wayback";
+  }, []);
+
+  return (
+    <div
+      className={cn(
+        "border-border bg-background rounded-3xl border px-5 py-4 shadow-sm",
+        className,
+      )}
+    >
+      <div className="space-y-1">
+        <h2 className="text-foreground text-lg font-semibold">讨论操作</h2>
+        <p className="text-muted-foreground text-sm">
+          快速查看讨论的活跃度、提醒设置与操作入口。
+        </p>
+      </div>
+
+      <dl className="text-foreground mt-6 space-y-3 text-sm">
+        <StatRow
+          label="当前回复"
+          value={`${discussion.replyCount.toLocaleString("zh-CN")}\u2009条`}
+        />
+        <StatRow
+          label="当前快照"
+          value={`${discussion.snapshotsCount.toLocaleString("zh-CN")}\u2009份`}
+        />
+        <StatRow
+          label="快照标识符"
+          value={`@${discussion.capturedAt.getTime().toString(36)}`}
+        />
+        <StatRow
+          label="此快照首次捕获于"
+          value={ABSOLUTE_DATE_FORMATTER.format(discussion.capturedAt)}
+          hint={formatRelativeTime(discussion.capturedAt)}
+        />
+        <StatRow
+          label="此快照最后确认于"
+          value={ABSOLUTE_DATE_FORMATTER.format(discussion.lastSeenAt)}
+          hint={formatRelativeTime(discussion.lastSeenAt)}
+        />
+      </dl>
+
+      <div className="mt-6 grid gap-2">
+        <Button asChild className="justify-start gap-2 rounded-2xl py-2">
+          <Link
+            href={`https://www.luogu.com.cn/discuss/${discussion.id}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Reply className="size-4" aria-hidden="true" /> 查看原帖
+          </Link>
+        </Button>
+        <Button
+          variant="outline"
+          className="justify-start gap-2 rounded-2xl py-2"
+          type="button"
+          onClick={openWayback}
+        >
+          <History className="size-4" aria-hidden="true" /> 时光机
+        </Button>
+        <Button
+          variant="outline"
+          className="cursor-pointer justify-start gap-2 rounded-2xl py-2"
+          type="button"
+          onClick={() => copyLink(`https://luogu.store/d/${discussion.id}`)}
+          aria-live="polite"
+        >
+          {copiedLink ? (
+            <SquareCheckBig className="size-4" aria-hidden="true" />
+          ) : (
+            <SquareArrowOutUpRight className="size-4" aria-hidden="true" />
+          )}
+          复制链接
+        </Button>
+        <Button
+          variant="outline"
+          className="cursor-pointer justify-start gap-2 rounded-2xl py-2"
+          type="button"
+          onClick={() =>
+            copySnapshotLink(
+              `https://luogu.store/d/${discussion.id}@${discussion.capturedAt.getTime().toString(36)}`,
+            )
+          }
+          aria-live="polite"
+        >
+          {copiedSnapshotLink ? (
+            <SquareCheckBig className="size-4" aria-hidden="true" />
+          ) : (
+            <SquareArrowOutUpRight className="size-4" aria-hidden="true" />
+          )}
+          复制快照链接
+        </Button>
+      </div>
+    </div>
+  );
+}
