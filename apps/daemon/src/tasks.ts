@@ -19,8 +19,8 @@ import {
 
 import { REPLY_PAGE_CACHE_TTL_SEC } from "./config.js";
 
-const SCRIPT_SET_IF_GREATER = await readFile(
-  path.join(import.meta.dirname, "../set_if_greater.lua"),
+const SCRIPT_SET_IF_LT = await readFile(
+  path.join(import.meta.dirname, "../set_if_lt.lua"),
 );
 
 export async function perform(task: Job, stream: string) {
@@ -58,39 +58,33 @@ export async function perform(task: Job, stream: string) {
     }
 
     case "discuss": {
-      const noNewRepliesKey = `discuss.no-new-replies.${task.id}`;
-      if (task.page && stream !== STREAM_ROUTINE) {
-        const noNewRepliesPage = parseInt(
-          (await client.get(noNewRepliesKey)) ?? "0",
-        );
-        if (parseInt(task.page) <= noNewRepliesPage) {
-          await client.xAdd(STREAM_ROUTINE, "*", {
-            type: "discuss",
-            id: task.id,
-            page: String(parseInt(task.page)),
-          } satisfies Job);
-          break;
-        }
-      }
+      const id = task.id,
+        page = task.page ? parseInt(task.page) : undefined;
 
       const { numPages, numReplies, numNewReplies } = await fetchDiscuss(
-        parseInt(task.id),
-        parseInt(task.page ?? "1"),
+        parseInt(id),
+        page,
       );
 
-      if (!task.page && numPages > 1)
-        for (let i = numPages; i >= 1; i--) {
-          await client.xAdd(STREAM_IMMEDIATE, "*", {
-            type: "discuss",
-            id: task.id,
-            page: String(i),
-          } satisfies Job);
-        }
-      else if (numNewReplies < numReplies)
-        await client.eval(SCRIPT_SET_IF_GREATER, {
-          keys: [noNewRepliesKey],
-          arguments: [task.page ?? "1", "EX", String(REPLY_PAGE_CACHE_TTL_SEC)],
+      if (numPages > 1) {
+        const prevPage = page ? page - 1 : numPages;
+        if (prevPage < 1) break;
+
+        const keyRecentlySavedPage = `crawler:recent:discuss:${task.id}`;
+        const notRecentlySaved = await client.eval(SCRIPT_SET_IF_LT, {
+          keys: [keyRecentlySavedPage],
+          arguments: [String(prevPage), "EX", String(REPLY_PAGE_CACHE_TTL_SEC)],
         });
+
+        const streamToUse =
+          page && numNewReplies < numReplies ? STREAM_ROUTINE : stream;
+        if (streamToUse === STREAM_IMMEDIATE || notRecentlySaved)
+          await client.xAdd(streamToUse, "*", {
+            type: "discuss",
+            id,
+            page: String(prevPage),
+          } satisfies Job);
+      }
 
       break;
     }
@@ -120,6 +114,9 @@ export async function perform(task: Job, stream: string) {
           } satisfies Job,
         );
 
+      await new Promise((resolve) =>
+        setTimeout(resolve, (1 + Math.random()) * 1000),
+      );
       break;
     }
 

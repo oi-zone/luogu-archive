@@ -171,11 +171,11 @@ export async function savePostSnapshot(post: PostDetails, now: Date | string) {
   });
 }
 
-export async function fetchDiscuss(id: number, page: number) {
+export async function fetchDiscuss(id: number, page?: number) {
   const { status, data, time } = await (
     await clientLentille.get("discuss.show", {
       params: { id },
-      query: { page },
+      query: page ? { page } : {},
     })
   ).json();
   if (status !== 200)
