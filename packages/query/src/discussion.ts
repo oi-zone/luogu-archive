@@ -1,5 +1,144 @@
 import { prisma } from "@luogu-discussion-archive/db";
 
+import type { BasicUserSnapshot } from "./types.js";
+
+const DEFAULT_DISCUSSION_LIMIT = Number.parseInt(
+  process.env.NUM_DISCUSSIONS_HOME_PAGE ?? "50",
+  10,
+);
+
+const DEFAULT_DISCUSSION_WINDOW_MS = Number.parseInt(
+  process.env.LIMIT_MILLISECONDS_HOT_DISCUSSION ?? "604800000",
+  10,
+);
+
+export interface HotDiscussionSummary {
+  id: number;
+  time: Date;
+  updatedAt: Date;
+  replyCount: number;
+  recentReplyCount: number;
+  snapshot: {
+    title: string;
+    capturedAt: Date;
+    lastSeenAt: Date;
+    forum: {
+      slug: string;
+      name: string;
+    };
+  };
+  author: BasicUserSnapshot | null;
+}
+
+export const HOT_DISCUSSION_DEFAULT_LIMIT = DEFAULT_DISCUSSION_LIMIT;
+export const HOT_DISCUSSION_DEFAULT_WINDOW_MS = DEFAULT_DISCUSSION_WINDOW_MS;
+
+export async function getHotDiscussions({
+  limit = HOT_DISCUSSION_DEFAULT_LIMIT,
+  windowMs = HOT_DISCUSSION_DEFAULT_WINDOW_MS,
+}: {
+  limit?: number;
+  windowMs?: number;
+} = {}): Promise<HotDiscussionSummary[]> {
+  if (limit <= 0 || windowMs <= 0) {
+    return [];
+  }
+
+  const since = new Date(Date.now() - windowMs);
+
+  const groupedReplies = await prisma.reply.groupBy({
+    by: ["postId"],
+    where: {
+      time: { gte: since },
+      post: { takedown: { is: null } },
+    },
+    _count: { id: true },
+    orderBy: { _count: { id: "desc" } },
+    take: limit,
+  });
+
+  if (groupedReplies.length === 0) {
+    return [];
+  }
+
+  const postIds = groupedReplies.map((group) => group.postId);
+  const posts = await prisma.post.findMany({
+    where: { id: { in: postIds }, takedown: null },
+    include: {
+      snapshots: {
+        orderBy: { capturedAt: "desc" },
+        take: 1,
+        select: {
+          title: true,
+          capturedAt: true,
+          lastSeenAt: true,
+          authorId: true,
+          forum: {
+            select: {
+              slug: true,
+              name: true,
+            },
+          },
+          author: {
+            select: {
+              snapshots: {
+                orderBy: { capturedAt: "desc" },
+                take: 1,
+                select: {
+                  name: true,
+                  badge: true,
+                  color: true,
+                  ccfLevel: true,
+                  xcpcLevel: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const postMap = new Map(posts.map((post) => [post.id, post]));
+
+  return groupedReplies
+    .map((group) => {
+      const post = postMap.get(group.postId);
+      if (!post) return null;
+      const snapshot = post.snapshots[0];
+      if (!snapshot) return null;
+      const authorSnapshot = snapshot.author.snapshots[0];
+
+      const author: BasicUserSnapshot | null = authorSnapshot
+        ? {
+            id: snapshot.authorId,
+            name: authorSnapshot.name,
+            badge: authorSnapshot.badge ?? null,
+            color: authorSnapshot.color,
+            ccfLevel: authorSnapshot.ccfLevel,
+            xcpcLevel: authorSnapshot.xcpcLevel,
+          }
+        : null;
+      const recentReplyCount = group._count.id;
+
+      return {
+        id: post.id,
+        time: post.time,
+        updatedAt: post.updatedAt,
+        replyCount: post.replyCount,
+        recentReplyCount,
+        snapshot: {
+          title: snapshot.title,
+          capturedAt: snapshot.capturedAt,
+          lastSeenAt: snapshot.lastSeenAt,
+          forum: snapshot.forum,
+        },
+        author,
+      } satisfies HotDiscussionSummary;
+    })
+    .filter((item): item is HotDiscussionSummary => item !== null);
+}
+
 export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
   const postPromise = prisma.post.findUnique({
     where: { id },

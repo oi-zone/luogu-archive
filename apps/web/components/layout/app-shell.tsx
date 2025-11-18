@@ -31,6 +31,11 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  BreadcrumbProvider,
+  useBreadcrumbContext,
+  type BreadcrumbEntry,
+} from "@/components/layout/breadcrumb-context";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const NAV_ITEMS = [
@@ -99,12 +104,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           "md:ml-16",
         )}
       >
-        <TopBar
-          isMobile={isMobile}
-          onOpenSidebar={handleOpenSidebar}
-          pathname={pathname}
-        />
-        <div className="flex-1">{children}</div>
+        <BreadcrumbProvider key={pathname}>
+          <TopBar
+            isMobile={isMobile}
+            onOpenSidebar={handleOpenSidebar}
+            pathname={pathname}
+          />
+          <div className="flex-1">{children}</div>
+        </BreadcrumbProvider>
       </div>
     </div>
   );
@@ -245,9 +252,10 @@ function TopBar({
   onOpenSidebar: () => void;
   pathname: string;
 }) {
+  const { trail } = useBreadcrumbContext();
   const breadcrumbs = React.useMemo<BreadcrumbEntry[]>(
-    () => createBreadcrumbs(pathname),
-    [pathname],
+    () => trail ?? createBreadcrumbs(pathname),
+    [pathname, trail],
   );
   const hideRootOnMobile = breadcrumbs.length > 1;
 
@@ -326,16 +334,11 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-type BreadcrumbEntry = {
-  label: string;
-  href?: string;
-};
-
 function createBreadcrumbs(pathname: string): BreadcrumbEntry[] {
   const sanitized = pathname.split("?")[0]?.split("#")[0] ?? "/";
   const segments = sanitized.split("/").filter(Boolean);
 
-  const crumbs: BreadcrumbEntry[] = [{ label: "主页", href: "/" }];
+  const crumbs: BreadcrumbEntry[] = [{ label: "首页", href: "/" }];
 
   if (segments.length === 0) {
     return crumbs;

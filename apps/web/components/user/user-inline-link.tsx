@@ -30,7 +30,7 @@ export function xcpcLevelToColor(level: number): string {
   return "cheater";
 }
 
-export default function UserInlineLink({
+export function UserInlineLink({
   user,
   compact = false,
   avatar = true,
@@ -41,10 +41,51 @@ export default function UserInlineLink({
 }) {
   return (
     <Link
-      href={`/user/${user.id}`}
+      href={`/u/${user.id}`}
       className="clear-markdown-style hover:bg-muted inline-flex items-center rounded-full transition-colors duration-200"
       prefetch={false}
     >
+      <UserInlineContent user={user} compact={compact} avatar={avatar} />
+    </Link>
+  );
+}
+
+export default UserInlineLink;
+
+export function UserInlineDisplay({
+  user,
+  compact = false,
+  avatar = true,
+  className,
+}: {
+  user: UserBasicInfo;
+  compact?: boolean;
+  avatar?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "clear-markdown-style inline-flex items-center rounded-full",
+        className,
+      )}
+    >
+      <UserInlineContent user={user} compact={compact} avatar={avatar} />
+    </span>
+  );
+}
+
+function UserInlineContent({
+  user,
+  compact,
+  avatar,
+}: {
+  user: UserBasicInfo;
+  compact: boolean;
+  avatar: boolean;
+}) {
+  return (
+    <>
       {avatar && (
         <Avatar
           className={cn("bg-muted", compact ? "ms-0.5 size-5" : "size-6")}
@@ -113,6 +154,6 @@ export default function UserInlineLink({
           stroke={2.2}
         />
       )}
-    </Link>
+    </>
   );
 }

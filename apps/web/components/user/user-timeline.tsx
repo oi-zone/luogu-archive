@@ -1,16 +1,16 @@
 import {
+  ClipboardList,
   FileText,
+  Gavel,
   Layers,
   MessageCircle,
   MessageSquare,
-  NotebookPen,
-  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 
 import { formatRelativeTime } from "@/lib/feed-data";
-import type { TimelineEntry } from "@/lib/user-profile-data";
+import type { TimelineEntry } from "@/lib/user-profile-shared";
 import { cn } from "@/lib/utils";
 
 const TIMELINE_META: Record<
@@ -46,18 +46,27 @@ const TIMELINE_META: Record<
     badgeClass: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
     dotClass: "bg-orange-500",
   },
-  status: {
-    label: "发布犇犇",
-    icon: NotebookPen,
+  paste: {
+    label: "创建云剪贴板",
+    icon: ClipboardList,
     badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
     dotClass: "bg-amber-500",
   },
-  ostrakon: {
-    label: "社区处分",
-    icon: ShieldAlert,
+  judgement: {
+    label: "社区裁决",
+    icon: Gavel,
     badgeClass: "bg-red-500/10 text-red-600 dark:text-red-300",
     dotClass: "bg-red-500",
   },
+};
+
+const VISIBILITY_LABEL: Record<
+  Extract<TimelineEntry, { type: "paste" }>["visibility"],
+  string
+> = {
+  public: "公开",
+  team: "团队可见",
+  private: "仅自己",
 };
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
@@ -74,7 +83,7 @@ export function UserTimeline({ entries }: { entries: TimelineEntry[] }) {
       <header className="mb-6">
         <h3 className="text-lg font-semibold">时间线</h3>
         <p className="text-muted-foreground text-sm">
-          最近的文章、讨论、动态与社区记录
+          最近的文章、讨论、云剪贴板与社区记录
         </p>
       </header>
       <ol className="border-border/80 space-y-6 border-l pl-6">
@@ -191,13 +200,24 @@ function renderTimelineContent(entry: TimelineEntry) {
           </blockquote>
         </div>
       );
-    case "status":
+    case "paste":
       return (
-        <div className="border-border/70 bg-muted/30 text-muted-foreground rounded-2xl border p-4 text-sm leading-relaxed">
-          {entry.content}
+        <div className="border-border/70 bg-muted/30 rounded-2xl border p-4 text-sm">
+          <Link
+            href={entry.href}
+            className="text-foreground text-base font-semibold hover:underline"
+          >
+            {entry.title}
+          </Link>
+          <p className="text-muted-foreground mt-2 leading-relaxed">
+            {entry.description}
+          </p>
+          <div className="text-muted-foreground mt-3 text-xs">
+            可见性：{VISIBILITY_LABEL[entry.visibility]}
+          </div>
         </div>
       );
-    case "ostrakon":
+    case "judgement":
       return (
         <div className="rounded-2xl border border-red-500/50 bg-red-500/5 p-4 text-sm">
           <p className="font-semibold text-red-600 dark:text-red-300">

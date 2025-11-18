@@ -1,104 +1,36 @@
-"use client";
-
-import * as React from "react";
-import { ChevronsUpDown, Search } from "lucide-react";
+import { Award, Search } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { createCategoryResults, type SearchResult } from "@/lib/search-data";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SearchResultCard } from "@/components/search/search-result-card";
+  ARTICLE_SCORE_WEIGHT,
+  FEATURED_ARTICLE_DEFAULT_LIMIT,
+  FEATURED_ARTICLE_DEFAULT_UPVOTE_DECAY_MS,
+  FEATURED_ARTICLE_DEFAULT_WINDOW_MS,
+  getFeaturedArticles,
+  type FeaturedArticleSummary,
+} from "@luogu-discussion-archive/query";
 
-type SortOption = "newest" | "hottest" | "replies";
+import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
+import { Badge } from "@/components/ui/badge";
+import UserInlineLink from "@/components/user/user-inline-link";
 
-const SORT_OPTIONS: Record<
-  SortOption,
-  { label: string; comparator: (a: SearchResult, b: SearchResult) => number }
-> = {
-  newest: {
-    label: "最新发布",
-    comparator: (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime(),
-  },
-  hottest: {
-    label: "按热度",
-    comparator: (a, b) =>
-      (b.type !== "status" && "views" in b ? b.views : 0) -
-      (a.type !== "status" && "views" in a ? a.views : 0),
-  },
-  replies: {
-    label: "按回复",
-    comparator: (a, b) =>
-      (b.type !== "status" && "replies" in b ? b.replies : 0) -
-      (a.type !== "status" && "replies" in a ? a.replies : 0),
-  },
-};
+const SCORE_FORMATTER = new Intl.NumberFormat("zh-CN", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 
-const PAGE_SIZE = 20;
-const TOTAL_ITEMS = PAGE_SIZE * 3;
+function formatWeight(weight: number) {
+  return `${Math.round(weight * 100)}%`;
+}
 
-export default function ArticlesPage() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+const SCORE_FORMULA_LABEL = `回复 ${formatWeight(ARTICLE_SCORE_WEIGHT.replies)} + 收藏 ${formatWeight(ARTICLE_SCORE_WEIGHT.favorites)} + 赞同 ${formatWeight(ARTICLE_SCORE_WEIGHT.upvotes)}`;
+const WINDOW_LABEL = formatWindowLabel(FEATURED_ARTICLE_DEFAULT_WINDOW_MS);
+const UPVOTE_DECAY_LABEL = formatWindowLabel(
+  FEATURED_ARTICLE_DEFAULT_UPVOTE_DECAY_MS,
+);
 
-  const baseResults = React.useMemo(() => {
-    return createCategoryResults("article", TOTAL_ITEMS);
-  }, []);
-
-  const currentSort = (searchParams.get("sort") as SortOption) ?? "newest";
-  const rawPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
-  const currentPage = Number.isNaN(rawPage) ? 1 : rawPage;
-
-  const sortedResults = React.useMemo(() => {
-    const { comparator } = SORT_OPTIONS[currentSort] ?? SORT_OPTIONS.newest;
-    return [...baseResults].sort(comparator);
-  }, [baseResults, currentSort]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedResults.length / PAGE_SIZE));
-  const safePage = Math.min(Math.max(currentPage, 1), totalPages);
-
-  const paginatedResults = React.useMemo(() => {
-    const start = (safePage - 1) * PAGE_SIZE;
-    return sortedResults.slice(start, start + PAGE_SIZE);
-  }, [sortedResults, safePage]);
-
-  const createQueryString = React.useCallback(
-    (updates: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams ?? undefined);
-      Object.entries(updates).forEach(([key, value]) => {
-        params.set(key, value);
-      });
-      return params.toString();
-    },
-    [searchParams],
-  );
-
-  const handleSortChange = React.useCallback(
-    (nextSort: SortOption) => {
-      router.replace(
-        `${pathname}?${createQueryString({ sort: nextSort, page: "1" })}`,
-        { scroll: false },
-      );
-    },
-    [createQueryString, pathname, router],
-  );
-
-  const handlePageChange = React.useCallback(
-    (nextPage: number) => {
-      const clamped = Math.min(Math.max(nextPage, 1), totalPages);
-      router.replace(
-        `${pathname}?${createQueryString({ page: String(clamped) })}`,
-        { scroll: false },
-      );
-    },
-    [createQueryString, pathname, router, totalPages],
-  );
+export default async function ArticlesPage() {
+  const articles = await getFeaturedArticles();
 
   return (
     <div className="flex flex-1 flex-col gap-8 px-4 pb-16 pt-8 sm:px-6 lg:px-8">
@@ -110,8 +42,10 @@ export default function ArticlesPage() {
             </p>
             <h1 className="text-3xl font-semibold tracking-tight">精选文章</h1>
             <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
-              最近 60
-              篇热门文章，默认按发布时间从新到旧排序。想要精准筛选？使用高级搜索即可快速定位。
+              依照 {SCORE_FORMULA_LABEL} 的综合得分，实时列出前{" "}
+              {FEATURED_ARTICLE_DEFAULT_LIMIT} 篇文章；其中回复指标统计最近{" "}
+              {WINDOW_LABEL} 的互动，赞同会按 {UPVOTE_DECAY_LABEL}{" "}
+              的时间尺度指数衰减。
             </p>
           </div>
           <Link
@@ -124,74 +58,94 @@ export default function ArticlesPage() {
             <span className="pl-8">搜索文章、作者或话题…</span>
           </Link>
         </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-muted-foreground text-sm">
-            第 {safePage} 页，共 {totalPages} 页 · 当前排序：
-            {SORT_OPTIONS[currentSort]?.label ?? SORT_OPTIONS.newest.label}
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 rounded-xl px-3 py-2"
-              >
-                <span>
-                  排序方式 ·{" "}
-                  {SORT_OPTIONS[currentSort]?.label ??
-                    SORT_OPTIONS.newest.label}
-                </span>
-                <ChevronsUpDown className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              {(Object.keys(SORT_OPTIONS) as SortOption[]).map((option) => (
-                <DropdownMenuItem
-                  key={option}
-                  onClick={() => handleSortChange(option)}
-                >
-                  {SORT_OPTIONS[option].label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="text-muted-foreground text-sm">
+          {articles.length === 0
+            ? "暂时没有符合条件的文章"
+            : `共 ${articles.length} 篇 · 得分与数据按需实时刷新`}
         </div>
       </header>
 
       <section className="space-y-4">
-        {paginatedResults.map((article) => (
-          <SearchResultCard key={article.id} result={article} />
+        {articles.map((article, index) => (
+          <ArticleCard key={article.lid} article={article} rank={index + 1} />
         ))}
-      </section>
-
-      <footer className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-6">
-        <div className="text-muted-foreground text-sm">
-          共 {sortedResults.length} 条结果 · 每页 {PAGE_SIZE} 条
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl"
-            onClick={() => handlePageChange(safePage - 1)}
-            disabled={safePage <= 1}
-          >
-            上一页
-          </Button>
-          <div className="text-muted-foreground text-sm font-medium">
-            {safePage} / {totalPages}
+        {articles.length === 0 && (
+          <div className="text-muted-foreground rounded-3xl border border-dashed p-8 text-center text-sm">
+            暂无数据，等候新文章发布后再试。
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl"
-            onClick={() => handlePageChange(safePage + 1)}
-            disabled={safePage >= totalPages}
-          >
-            下一页
-          </Button>
-        </div>
-      </footer>
+        )}
+      </section>
     </div>
   );
+}
+
+function ArticleCard({
+  article,
+  rank,
+}: {
+  article: FeaturedArticleSummary;
+  rank: number;
+}) {
+  const href = `/a/${article.lid}`;
+  const hasAuthor = Boolean(article.author);
+  const formattedScore = SCORE_FORMATTER.format(article.score);
+
+  return (
+    <Link href={href} scroll={false} prefetch={false} className="block">
+      <article className="bg-card border-border text-card-foreground relative overflow-hidden rounded-3xl border p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Badge className="bg-sky-500/10 text-sky-600 dark:text-sky-200">
+            TOP {rank}
+          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-200">
+              综合得分 {formattedScore}
+            </Badge>
+            <Award
+              className="text-muted-foreground size-5"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          <h3 className="text-foreground text-xl font-semibold leading-tight">
+            {article.snapshot.title}
+          </h3>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            收藏 {article.favorCount.toLocaleString("zh-CN")} · 回复{" "}
+            {article.replyCount.toLocaleString("zh-CN")} · 赞同{" "}
+            {article.upvote.toLocaleString("zh-CN")}。
+            {article.recentReplyCount > 0 && (
+              <span className="text-foreground/80 ms-1 inline-flex items-center">
+                近 {WINDOW_LABEL} +{article.recentReplyCount} 条评论
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+          {hasAuthor ? (
+            <UserInlineLink user={article.author!} compact avatar />
+          ) : (
+            <span className="text-muted-foreground">作者未知</span>
+          )}
+          <span>发布于 {ABSOLUTE_DATE_FORMATTER.format(article.time)}</span>
+          <span>最近更新 {formatRelativeTime(article.updatedAt)}</span>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+function formatWindowLabel(ms: number) {
+  if (ms % 86400000 === 0) {
+    return `${ms / 86400000} 天`;
+  }
+
+  if (ms % 3600000 === 0) {
+    return `${ms / 3600000} 小时`;
+  }
+
+  return `${Math.round(ms / 3600000)} 小时`;
 }

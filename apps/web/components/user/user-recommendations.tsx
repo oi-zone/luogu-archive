@@ -4,7 +4,7 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 import Image from "next/image";
 
-import { NAME_COLOR_CLASS, type RelatedUser } from "@/lib/user-profile-data";
+import { NAME_COLOR_CLASS, type RelatedUser } from "@/lib/user-profile-shared";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 

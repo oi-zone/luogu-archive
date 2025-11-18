@@ -3,8 +3,7 @@
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
 
-import { formatRelativeTime } from "@/lib/feed-data";
-import type { UsernameHistoryEntry } from "@/lib/user-profile-data";
+import type { UsernameHistoryEntry } from "@/lib/user-profile-shared";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -12,6 +11,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  ccfLevelToColor,
+  UserInlineDisplay,
+  xcpcLevelToColor,
+} from "@/components/user/user-inline-link";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
   year: "numeric",
@@ -26,6 +30,10 @@ export function UsernameHistoryCard({
 }) {
   const isMobile = useIsMobile();
   const [open, setOpen] = React.useState(true);
+  const collapsedEntries = React.useMemo(
+    () => collapseHistoryEntries(entries),
+    [entries],
+  );
 
   React.useEffect(() => {
     setOpen(!isMobile);
@@ -62,42 +70,109 @@ export function UsernameHistoryCard({
         forceMount
         className="px-6 pb-5 data-[state=closed]:hidden"
       >
-        <ol className="border-border/80 space-y-4 border-l border-dashed pl-5">
-          {entries.map((entry, index) => {
-            const current = index === 0;
-            const changedAt = new Date(entry.changedAt);
-            const relative = formatRelativeTime(changedAt);
-
-            return (
-              <li key={entry.id} className="relative pl-3">
-                <span
-                  aria-hidden
-                  className={cn(
-                    "border-card bg-background absolute -left-[17px] top-1 flex size-3 items-center justify-center rounded-full border-2",
-                    current ? "bg-primary" : "bg-border/80",
-                  )}
-                />
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="text-foreground text-sm font-medium">
-                    {entry.username}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    {DATE_FORMATTER.format(changedAt)}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    {relative}
-                  </span>
-                </div>
-                {entry.note ? (
-                  <p className="text-muted-foreground/80 mt-1 text-xs">
-                    {entry.note}
-                  </p>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
+        {collapsedEntries.length === 0 ? (
+          <p className="text-muted-foreground text-sm">暂无改名记录</p>
+        ) : (
+          <ol className="border-border/80 space-y-5 border-l border-dashed pl-5">
+            {collapsedEntries.map((entry, index) => {
+              const current = index === 0;
+              const latestChange = getEntryDate(entry.entries[0]);
+              const earliest = entry.entries[entry.entries.length - 1];
+              const earliestDate = getEntryDate(earliest) ?? latestChange;
+              return (
+                <li key={entry.id} className="relative pl-3">
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "border-card bg-background absolute -left-[17px] top-1.5 flex size-3 items-center justify-center rounded-full border-2",
+                      current ? "bg-primary" : "bg-border/80",
+                    )}
+                  />
+                  <UserInlineDisplay
+                    user={entry.snapshot}
+                    compact
+                    className="pr-1"
+                  />
+                  <div className="text-muted-foreground/80 mt-1 flex flex-wrap gap-3 text-[11px]">
+                    <span title={latestChange?.toISOString()}>
+                      最后捕获于 {formatDate(latestChange)}
+                    </span>
+                    <span title={earliestDate?.toISOString()}>
+                      最早追溯到 {formatDate(earliestDate)}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </CollapsibleContent>
     </Collapsible>
   );
+}
+
+type CollapsedHistoryEntry = {
+  id: string;
+  snapshot: UsernameHistoryEntry["snapshot"];
+  entries: UsernameHistoryEntry[];
+};
+
+type CollapsedHistoryEntryInternal = CollapsedHistoryEntry & {
+  appearanceKey: string;
+};
+
+function collapseHistoryEntries(
+  entries: UsernameHistoryEntry[],
+): CollapsedHistoryEntry[] {
+  if (entries.length === 0) return [];
+
+  const ordered = [...entries].sort(
+    (a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime(),
+  );
+  const collapsed: CollapsedHistoryEntryInternal[] = [];
+
+  for (const entry of ordered) {
+    const appearanceKey = getAppearanceKey(entry.snapshot);
+    const tail = collapsed[collapsed.length - 1];
+    if (tail && tail.appearanceKey === appearanceKey) {
+      tail.entries.push(entry);
+      continue;
+    }
+
+    collapsed.push({
+      id: entry.id,
+      snapshot: entry.snapshot,
+      entries: [entry],
+      appearanceKey,
+    });
+  }
+
+  return collapsed;
+}
+
+function getAppearanceKey(snapshot: UsernameHistoryEntry["snapshot"]) {
+  const ccfVisual = snapshot.ccfLevel
+    ? ccfLevelToColor(snapshot.ccfLevel)
+    : "none";
+  const xcpcVisual = snapshot.xcpcLevel
+    ? xcpcLevelToColor(snapshot.xcpcLevel)
+    : "none";
+  return [
+    snapshot.name,
+    snapshot.color,
+    snapshot.badge ?? "",
+    ccfVisual,
+    xcpcVisual,
+  ].join("|");
+}
+
+function getEntryDate(entry?: UsernameHistoryEntry) {
+  if (!entry) return null;
+  const timestamp = entry.changedAt ? new Date(entry.changedAt) : null;
+  return Number.isNaN(timestamp?.getTime() ?? Number.NaN) ? null : timestamp;
+}
+
+function formatDate(date: Date | null) {
+  if (!date) return "未知";
+  return DATE_FORMATTER.format(date);
 }
