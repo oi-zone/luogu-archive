@@ -91,50 +91,48 @@ function ArticleCard({
   const formattedScore = SCORE_FORMATTER.format(article.score);
 
   return (
-    <Link href={href} scroll={false} prefetch={false} className="block">
-      <article className="bg-card border-border text-card-foreground relative overflow-hidden rounded-3xl border p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Badge className="bg-sky-500/10 text-sky-600 dark:text-sky-200">
-            TOP {rank}
+    <article className="bg-card border-border text-card-foreground relative overflow-hidden rounded-3xl border p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Badge className="bg-sky-500/10 text-sky-600 dark:text-sky-200">
+          TOP {rank}
+        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-200">
+            综合得分 {formattedScore}
           </Badge>
-          <div className="flex items-center gap-2">
-            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-200">
-              综合得分 {formattedScore}
-            </Badge>
-            <Award
-              className="text-muted-foreground size-5"
-              aria-hidden="true"
-            />
-          </div>
+          <Award className="text-muted-foreground size-5" aria-hidden="true" />
         </div>
+      </div>
 
-        <div className="mt-4 space-y-3">
-          <h3 className="text-foreground text-xl font-semibold leading-tight">
+      <div className="mt-4 space-y-3">
+        <h3 className="text-foreground text-xl font-semibold leading-tight">
+          <Link href={href} scroll={false} prefetch={false}>
             {article.snapshot.title}
-          </h3>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            收藏 {article.favorCount.toLocaleString("zh-CN")} · 回复{" "}
-            {article.replyCount.toLocaleString("zh-CN")} · 赞同{" "}
-            {article.upvote.toLocaleString("zh-CN")}。
-            {article.recentReplyCount > 0 && (
-              <span className="text-foreground/80 ms-1 inline-flex items-center">
-                近 {WINDOW_LABEL} +{article.recentReplyCount} 条评论
-              </span>
-            )}
-          </p>
-        </div>
-
-        <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-          {hasAuthor ? (
-            <UserInlineLink user={article.author!} compact avatar />
-          ) : (
-            <span className="text-muted-foreground">作者未知</span>
+            <div className="absolute inset-0" />
+          </Link>
+        </h3>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          收藏 {article.favorCount.toLocaleString("zh-CN")} · 回复{" "}
+          {article.replyCount.toLocaleString("zh-CN")} · 赞同{" "}
+          {article.upvote.toLocaleString("zh-CN")}。
+          {article.recentReplyCount > 0 && (
+            <span className="text-foreground/80 ms-1 inline-flex items-center">
+              近 {WINDOW_LABEL} +{article.recentReplyCount} 条评论
+            </span>
           )}
-          <span>发布于 {ABSOLUTE_DATE_FORMATTER.format(article.time)}</span>
-          <span>最近更新 {formatRelativeTime(article.updatedAt)}</span>
-        </div>
-      </article>
-    </Link>
+        </p>
+      </div>
+
+      <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+        {hasAuthor ? (
+          <UserInlineLink user={article.author!} compact avatar />
+        ) : (
+          <span className="text-muted-foreground">作者未知</span>
+        )}
+        <span>发布于 {ABSOLUTE_DATE_FORMATTER.format(article.time)}</span>
+        <span>最近更新 {formatRelativeTime(article.updatedAt)}</span>
+      </div>
+    </article>
   );
 }
 

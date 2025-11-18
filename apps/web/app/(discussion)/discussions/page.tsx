@@ -66,45 +66,51 @@ function DiscussionCard({ discussion }: { discussion: HotDiscussionSummary }) {
   const hasAuthor = Boolean(discussion.author);
 
   return (
-    <Link href={href} scroll={false} prefetch={false} className="block">
-      <article className="bg-card border-border text-card-foreground relative overflow-hidden rounded-3xl border p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-violet-500/10 text-violet-600 dark:text-violet-200">
-              {discussion.snapshot.forum.name}
-            </Badge>
-            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-200">
-              近 {WINDOW_LABEL} +{discussion.recentReplyCount} 回复
-            </Badge>
-          </div>
-          <time
-            className="text-muted-foreground text-xs"
-            dateTime={discussion.updatedAt.toISOString()}
-          >
-            {formatRelativeTime(discussion.updatedAt)} 更新
-          </time>
+    <article className="bg-card border-border text-card-foreground relative overflow-hidden rounded-3xl border p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge className="bg-violet-500/10 text-violet-600 dark:text-violet-200">
+            {discussion.snapshot.forum.name}
+          </Badge>
+          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-200">
+            近 {WINDOW_LABEL} +{discussion.recentReplyCount} 回复
+          </Badge>
         </div>
+        <time
+          className="text-muted-foreground text-xs"
+          dateTime={discussion.updatedAt.toISOString()}
+        >
+          {formatRelativeTime(discussion.updatedAt)} 更新
+        </time>
+      </div>
 
-        <div className="mt-4 space-y-3">
-          <h3 className="text-foreground text-xl font-semibold leading-tight">
+      <div className="mt-4 space-y-3">
+        <h3 className="text-foreground text-xl font-semibold leading-tight">
+          <Link href={href} scroll={false} prefetch={false}>
             {discussion.snapshot.title}
-          </h3>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            累计 {discussion.replyCount.toLocaleString("zh-CN")} 条回复 ·
-            最近回帖 +{discussion.recentReplyCount}。
-          </p>
-        </div>
+            <div className="absolute inset-0" />
+          </Link>
+        </h3>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          累计 {discussion.replyCount.toLocaleString("zh-CN")} 条回复 · 最近回帖
+          +{discussion.recentReplyCount}。
+        </p>
+      </div>
 
-        <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-          {hasAuthor ? (
-            <UserInlineLink user={discussion.author!} compact avatar />
-          ) : (
-            <span className="text-muted-foreground">作者未知</span>
-          )}
-          <span>发布于 {ABSOLUTE_DATE_FORMATTER.format(discussion.time)}</span>
-        </div>
-      </article>
-    </Link>
+      <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+        {hasAuthor ? (
+          <UserInlineLink
+            className="z-10"
+            user={discussion.author!}
+            compact
+            avatar
+          />
+        ) : (
+          <span className="text-muted-foreground">作者未知</span>
+        )}
+        <span>发布于 {ABSOLUTE_DATE_FORMATTER.format(discussion.time)}</span>
+      </div>
+    </article>
   );
 }
 
