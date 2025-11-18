@@ -17,14 +17,14 @@ export default function Layout({
   recommendationsStacked,
   recommendationsInline,
 }: {
-  titleRow: React.ReactElement;
-  metaRow: React.ReactElement;
-  metaCard: React.ReactElement;
-  content: React.ReactElement;
-  operationPanel: React.ReactElement;
-  replies: React.ReactElement;
-  recommendationsStacked: React.ReactElement;
-  recommendationsInline: React.ReactElement;
+  titleRow: React.ReactNode;
+  metaRow: React.ReactNode;
+  metaCard: React.ReactNode;
+  content: React.ReactNode;
+  operationPanel: React.ReactNode;
+  replies: React.ReactNode;
+  recommendationsStacked: React.ReactNode;
+  recommendationsInline: React.ReactNode;
 }) {
   const params = useParams<{ id: string; snapshot?: string }>();
   const snapshotParamRaw = params?.snapshot;

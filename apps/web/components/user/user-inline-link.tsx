@@ -31,10 +31,12 @@ export function xcpcLevelToColor(level: number): string {
 }
 
 export function UserInlineLink({
+  className,
   user,
   compact = false,
   avatar = true,
 }: {
+  className?: string;
   user: UserBasicInfo;
   compact?: boolean;
   avatar?: boolean;
@@ -42,7 +44,10 @@ export function UserInlineLink({
   return (
     <Link
       href={`/u/${user.id}`}
-      className="clear-markdown-style hover:bg-muted inline-flex items-center rounded-full transition-colors duration-200"
+      className={cn(
+        "clear-markdown-style hover:bg-muted inline-flex items-center rounded-full transition-colors duration-200",
+        className,
+      )}
       prefetch={false}
     >
       <UserInlineContent user={user} compact={compact} avatar={avatar} />

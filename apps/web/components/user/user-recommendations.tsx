@@ -144,7 +144,7 @@ function UserRecommendationCard({
               {user.name}
             </p>
             <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs">
-              <span>@{user.username}</span>
+              <span>#{user.id}</span>
               {user.ccfLevel ? (
                 <span className="border-border/60 rounded-full border px-2.5 py-0.5 text-[11px] font-medium">
                   CCF Lv.{user.ccfLevel}
@@ -162,7 +162,7 @@ function UserRecommendationCard({
           </span>
         </div>
         <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-          {user.headline}
+          {user.slogan}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button
