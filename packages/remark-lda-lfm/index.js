@@ -62,8 +62,47 @@ import { gfmStrikethrough } from "micromark-extension-gfm-strikethrough";
 import { gfmTable } from "micromark-extension-gfm-table";
 import { visit } from "unist-util-visit";
 
-const mentionReg = /^\/user\/(\d+)$/;
-const legacyMentionReg = /^\/space\/show\?uid=(\d+)$/;
+import { transformAdmonitions } from "./admonitions.js";
+
+const mentionRegexes = [
+  /^luogu:\/\/user\/(\d+)$/,
+  /^\/user\/(\d+)$/,
+  /^\/space\/show\?uid=(\d+)$/,
+];
+
+const discussionRegexes = [
+  /^https:\/\/www.luogu.com.cn\/discuss\/(\d+)(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/www.luogu.com\/discuss\/(\d+)(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/lglg.top\/(\d+)(?:\/.*)?(?:\?.*)?(?:#.*)?$/,
+];
+
+const articleRegexes = [
+  /^https:\/\/www.luogu.com.cn\/article\/([a-z0-9]{8})(\?.*)?(#.*)?$/,
+  /^https:\/\/www.luogu.com\/article\/([a-z0-9]{8})(\?.*)?(#.*)?$/,
+  /^https:\/\/www.luogu.me\/article\/([a-z0-9]{8})(\?.*)?(#.*)?$/,
+];
+
+const userRegexes = [
+  /^https:\/\/www.luogu.com.cn\/user\/(\d+)(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/www.luogu.com\/user\/(\d+)(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/www.luogu.com.cn\/space\/show\?uid=(\d+)(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/lglg.top\/user\/(\d+)(?:\/.*)?(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/www.luogu.me\/user\/(\d+)(?:\/.*)?(?:\?.*)?(?:#.*)?$/,
+];
+
+const pasteRegexes = [
+  /^https:\/\/www.luogu.com.cn\/paste\/([a-z0-9]{8})(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/www.luogu.com\/paste\/([a-z0-9]{8})(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/www.luogu.me\/paste\/([a-z0-9]{8})(?:\?.*)?(?:#.*)?$/,
+];
+
+function captureFromFirstMatch(regexes, url) {
+  for (const regex of regexes) {
+    const match = regex.exec(url);
+    if (match) return match;
+  }
+  return null;
+}
 
 /** @type {Options} */
 const emptyOptions = {};
@@ -80,8 +119,8 @@ export default function remarkLuoguFlavor(options) {
   const settings = options || emptyOptions;
   const data = self.data();
 
-  const linkWhiteList = settings.linkRootToLuoguWhiteList ?? [];
-  const userLinkPointToLuogu = settings.userLinkPointToLuogu ?? true;
+  const linkOriginalUrl =
+    settings.linkOriginalUrl ?? "https://www.luogu.com.cn/";
 
   const micromarkExtensions =
     data.micromarkExtensions || (data.micromarkExtensions = []);
@@ -119,7 +158,9 @@ export default function remarkLuoguFlavor(options) {
    * @returns {undefined}
    *   Nothing.
    */
-  return (tree) => {
+  return (tree, file) => {
+    transformAdmonitions(tree, self, file);
+
     visit(tree, "paragraph", (node) => {
       const childNode = node.children;
       childNode.forEach((child, index) => {
@@ -130,8 +171,7 @@ export default function remarkLuoguFlavor(options) {
           lastNode.type === "text" &&
           lastNode.value.endsWith("@")
         ) {
-          const match =
-            mentionReg.exec(child.url) ?? legacyMentionReg.exec(child.url);
+          const match = captureFromFirstMatch(mentionRegexes, child.url);
           if (!match) return;
           /** @type {import("mdast").UserMention} */
           const newNode = {
@@ -141,15 +181,20 @@ export default function remarkLuoguFlavor(options) {
             data: {
               hName: "a",
               hProperties: {
-                href: userLinkPointToLuogu
-                  ? `https://www.luogu.com.cn/user/${match[1]}`
-                  : `/user/${match[1]}`,
-                "data-uid": match[1],
-                class: "lfm-user-mention",
+                "data-ls-user-mention": match[1],
               },
             },
           };
           childNode[index] = newNode;
+          lastNode.value = lastNode.value.slice(0, -1);
+          const nextNode = childNode[index + 1];
+          if (
+            nextNode &&
+            nextNode.type === "text" &&
+            nextNode.value.startsWith(" ")
+          ) {
+            nextNode.value = nextNode.value.slice(1);
+          }
         }
         if (child.type === "image" && child.url.startsWith("bilibili:")) {
           let videoId = child.url.replace("bilibili:", "");
@@ -175,12 +220,53 @@ export default function remarkLuoguFlavor(options) {
       });
     });
     visit(tree, "link", (node) => {
-      if (!linkWhiteList.some((reg) => reg.test(node.url))) {
-        try {
-          node.url = new URL(node.url, "https://www.luogu.com.cn/").href;
-        } catch (_) {
-          // ignore
+      try {
+        const newUrl = new URL(node.url, linkOriginalUrl).href;
+        let match;
+
+        match = captureFromFirstMatch(discussionRegexes, newUrl);
+        if (match) {
+          node.data = {
+            hProperties: {
+              "data-ls-discussion": match[1],
+            },
+          };
+          return;
         }
+
+        match = captureFromFirstMatch(articleRegexes, newUrl);
+        if (match) {
+          node.data = {
+            hProperties: {
+              "data-ls-article": match[1],
+            },
+          };
+          return;
+        }
+
+        match = captureFromFirstMatch(userRegexes, newUrl);
+        if (match) {
+          node.data = {
+            hProperties: {
+              "data-ls-user": match[1],
+            },
+          };
+          return;
+        }
+
+        match = captureFromFirstMatch(pasteRegexes, newUrl);
+        if (match) {
+          node.data = {
+            hProperties: {
+              "data-ls-paste": match[1],
+            },
+          };
+          return;
+        }
+
+        node.url = newUrl;
+      } catch (_) {
+        // ignore
       }
     });
   };

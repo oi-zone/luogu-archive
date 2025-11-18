@@ -22,6 +22,11 @@ declare module "mdast" {
     videoId: string;
   }
 
+  interface LfmAdmonition extends Parent {
+    type: "lfmAdmonition";
+    children: BlockContent[];
+  }
+
   interface PhrasingContentMap {
     userMention: UserMention;
     bilibiliVideo: BilibiliVideo;
@@ -30,6 +35,11 @@ declare module "mdast" {
   interface RootContentMap {
     userMention: UserMention;
     bilibiliVideo: BilibiliVideo;
+    lfmAdmonition: LfmAdmonition;
+  }
+
+  interface BlockContentMap {
+    lfmAdmonition: LfmAdmonition;
   }
 }
 
