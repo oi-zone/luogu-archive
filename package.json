@@ -3,7 +3,7 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {
-    "prepare": "pnpm --filter db run db:generate && husky"
+    "prepare": "husky"
   },
   "packageManager": "pnpm@10.19.0",
   "pnpm": {
@@ -18,6 +18,7 @@
     "lint-staged": "^16.1.2",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.12",
+    "turbo": "^2.6.1",
     "typescript": "^5.9.3"
   }
 }

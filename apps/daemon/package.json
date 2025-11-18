@@ -1,5 +1,5 @@
 {
-  "name": "@luogu-discussion-archive/redis",
+  "name": "@luogu-discussion-archive/daemon",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
