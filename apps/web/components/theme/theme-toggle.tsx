@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-import { useTheme } from "./theme-provider";
 
 const modes: Array<{
   value: "light" | "dark" | "system";
@@ -21,7 +20,14 @@ const modes: Array<{
 const order = modes.map((mode) => mode.value);
 
 export function ThemeToggle() {
-  const { setting, setSetting } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const { theme, setTheme: setSetting } = useTheme();
+  const setting =
+    (mounted && (theme as "light" | "dark" | "system")) || "system";
 
   const handleToggle = React.useCallback(() => {
     const currentIndex = order.indexOf(setting);
@@ -50,7 +56,7 @@ export function ThemeToggle() {
           key={value}
           className={cn(
             "size-4 transition-all",
-            value === setting
+            mounted && value === setting
               ? "text-foreground opacity-100"
               : "opacity-40 group-hover:opacity-60",
           )}

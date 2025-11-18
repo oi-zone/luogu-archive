@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { ThemeProvider } from "next-themes";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import "./globals.css";
-
+import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/query/query-provider";
-import { ThemeProvider } from "@/components/theme/theme-provider";
+
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,16 +26,20 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
   modal,
-}: Readonly<{
-  children: React.ReactNode;
+}: React.PropsWithChildren<{
   modal?: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={cn(geistSans.variable, geistMono.variable, "antialiased")}
       >
-        <ThemeProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <QueryProvider>
             <AppShell>{children}</AppShell>
             {modal}
