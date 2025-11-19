@@ -119,11 +119,7 @@ const savePost = async (post: Post, now: Date | string) =>
   });
 
 const savePostMeta = (post: Post, now: Date | string) =>
-  Promise.all([
-    savePost(post, now),
-    saveForum(post.forum, now),
-    saveUserSnapshot(post.author, now),
-  ]);
+  Promise.all([saveForum(post.forum, now), saveUserSnapshot(post.author, now)]);
 
 export async function savePostSnapshot(post: PostDetails, now: Date | string) {
   await savePostMeta(post, now);
@@ -182,6 +178,7 @@ export async function fetchDiscuss(id: number, page?: number) {
     throw new AccessError("Failed to fetch discussion", status);
 
   const now = new Date(time * 1000);
+  await savePost(data.post, now);
   const replies = data.replies.result as Reply[];
   if (data.post.pinnedReply) replies.push(data.post.pinnedReply);
   const [replySnapshots] = await Promise.all([
@@ -216,13 +213,15 @@ export async function listDiscuss(forum: string | null = null, page?: number) {
   const now = new Date(time * 1000);
   const posts = data.posts.result as Post[];
   return Promise.all(
-    posts.map(async (post) =>
-      Promise.all([
+    posts.map(async (post) => {
+      const { id } = await savePost(post, now);
+      await Promise.all([
         savePostMeta(post, now),
         post.recentReply
           ? saveReply(post.recentReply, post.id, now)
           : Promise.resolve(),
-      ]).then(([[{ id }]]) => id),
-    ),
+      ]);
+      return id;
+    }),
   );
 }
