@@ -19,12 +19,12 @@
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@prisma/client": "^6.9.0"
+    "@prisma/client": "^6.19.0"
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
-    "@types/node": "^20.19.0",
-    "prisma": "^6.9.0",
-    "typescript": "^5.8.3"
+    "@types/node": "^20.19.25",
+    "prisma": "^6.19.0",
+    "typescript": "^5.9.3"
   }
 }

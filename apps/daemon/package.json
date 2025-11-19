@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
-    "@types/node": "^20.19.24",
+    "@types/node": "^20.19.25",
     "typescript": "^5.9.3"
   }
 }
