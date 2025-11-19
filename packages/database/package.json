@@ -8,23 +8,22 @@
       "default": "./dist/index.js"
     }
   },
-  "prisma": {
-    "schema": "./prisma"
-  },
   "scripts": {
-    "dev": "tsc --watch",
-    "build": "tsc",
+    "dev": "tsc --watch -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev --skip-generate",
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.0"
+    "@prisma/adapter-pg": "^7.0.0",
+    "@prisma/client": "^7.0.0"
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
     "@types/node": "^20.19.25",
-    "prisma": "^6.19.0",
+    "dotenv": "^17.2.3",
+    "prisma": "^7.0.0",
     "typescript": "^5.9.3"
   }
 }

@@ -4,10 +4,10 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build", "db:generate"],
-      "inputs": ["src/**", "tsconfig.json"]
+      "inputs": ["src/**", "tsconfig.build.json"]
     },
     "db:generate": {
-      "inputs": ["prisma/**/*.prisma"],
+      "inputs": ["prisma.config.ts", "prisma/**/*.prisma"],
       "outputs": ["src/generated/**"]
     }
   }

@@ -1,7 +1,7 @@
 {
-  "extends": "@luogu-discussion-archive/typescript-config/tsconfig.base.json",
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-  },
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.build.json" },
+    { "path": "./tsconfig.node.json" },
+  ],
 }
