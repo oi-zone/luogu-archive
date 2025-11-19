@@ -181,7 +181,7 @@ export async function fetchDiscuss(id: number, page?: number) {
   await savePost(data.post, now);
   const replies = data.replies.result as Reply[];
   if (data.post.pinnedReply) replies.push(data.post.pinnedReply);
-  const [replySnapshots] = await Promise.all([
+  const [replySnapshots, recentReply] = await Promise.all([
     Promise.all(
       replies.map((reply) => saveReplySnapshot(reply, data.post.id, now)),
     ),
@@ -198,6 +198,13 @@ export async function fetchDiscuss(id: number, page?: number) {
     numNewReplies: replySnapshots.filter(
       ({ capturedAt }) => capturedAt.getTime() === now.getTime(),
     ).length,
+    recentReply,
+    recentReplySnapshot: recentReply
+      ? await prisma.replySnapshot.findFirst({
+          select: { replyId: true, capturedAt: true, lastSeenAt: true },
+          where: { replyId: recentReply.id },
+        })
+      : null,
   };
 }
 

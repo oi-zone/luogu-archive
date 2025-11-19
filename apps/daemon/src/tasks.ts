@@ -61,10 +61,20 @@ export async function perform(task: Job, stream: string) {
       const id = task.id,
         page = task.page ? parseInt(task.page) : undefined;
 
-      const { numPages, numReplies, numNewReplies } = await fetchDiscuss(
-        parseInt(id),
-        page,
-      );
+      const {
+        numPages,
+        numReplies,
+        numNewReplies,
+        recentReply,
+        recentReplySnapshot,
+      } = await fetchDiscuss(parseInt(id), page);
+
+      if (recentReply && !recentReplySnapshot)
+        await client.xAdd(STREAM_IMMEDIATE, "*", {
+          type: "discuss",
+          id,
+          page: String(numPages),
+        } satisfies Job);
 
       if (numPages > 1) {
         const prevPage = page ? page - 1 : numPages;
