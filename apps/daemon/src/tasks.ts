@@ -9,6 +9,7 @@ import {
   fetchPaste,
   listArticles,
   listDiscuss,
+  REPLIES_PER_PAGE,
 } from "@luogu-discussion-archive/crawler";
 import {
   client,
@@ -31,10 +32,13 @@ export async function perform(task: Job, stream: string) {
         task.page ? parseInt(task.page) : undefined,
       );
       await Promise.all(
-        discussions.map((id) =>
+        discussions.map(({ id, replyCount }) =>
           client.xAdd(STREAM_IMMEDIATE, "*", {
             type: "discuss",
             id: String(id),
+            page: replyCount
+              ? String(Math.ceil(replyCount / REPLIES_PER_PAGE))
+              : "1",
           } satisfies Job),
         ),
       );

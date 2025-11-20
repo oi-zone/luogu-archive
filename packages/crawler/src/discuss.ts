@@ -14,6 +14,8 @@ import { PgAdvisoryLock } from "./locks.js";
 import { saveProblem } from "./problem.js";
 import { saveUserSnapshot } from "./user.js";
 
+export const REPLIES_PER_PAGE = 10;
+
 async function saveForum(forum: Forum, now: Date | string) {
   if (forum.problem) await saveProblem(forum.problem, now);
 
@@ -221,14 +223,14 @@ export async function listDiscuss(forum: string | null = null, page?: number) {
   const posts = data.posts.result as Post[];
   return Promise.all(
     posts.map(async (post) => {
-      const { id } = await savePost(post, now);
+      const p = await savePost(post, now);
       await Promise.all([
         savePostMeta(post, now),
         post.recentReply
           ? saveReply(post.recentReply, post.id, now)
           : Promise.resolve(),
       ]);
-      return id;
+      return p;
     }),
   );
 }
