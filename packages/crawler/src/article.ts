@@ -1,6 +1,7 @@
-import type { Article, ArticleDetails, Comment } from "@lgjs/types";
+import type { Article, ArticleDetails } from "@lgjs/types";
 
 import { prisma, type ArticleCollection } from "@luogu-discussion-archive/db";
+import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
 
 import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
@@ -136,29 +137,6 @@ export async function listArticles(
   );
 }
 
-async function saveReply(lid: string, reply: Comment, now: Date) {
-  await saveUserSnapshots([reply.author], now);
-
-  return prisma.articleReply.upsert({
-    where: { id: reply.id },
-    create: {
-      id: reply.id,
-      articleId: lid,
-      authorId: reply.author.uid,
-      time: new Date(reply.time * 1000),
-      content: reply.content,
-      updatedAt: now,
-    },
-    update: {
-      articleId: lid,
-      authorId: reply.author.uid,
-      time: new Date(reply.time * 1000),
-      content: reply.content,
-      updatedAt: now,
-    },
-  });
-}
-
 export async function fetchReplies(lid: string, after?: number) {
   // Here we don't have the server time, so just use local time
   const now = new Date();
@@ -180,7 +158,32 @@ export async function fetchReplies(lid: string, after?: number) {
     where: { id: lastReplyId },
   });
 
-  await Promise.all(replySlice.map((reply) => saveReply(lid, reply, now)));
+  await saveUserSnapshots(
+    replySlice.map((reply) => reply.author),
+    now,
+  );
+  await db
+    .insert(schema.ArticleReply)
+    .values(
+      replySlice.map((reply) => ({
+        id: reply.id,
+        articleId: lid,
+        authorId: reply.author.uid,
+        time: new Date(reply.time * 1000),
+        content: reply.content,
+        updatedAt: now,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [schema.ArticleReply.id],
+      set: {
+        articleId: sql.raw(`excluded."${schema.ArticleReply.articleId.name}"`),
+        authorId: sql.raw(`excluded."${schema.ArticleReply.authorId.name}"`),
+        time: sql.raw(`excluded."${schema.ArticleReply.time.name}"`),
+        content: sql.raw(`excluded."${schema.ArticleReply.content.name}"`),
+        updatedAt: sql.raw(`excluded."${schema.ArticleReply.updatedAt.name}"`),
+      },
+    });
 
   return { lastReplyId, lastReplySaved };
 }
