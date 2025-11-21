@@ -6,6 +6,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./drizzle": {
+      "types": "./src/drizzle.ts",
+      "default": "./dist/drizzle.js"
     }
   },
   "scripts": {
@@ -17,12 +21,15 @@
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",
-    "@prisma/client": "^7.0.0"
+    "@prisma/client": "^7.0.0",
+    "drizzle-orm": "^0.44.7"
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
     "@types/node": "^20.19.25",
+    "@types/pg": "^8.15.5",
     "dotenv": "^17.2.3",
+    "drizzle-prisma-generator": "^0.1.7",
     "prisma": "^7.0.0",
     "typescript": "^5.9.3"
   }

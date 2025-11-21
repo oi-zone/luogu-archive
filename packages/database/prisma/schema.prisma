@@ -9,6 +9,11 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+generator drizzle {
+  provider = "drizzle-prisma-generator"
+  output   = "../src/generated/drizzle"
+}
+
 datasource db {
   provider = "postgresql"
 }
