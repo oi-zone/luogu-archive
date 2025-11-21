@@ -1,56 +1,60 @@
 import type { UserSummary } from "@lgjs/types";
 
-import { prisma } from "@luogu-discussion-archive/db";
+import {
+  and,
+  db,
+  eq,
+  isNull,
+  max,
+  schema,
+  sql,
+} from "@luogu-discussion-archive/db/drizzle";
 
 import { PgAdvisoryLock } from "./locks.js";
 
-const saveUser = (uid: number) =>
-  prisma.user.upsert({
-    where: { id: uid },
-    create: { id: uid },
-    update: { id: uid },
-  });
+const saveUsers = (uids: number[]) =>
+  db
+    .insert(schema.User)
+    .values(uids.map((uid) => ({ id: uid })))
+    .onConflictDoNothing()
+    .execute();
 
-export async function saveUserSnapshot(user: UserSummary, now: Date | string) {
-  await saveUser(user.uid);
+const saveUserSnapshot = (user: UserSummary, now: Date) =>
+  db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${PgAdvisoryLock.User}::int4, ${user.uid}::int4)`,
+    );
 
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.User}::INT4, ${user.uid}::INT4);`;
+    const lastCaptured = tx
+      .select({ val: max(schema.UserSnapshot.capturedAt) })
+      .from(schema.UserSnapshot)
+      .where(eq(schema.UserSnapshot.userId, user.uid));
 
-    const lastSnapshot = await tx.userSnapshot.findFirst({
-      where: {
-        userId: user.uid,
-      },
-      orderBy: {
-        capturedAt: "desc",
-      },
-    });
+    const { rowCount } = await tx
+      .update(schema.UserSnapshot)
+      .set({ lastSeenAt: now })
+      .where(
+        and(
+          eq(schema.UserSnapshot.userId, user.uid),
+          eq(schema.UserSnapshot.capturedAt, lastCaptured),
 
-    if (
-      lastSnapshot &&
-      lastSnapshot.name === user.name &&
-      lastSnapshot.slogan === (user.slogan ?? "") &&
-      lastSnapshot.badge === user.badge &&
-      lastSnapshot.isAdmin === user.isAdmin &&
-      lastSnapshot.isBanned === user.isBanned &&
-      lastSnapshot.isRoot === (user.isRoot ?? false) &&
-      lastSnapshot.color === user.color &&
-      lastSnapshot.ccfLevel === user.ccfLevel &&
-      lastSnapshot.xcpcLevel === user.xcpcLevel &&
-      lastSnapshot.background === (user.background ?? "")
-    )
-      return tx.userSnapshot.update({
-        where: {
-          userId_capturedAt: {
-            userId: user.uid,
-            capturedAt: lastSnapshot.capturedAt,
-          },
-        },
-        data: { lastSeenAt: now },
-      });
+          eq(schema.UserSnapshot.name, user.name),
+          eq(schema.UserSnapshot.slogan, user.slogan ?? ""),
+          user.badge !== null
+            ? eq(schema.UserSnapshot.badge, user.badge)
+            : isNull(schema.UserSnapshot.badge),
+          eq(schema.UserSnapshot.isAdmin, user.isAdmin),
+          eq(schema.UserSnapshot.isBanned, user.isBanned),
+          eq(schema.UserSnapshot.isRoot, user.isRoot ?? false),
+          eq(schema.UserSnapshot.color, user.color),
+          eq(schema.UserSnapshot.ccfLevel, user.ccfLevel),
+          eq(schema.UserSnapshot.xcpcLevel, user.xcpcLevel),
+          eq(schema.UserSnapshot.background, user.background ?? ""),
+        ),
+      );
 
-    return tx.userSnapshot.create({
-      data: {
+    if (rowCount === 0)
+      return tx.insert(schema.UserSnapshot).values({
         userId: user.uid,
         name: user.name,
         slogan: user.slogan ?? "",
@@ -64,7 +68,10 @@ export async function saveUserSnapshot(user: UserSummary, now: Date | string) {
         background: user.background ?? "",
         capturedAt: now,
         lastSeenAt: now,
-      },
-    });
+      });
   });
+
+export async function saveUserSnapshots(users: UserSummary[], now: Date) {
+  await saveUsers(users.map((user) => user.uid));
+  await Promise.all(users.map((user) => saveUserSnapshot(user, now)));
 }

@@ -4,10 +4,10 @@ import { prisma } from "@luogu-discussion-archive/db";
 
 import { client } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
-import { saveUserSnapshot } from "./user.js";
+import { saveUserSnapshots } from "./user.js";
 
-async function savePaste(paste: Paste, now: Date | string) {
-  await saveUserSnapshot(paste.user, now);
+async function savePaste(paste: Paste, now: Date) {
+  await saveUserSnapshots([paste.user], now);
 
   return prisma.paste.upsert({
     where: { id: paste.id },
@@ -23,7 +23,7 @@ async function savePaste(paste: Paste, now: Date | string) {
   });
 }
 
-async function savePasteSnapshot(paste: Paste, now: Date | string) {
+async function savePasteSnapshot(paste: Paste, now: Date) {
   await savePaste(paste, now);
 
   return prisma.$transaction(async (tx) => {

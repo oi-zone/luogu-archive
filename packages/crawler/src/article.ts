@@ -5,7 +5,7 @@ import { prisma, type ArticleCollection } from "@luogu-discussion-archive/db";
 import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
 import { saveProblem } from "./problem.js";
-import { saveUserSnapshot } from "./user.js";
+import { saveUserSnapshots } from "./user.js";
 
 const saveCollection = (collection: ArticleCollection) =>
   prisma.articleCollection.upsert({
@@ -19,8 +19,8 @@ const saveCollection = (collection: ArticleCollection) =>
     },
   });
 
-async function saveArticle(article: Article, now: Date | string) {
-  await saveUserSnapshot(article.author, now);
+async function saveArticle(article: Article, now: Date) {
+  await saveUserSnapshots([article.author], now);
 
   return prisma.article.upsert({
     where: { lid: article.lid },
@@ -44,7 +44,7 @@ async function saveArticle(article: Article, now: Date | string) {
   });
 }
 
-const saveArticleMeta = (article: Article, now: Date | string) =>
+const saveArticleMeta = (article: Article, now: Date) =>
   Promise.all([
     saveArticle(article, now),
     article.solutionFor
@@ -53,10 +53,7 @@ const saveArticleMeta = (article: Article, now: Date | string) =>
     article.collection ? saveCollection(article.collection) : Promise.resolve(),
   ]);
 
-async function saveArticleSnapshot(
-  article: ArticleDetails,
-  now: Date | string,
-) {
+async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
   await saveArticleMeta(article, now);
 
   return prisma.$transaction(async (tx) => {
@@ -139,8 +136,8 @@ export async function listArticles(
   );
 }
 
-async function saveReply(lid: string, reply: Comment, now: Date | string) {
-  await saveUserSnapshot(reply.author, now);
+async function saveReply(lid: string, reply: Comment, now: Date) {
+  await saveUserSnapshots([reply.author], now);
 
   return prisma.articleReply.upsert({
     where: { id: reply.id },

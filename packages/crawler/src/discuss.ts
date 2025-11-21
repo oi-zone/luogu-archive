@@ -12,7 +12,7 @@ import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
 import { PgAdvisoryLock } from "./locks.js";
 import { saveProblem } from "./problem.js";
-import { saveUserSnapshot } from "./user.js";
+import { saveUserSnapshots } from "./user.js";
 
 export const REPLIES_PER_PAGE = 10;
 
@@ -36,12 +36,8 @@ async function saveForum(forum: Forum, now: Date | string) {
   });
 }
 
-async function saveReply(
-  reply: ReplySummary,
-  postId: number,
-  now: Date | string,
-) {
-  await saveUserSnapshot(reply.author, now);
+async function saveReply(reply: ReplySummary, postId: number, now: Date) {
+  await saveUserSnapshots([reply.author], now);
 
   return prisma.reply.upsert({
     where: { id: reply.id },
@@ -59,11 +55,7 @@ async function saveReply(
   });
 }
 
-async function saveReplySnapshot(
-  reply: Reply,
-  postId: number,
-  now: Date | string,
-) {
+async function saveReplySnapshot(reply: Reply, postId: number, now: Date) {
   await saveReply(reply, postId, now);
 
   return prisma.$transaction(async (tx) => {
@@ -120,10 +112,13 @@ const savePost = async (post: Post, now: Date | string) =>
     },
   });
 
-const savePostMeta = (post: Post, now: Date | string) =>
-  Promise.all([saveForum(post.forum, now), saveUserSnapshot(post.author, now)]);
+const savePostMeta = (post: Post, now: Date) =>
+  Promise.all([
+    saveForum(post.forum, now),
+    saveUserSnapshots([post.author], now),
+  ]);
 
-export async function savePostSnapshot(post: PostDetails, now: Date | string) {
+export async function savePostSnapshot(post: PostDetails, now: Date) {
   await savePostMeta(post, now);
 
   return prisma.$transaction(async (tx) => {

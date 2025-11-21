@@ -4,13 +4,13 @@ import { prisma } from "@luogu-discussion-archive/db";
 
 import { cn } from "./client.js";
 import { HttpError } from "./error.js";
-import { saveUserSnapshot } from "./user.js";
+import { saveUserSnapshots } from "./user.js";
 
 async function saveLog(
   log: RouteResponse["judgement"]["data"]["logs"][number],
-  now: Date | string,
+  now: Date,
 ) {
-  await saveUserSnapshot(log.user, now);
+  await saveUserSnapshots([log.user], now);
 
   return prisma.judgement.upsert({
     where: {
