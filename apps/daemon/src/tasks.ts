@@ -73,7 +73,7 @@ export async function perform(task: Job, stream: string) {
         recentReplySnapshot,
       } = await fetchDiscuss(parseInt(id), page);
 
-      if (recentReply && !recentReplySnapshot)
+      if (page && recentReply && !recentReplySnapshot)
         await client.xAdd(STREAM_IMMEDIATE, "*", {
           type: "discuss",
           id,
