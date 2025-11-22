@@ -1,4 +1,9 @@
-import { AccessError } from "@luogu-discussion-archive/crawler";
+import * as Sentry from "@sentry/node";
+
+import {
+  AccessError,
+  UnexpectedStatusError,
+} from "@luogu-discussion-archive/crawler";
 import logger from "@luogu-discussion-archive/logging";
 import {
   client,
@@ -65,18 +70,37 @@ export async function consume(consumerName: string) {
       jobLog.info("Job processing started");
       for (let attempt = 1; ; ++attempt) {
         try {
-          await perform(job, stream);
+          await Sentry.startSpan(
+            {
+              name: job.type,
+              op: "crawler",
+              attributes: Object.fromEntries(
+                Object.entries(job).map(([key, value]) => [
+                  `job.${key}`,
+                  value,
+                ]),
+              ),
+            },
+            (span) =>
+              perform(job, stream)
+                .then(() => span.setStatus({ code: 1 }))
+                .catch((err: unknown) => {
+                  span.setStatus(
+                    err instanceof UnexpectedStatusError
+                      ? Sentry.getSpanStatusFromHttpCode(err.status)
+                      : { code: 2, message: (err as Error).message },
+                  );
+                  // Access denied: acknowledge and stop retrying
+                  if (err instanceof AccessError)
+                    jobLog.warn(
+                      { err },
+                      "Access denied during job processing, acknowledging",
+                    );
+                  else throw err;
+                }),
+          );
           break;
         } catch (err) {
-          // Access denied: acknowledge and stop retrying
-          if (err instanceof AccessError) {
-            jobLog.warn(
-              { err },
-              "Access denied during job processing, acknowledging",
-            );
-            break;
-          }
-
           const willRetry = attempt < JOB_MAX_ATTEMPTS;
           jobLog.error(
             { err, attempt, willRetry },

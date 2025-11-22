@@ -1,3 +1,5 @@
+import "./sentry.js";
+
 import logger from "@luogu-discussion-archive/logging";
 import { client } from "@luogu-discussion-archive/redis";
 
