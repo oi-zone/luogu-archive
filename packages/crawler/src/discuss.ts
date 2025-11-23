@@ -9,7 +9,7 @@ import type {
 import { prisma } from "@luogu-discussion-archive/db";
 
 import { clientLentille } from "./client.js";
-import { AccessError } from "./error.js";
+import { AccessError, HttpError } from "./error.js";
 import { PgAdvisoryLock } from "./locks.js";
 import { saveProblem } from "./problem.js";
 import { saveUserSnapshot } from "./user.js";
@@ -170,14 +170,15 @@ export async function savePostSnapshot(post: PostDetails, now: Date | string) {
 }
 
 export async function fetchDiscuss(id: number, page?: number) {
-  const { status, data, time } = await (
-    await clientLentille.get("discuss.show", {
-      params: { id },
-      query: page ? { page } : {},
-    })
-  ).json();
-  if (status !== 200)
-    throw new AccessError("Failed to fetch discussion", status);
+  const res = await clientLentille.get("discuss.show", {
+    params: { id },
+    query: page ? { page } : {},
+  });
+  const { status, data, time } = await res.json().catch((err: unknown) => {
+    throw res.ok ? err : new HttpError(res.url, res.status);
+  });
+  if (status === 403 || status === 404) throw new AccessError(res.url, status);
+  if (status !== 200) throw new HttpError(res.url, status);
 
   const now = new Date(time * 1000);
   await savePost(data.post, now);
@@ -211,13 +212,13 @@ export async function fetchDiscuss(id: number, page?: number) {
 }
 
 export async function listDiscuss(forum: string | null = null, page?: number) {
-  const { status, data, time } = await (
-    await clientLentille.get("discuss.list", {
-      query: { ...(forum ? { forum } : {}), ...(page ? { page } : {}) },
-    })
-  ).json();
-  if (status !== 200)
-    throw new AccessError("Failed to list discussions", status);
+  const res = await clientLentille.get("discuss.list", {
+    query: { ...(forum ? { forum } : {}), ...(page ? { page } : {}) },
+  });
+  const { status, data, time } = await res.json().catch((err: unknown) => {
+    throw res.ok ? err : new HttpError(res.url, res.status);
+  });
+  if (status !== 200) throw new HttpError(res.url, status);
 
   const now = new Date(time * 1000);
   const posts = data.posts.result as Post[];

@@ -3,7 +3,7 @@ import type { RouteResponse } from "@lgjs/types";
 import { prisma } from "@luogu-discussion-archive/db";
 
 import { cn } from "./client.js";
-import { AccessError } from "./error.js";
+import { HttpError } from "./error.js";
 import { saveUserSnapshot } from "./user.js";
 
 async function saveLog(
@@ -32,10 +32,12 @@ async function saveLog(
 }
 
 export async function fetchJudgement() {
-  const { status, data, time } = await (await cn.get("judgement")).json();
-  if (status !== 200)
-    throw new AccessError("Failed to fetch judgement", status);
-  const now = new Date(time * 1000);
+  const res = await cn.get("judgement");
+  const { status, data, time } = await res.json().catch((err: unknown) => {
+    throw res.ok ? err : new HttpError(res.url, res.status);
+  });
+  if (status !== 200) throw new HttpError(res.url, status);
 
+  const now = new Date(time * 1000);
   return Promise.all(data.logs.map((log) => saveLog(log, now)));
 }

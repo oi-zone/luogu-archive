@@ -3,7 +3,7 @@ import type { Article, ArticleDetails, Comment } from "@lgjs/types";
 import { prisma, type ArticleCollection } from "@luogu-discussion-archive/db";
 
 import { clientLentille } from "./client.js";
-import { AccessError } from "./error.js";
+import { AccessError, HttpError } from "./error.js";
 import { saveProblem } from "./problem.js";
 import { saveUserSnapshot } from "./user.js";
 
@@ -103,12 +103,14 @@ async function saveArticleSnapshot(
 }
 
 export async function fetchArticle(lid: string) {
-  const { status, data, time } = await (
-    await clientLentille.get("article.show", { params: { lid } })
-  ).json();
-  if (status !== 200) throw new AccessError("Failed to fetch article", status);
-  const now = new Date(time * 1000);
+  const res = await clientLentille.get("article.show", { params: { lid } });
+  const { status, data, time } = await res.json().catch((err: unknown) => {
+    throw res.ok ? err : new HttpError(res.url, res.status);
+  });
+  if (status === 403 || status === 404) throw new AccessError(res.url, status);
+  if (status !== 200) throw new HttpError(res.url, status);
 
+  const now = new Date(time * 1000);
   return saveArticleSnapshot(data.article, now);
 }
 
@@ -116,15 +118,17 @@ export async function listArticles(
   collection: number | null = null,
   page?: number,
 ) {
-  const { status, data, time } = await (
-    await (collection
-      ? clientLentille.get("article.collection", {
-          params: { id: collection },
-          ...(page ? { query: { page } } : {}),
-        })
-      : clientLentille.get("article.list", page ? { query: { page } } : {}))
-  ).json();
-  if (status !== 200) throw new AccessError("Failed to list articles", status);
+  const res = await (collection
+    ? clientLentille.get("article.collection", {
+        params: { id: collection },
+        ...(page ? { query: { page } } : {}),
+      })
+    : clientLentille.get("article.list", page ? { query: { page } } : {}));
+  const { status, data, time } = await res.json().catch((err: unknown) => {
+    throw res.ok ? err : new HttpError(res.url, res.status);
+  });
+  if (status === 403 || status === 404) throw new AccessError(res.url, status);
+  if (status !== 200) throw new HttpError(res.url, status);
 
   const now = new Date(time * 1000);
   const articles = data.articles.result as Article[];
@@ -162,15 +166,14 @@ export async function fetchReplies(lid: string, after?: number) {
   // Here we don't have the server time, so just use local time
   const now = new Date();
 
-  const response = await (
-    await clientLentille.get("article.replies", {
-      params: { lid },
-      query: { sort: "time-d", ...(after ? { after } : {}) },
-    })
-  ).json();
-  if (!Object.hasOwn(response, "replySlice"))
-    throw new Error(JSON.stringify(response));
-  const { replySlice } = response;
+  const res = await clientLentille.get("article.replies", {
+    params: { lid },
+    query: { sort: "time-d", ...(after ? { after } : {}) },
+  });
+  if (res.status === 403 || res.status === 404)
+    throw new AccessError(res.url, res.status);
+  if (!res.ok) throw new HttpError(res.url, res.status);
+  const { replySlice } = await res.json();
 
   const lastReplyId = replySlice[replySlice.length - 1]?.id;
   if (!lastReplyId) return { lastReplyId: null, lastReplySaved: null };

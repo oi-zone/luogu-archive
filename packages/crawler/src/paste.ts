@@ -3,7 +3,7 @@ import type { Paste } from "@lgjs/types";
 import { prisma } from "@luogu-discussion-archive/db";
 
 import { client } from "./client.js";
-import { AccessError } from "./error.js";
+import { AccessError, HttpError } from "./error.js";
 import { saveUserSnapshot } from "./user.js";
 
 async function savePaste(paste: Paste, now: Date | string) {
@@ -62,11 +62,15 @@ async function savePasteSnapshot(paste: Paste, now: Date | string) {
 }
 
 export async function fetchPaste(id: string) {
-  const { code, currentData, currentTime } = await (
-    await client.get("paste.show", { params: { id } })
-  ).json();
-  if (code !== 200) throw new AccessError("Failed to fetch paste", code);
-  const now = new Date(currentTime * 1000);
+  const res = await client.get("paste.show", { params: { id } });
+  const { code, currentData, currentTime } = await res
+    .json()
+    .catch((err: unknown) => {
+      throw res.ok ? err : new HttpError(res.url, res.status);
+    });
+  if (code === 403 || code === 404) throw new AccessError(res.url, code);
+  if (code !== 200) throw new HttpError(res.url, code);
 
+  const now = new Date(currentTime * 1000);
   return savePasteSnapshot(currentData.paste, now);
 }
