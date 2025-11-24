@@ -5,7 +5,7 @@ import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
 
 import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
-import { saveProblem } from "./problem.js";
+import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
 
 const saveCollection = (collection: ArticleCollection) =>
@@ -48,9 +48,7 @@ async function saveArticle(article: Article, now: Date) {
 const saveArticleMeta = (article: Article, now: Date) =>
   Promise.all([
     saveArticle(article, now),
-    article.solutionFor
-      ? saveProblem(article.solutionFor, now)
-      : Promise.resolve(),
+    saveProblems(article.solutionFor ? [article.solutionFor] : [], now),
     article.collection ? saveCollection(article.collection) : Promise.resolve(),
   ]);
 

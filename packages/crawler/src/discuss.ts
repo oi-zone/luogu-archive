@@ -11,13 +11,13 @@ import { prisma } from "@luogu-discussion-archive/db";
 import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
 import { PgAdvisoryLock } from "./locks.js";
-import { saveProblem } from "./problem.js";
+import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
 
 export const REPLIES_PER_PAGE = 10;
 
-async function saveForum(forum: Forum, now: Date | string) {
-  if (forum.problem) await saveProblem(forum.problem, now);
+async function saveForum(forum: Forum, now: Date) {
+  if (forum.problem) await saveProblems([forum.problem], now);
 
   return prisma.forum.upsert({
     where: { slug: forum.slug },
