@@ -2,11 +2,13 @@ import type {
   Forum,
   Post,
   PostDetails,
+  ProblemSummary,
   Reply,
   ReplySummary,
 } from "@lgjs/types";
 
 import { prisma } from "@luogu-discussion-archive/db";
+import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
 
 import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
@@ -16,49 +18,56 @@ import { saveUserSnapshots } from "./user.js";
 
 export const REPLIES_PER_PAGE = 10;
 
-async function saveForum(forum: Forum, now: Date) {
-  if (forum.problem) await saveProblems([forum.problem], now);
+async function saveForums(forums: Forum[], now: Date) {
+  await saveProblems(
+    forums
+      .map((forum) => forum.problem)
+      .filter((problem): problem is ProblemSummary => Boolean(problem)),
+    now,
+  );
 
-  return prisma.forum.upsert({
-    where: { slug: forum.slug },
-    update: {
-      slug: forum.slug,
-      name: forum.name,
-      problemId: forum.problem?.pid ?? null,
-      updatedAt: now,
-    },
-    create: {
-      slug: forum.slug,
-      name: forum.name,
-      problemId: forum.problem?.pid ?? null,
-      updatedAt: now,
-    },
-  });
+  return db
+    .insert(schema.Forum)
+    .values(
+      forums.map((forum) => ({
+        slug: forum.slug,
+        name: forum.name,
+        problemId: forum.problem?.pid ?? null,
+        updatedAt: now,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [schema.Forum.slug],
+      set: {
+        name: sql.raw(`excluded."${schema.Forum.name.name}"`),
+        problemId: sql.raw(`excluded."${schema.Forum.problemId.name}"`),
+        updatedAt: sql.raw(`excluded."${schema.Forum.updatedAt.name}"`),
+      },
+    });
 }
 
-async function saveReply(reply: ReplySummary, postId: number, now: Date) {
-  await saveUserSnapshots([reply.author], now);
+const saveReplies = (replies: { postId: number; reply: ReplySummary }[]) =>
+  db
+    .insert(schema.Reply)
+    .values(
+      replies.map(({ postId, reply }) => ({
+        id: reply.id,
+        postId,
+        authorId: reply.author.uid,
+        time: new Date(reply.time * 1000),
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [schema.Reply.id],
+      set: {
+        postId: sql.raw(`excluded."${schema.Reply.postId.name}"`),
+        authorId: sql.raw(`excluded."${schema.Reply.authorId.name}"`),
+        time: sql.raw(`excluded."${schema.Reply.time.name}"`),
+      },
+    });
 
-  return prisma.reply.upsert({
-    where: { id: reply.id },
-    create: {
-      id: reply.id,
-      postId,
-      authorId: reply.author.uid,
-      time: new Date(reply.time * 1000),
-    },
-    update: {
-      postId,
-      authorId: reply.author.uid,
-      time: new Date(reply.time * 1000),
-    },
-  });
-}
-
-async function saveReplySnapshot(reply: Reply, postId: number, now: Date) {
-  await saveReply(reply, postId, now);
-
-  return prisma.$transaction(async (tx) => {
+const saveReplySnapshot = async (reply: Reply, now: Date) =>
+  prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Reply}::INT4, ${reply.id}::INT4);`;
 
     const lastSnapshot = await tx.replySnapshot.findFirst({
@@ -90,36 +99,33 @@ async function saveReplySnapshot(reply: Reply, postId: number, now: Date) {
       },
     });
   });
-}
 
-const savePost = async (post: Post, now: Date | string) =>
-  prisma.post.upsert({
-    where: { id: post.id },
-    create: {
-      id: post.id,
-      time: new Date(post.time * 1000),
-      replyCount: post.replyCount,
-      topped: post.topped,
-      locked: post.locked,
-      updatedAt: now,
-    },
-    update: {
-      time: new Date(post.time * 1000),
-      replyCount: post.replyCount,
-      topped: post.topped,
-      locked: post.locked,
-      updatedAt: now,
-    },
-  });
+const savePosts = (posts: Post[], now: Date) =>
+  db
+    .insert(schema.Post)
+    .values(
+      posts.map((post) => ({
+        id: post.id,
+        time: new Date(post.time * 1000),
+        replyCount: post.replyCount,
+        topped: post.topped,
+        locked: post.locked,
+        updatedAt: now,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [schema.Post.id],
+      set: {
+        time: sql.raw(`excluded."${schema.Post.time.name}"`),
+        replyCount: sql.raw(`excluded."${schema.Post.replyCount.name}"`),
+        topped: sql.raw(`excluded."${schema.Post.topped.name}"`),
+        locked: sql.raw(`excluded."${schema.Post.locked.name}"`),
+        updatedAt: sql.raw(`excluded."${schema.Post.updatedAt.name}"`),
+      },
+    });
 
-const savePostMeta = (post: Post, now: Date) =>
-  Promise.all([
-    saveForum(post.forum, now),
-    saveUserSnapshots([post.author], now),
-  ]);
-
-export async function savePostSnapshot(post: PostDetails, now: Date) {
-  await savePostMeta(post, now);
+async function savePostSnapshot(post: PostDetails, now: Date) {
+  await saveForums([post.forum], now);
 
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Post}::INT4, ${post.id}::INT4);`;
@@ -176,19 +182,32 @@ export async function fetchDiscuss(id: number, page?: number) {
   if (status !== 200) throw new HttpError(res.url, status);
 
   const now = new Date(time * 1000);
-  await savePost(data.post, now);
   const replies = data.replies.result as Reply[];
   if (data.post.pinnedReply) replies.push(data.post.pinnedReply);
-  const [replySnapshots, recentReply] = await Promise.all([
-    Promise.all(
-      replies.map((reply) => saveReplySnapshot(reply, data.post.id, now)),
+
+  await Promise.all([
+    savePosts([data.post], now),
+    saveUserSnapshots(
+      replies
+        .map((reply) => reply.author)
+        .concat(data.post.author)
+        .concat(data.post.recentReply ? data.post.recentReply.author : []),
+      now,
     ),
-    data.post.recentReply
-      ? saveReply(data.post.recentReply, data.post.id, now)
-      : Promise.resolve(),
+  ]);
+
+  const [replySnapshots] = await Promise.all([
+    saveReplies(
+      (replies as ReplySummary[])
+        .concat(data.post.recentReply ? data.post.recentReply : [])
+        .map((reply) => ({ postId: data.post.id, reply })),
+    ).then(() =>
+      Promise.all(replies.map((reply) => saveReplySnapshot(reply, now))),
+    ),
     savePostSnapshot(data.post, now),
   ]);
 
+  const { recentReply } = data.post;
   return {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     numPages: Math.ceil(data.replies.count / data.replies.perPage!),
@@ -217,16 +236,27 @@ export async function listDiscuss(forum: string | null = null, page?: number) {
 
   const now = new Date(time * 1000);
   const posts = data.posts.result as Post[];
-  return Promise.all(
-    posts.map(async (post) => {
-      const p = await savePost(post, now);
-      await Promise.all([
-        savePostMeta(post, now),
-        post.recentReply
-          ? saveReply(post.recentReply, post.id, now)
-          : Promise.resolve(),
-      ]);
-      return p;
-    }),
-  );
+  await Promise.all([
+    saveForums(
+      posts.map((post) => post.forum),
+      now,
+    ),
+    saveUserSnapshots(
+      posts
+        .flatMap((post) =>
+          post.recentReply ? ([post, post.recentReply] as const) : post,
+        )
+        .map(({ author }) => author),
+      now,
+    )
+      .then(() => savePosts(posts, now))
+      .then(() =>
+        saveReplies(
+          posts.flatMap(({ id, recentReply }) =>
+            recentReply ? { postId: id, reply: recentReply } : [],
+          ),
+        ),
+      ),
+  ]);
+  return posts;
 }
