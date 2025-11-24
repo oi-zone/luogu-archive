@@ -1,6 +1,10 @@
-import type { Article, ArticleDetails } from "@lgjs/types";
+import type {
+  Article,
+  ArticleCollectionSummary,
+  ArticleDetails,
+} from "@lgjs/types";
 
-import { prisma, type ArticleCollection } from "@luogu-discussion-archive/db";
+import { prisma } from "@luogu-discussion-archive/db";
 import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
 
 import { clientLentille } from "./client.js";
@@ -8,52 +12,60 @@ import { AccessError, HttpError } from "./error.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
 
-const saveCollection = (collection: ArticleCollection) =>
-  prisma.articleCollection.upsert({
-    where: { id: collection.id },
-    update: {
-      name: collection.name,
-    },
-    create: {
-      id: collection.id,
-      name: collection.name,
-    },
-  });
+const saveCollections = (collections: ArticleCollectionSummary[]) =>
+  db
+    .insert(schema.ArticleCollection)
+    .values(
+      collections.map((collection) => ({
+        id: collection.id,
+        name: collection.name,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [schema.ArticleCollection.id],
+      set: {
+        name: sql.raw(`excluded."${schema.ArticleCollection.name.name}"`),
+      },
+    });
 
-async function saveArticle(article: Article, now: Date) {
-  await saveUserSnapshots([article.author], now);
+async function saveArticles(articles: Article[], now: Date) {
+  await saveUserSnapshots(
+    articles.map((article) => article.author),
+    now,
+  );
 
-  return prisma.article.upsert({
-    where: { lid: article.lid },
-    create: {
-      lid: article.lid,
-      time: new Date(article.time * 1000),
-      authorId: article.author.uid,
-      upvote: article.upvote,
-      replyCount: article.replyCount,
-      favorCount: article.favorCount,
-      updatedAt: now,
-    },
-    update: {
-      time: new Date(article.time * 1000),
-      authorId: article.author.uid,
-      upvote: article.upvote,
-      replyCount: article.replyCount,
-      favorCount: article.favorCount,
-      updatedAt: now,
-    },
-  });
+  return db
+    .insert(schema.Article)
+    .values(
+      articles.map((article) => ({
+        lid: article.lid,
+        time: new Date(article.time * 1000),
+        authorId: article.author.uid,
+        upvote: article.upvote,
+        replyCount: article.replyCount,
+        favorCount: article.favorCount,
+        updatedAt: now,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [schema.Article.lid],
+      set: {
+        time: sql.raw(`excluded."${schema.Article.time.name}"`),
+        authorId: sql.raw(`excluded."${schema.Article.authorId.name}"`),
+        upvote: sql.raw(`excluded."${schema.Article.upvote.name}"`),
+        replyCount: sql.raw(`excluded."${schema.Article.replyCount.name}"`),
+        favorCount: sql.raw(`excluded."${schema.Article.favorCount.name}"`),
+        updatedAt: sql.raw(`excluded."${schema.Article.updatedAt.name}"`),
+      },
+    });
 }
 
-const saveArticleMeta = (article: Article, now: Date) =>
-  Promise.all([
-    saveArticle(article, now),
-    saveProblems(article.solutionFor ? [article.solutionFor] : [], now),
-    article.collection ? saveCollection(article.collection) : Promise.resolve(),
-  ]);
-
 async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
-  await saveArticleMeta(article, now);
+  await Promise.all([
+    saveArticles([article], now),
+    saveProblems(article.solutionFor ? [article.solutionFor] : [], now),
+    saveCollections(article.collection ? [article.collection] : []),
+  ]);
 
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${parseInt(article.lid, 36)});`;
@@ -128,11 +140,15 @@ export async function listArticles(
 
   const now = new Date(time * 1000);
   const articles = data.articles.result as Article[];
-  return Promise.all(
-    articles.map(async (article) =>
-      saveArticleMeta(article, now).then(([{ lid }]) => lid),
+  await Promise.all([
+    saveArticles(articles, now),
+    saveCollections(articles.flatMap((article) => article.collection ?? [])),
+    saveUserSnapshots(
+      articles.map((article) => article.author),
+      now,
     ),
-  );
+  ]);
+  return articles.map((article) => article.lid);
 }
 
 export async function fetchReplies(lid: string, after?: number) {
