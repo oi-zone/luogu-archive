@@ -15,12 +15,16 @@ import { AccessError, HttpError } from "./error.js";
 import { PgAdvisoryLock } from "./locks.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
+import { deduplicate } from "./utils.js";
 
 export const REPLIES_PER_PAGE = 10;
 
 async function saveForums(forums: Forum[], now: Date) {
+  const deduplicatedForums = deduplicate(forums, (forum) => forum.slug);
+  if (!deduplicatedForums.length) return Promise.resolve();
+
   await saveProblems(
-    forums
+    deduplicatedForums
       .map((forum) => forum.problem)
       .filter((problem): problem is ProblemSummary => Boolean(problem)),
     now,
@@ -29,7 +33,7 @@ async function saveForums(forums: Forum[], now: Date) {
   return db
     .insert(schema.Forum)
     .values(
-      forums.map((forum) => ({
+      deduplicatedForums.map((forum) => ({
         slug: forum.slug,
         name: forum.name,
         problemId: forum.problem?.pid ?? null,
@@ -46,11 +50,14 @@ async function saveForums(forums: Forum[], now: Date) {
     });
 }
 
-const saveReplies = (replies: { postId: number; reply: ReplySummary }[]) =>
-  db
+async function saveReplies(replies: { postId: number; reply: ReplySummary }[]) {
+  const deduplicatedReplies = deduplicate(replies, (reply) => reply.reply.id);
+  if (!deduplicatedReplies.length) return Promise.resolve();
+
+  return db
     .insert(schema.Reply)
     .values(
-      replies.map(({ postId, reply }) => ({
+      deduplicatedReplies.map(({ postId, reply }) => ({
         id: reply.id,
         postId,
         authorId: reply.author.uid,
@@ -65,6 +72,7 @@ const saveReplies = (replies: { postId: number; reply: ReplySummary }[]) =>
         time: sql.raw(`excluded."${schema.Reply.time.name}"`),
       },
     });
+}
 
 const saveReplySnapshot = async (reply: Reply, now: Date) =>
   prisma.$transaction(async (tx) => {
@@ -100,11 +108,14 @@ const saveReplySnapshot = async (reply: Reply, now: Date) =>
     });
   });
 
-const savePosts = (posts: Post[], now: Date) =>
-  db
+async function savePosts(posts: Post[], now: Date) {
+  const deduplicatedPosts = deduplicate(posts, (post) => post.id);
+  if (!deduplicatedPosts.length) return Promise.resolve();
+
+  return db
     .insert(schema.Post)
     .values(
-      posts.map((post) => ({
+      deduplicatedPosts.map((post) => ({
         id: post.id,
         time: new Date(post.time * 1000),
         replyCount: post.replyCount,
@@ -123,6 +134,7 @@ const savePosts = (posts: Post[], now: Date) =>
         updatedAt: sql.raw(`excluded."${schema.Post.updatedAt.name}"`),
       },
     });
+}
 
 async function savePostSnapshot(post: PostDetails, now: Date) {
   await saveForums([post.forum], now);

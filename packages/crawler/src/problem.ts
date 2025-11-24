@@ -2,11 +2,16 @@ import type { ProblemSummary } from "@lgjs/types";
 
 import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
 
-export const saveProblems = async (problems: ProblemSummary[], now: Date) =>
-  db
+import { deduplicate } from "./utils.js";
+
+export async function saveProblems(problems: ProblemSummary[], now: Date) {
+  const deduplicatedProblems = deduplicate(problems, (problem) => problem.pid);
+  if (!deduplicatedProblems.length) return;
+
+  return db
     .insert(schema.Problem)
     .values(
-      problems.map((problem) => ({
+      deduplicatedProblems.map((problem) => ({
         pid: problem.pid,
         title: problem.title,
         difficulty: problem.difficulty,
@@ -21,3 +26,4 @@ export const saveProblems = async (problems: ProblemSummary[], now: Date) =>
         updatedAt: sql.raw(`excluded."${schema.Problem.updatedAt.name}"`),
       },
     });
+}

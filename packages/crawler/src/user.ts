@@ -11,6 +11,7 @@ import {
 } from "@luogu-discussion-archive/db/drizzle";
 
 import { PgAdvisoryLock } from "./locks.js";
+import { deduplicate } from "./utils.js";
 
 const saveUsers = (uids: number[]) =>
   db
@@ -72,6 +73,11 @@ const saveUserSnapshot = (user: UserSummary, now: Date) =>
   });
 
 export async function saveUserSnapshots(users: UserSummary[], now: Date) {
-  await saveUsers(users.map((user) => user.uid));
-  await Promise.all(users.map((user) => saveUserSnapshot(user, now)));
+  const deduplicatedUsers = deduplicate(users, (user) => user.uid);
+  if (!deduplicatedUsers.length) return;
+
+  await saveUsers(deduplicatedUsers.map((user) => user.uid));
+  await Promise.all(
+    deduplicatedUsers.map((user) => saveUserSnapshot(user, now)),
+  );
 }

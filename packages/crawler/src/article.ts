@@ -11,12 +11,19 @@ import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
+import { deduplicate } from "./utils.js";
 
-const saveCollections = (collections: ArticleCollectionSummary[]) =>
-  db
+function saveCollections(collections: ArticleCollectionSummary[]) {
+  const deduplicatedCollections = deduplicate(
+    collections,
+    (collection) => collection.id,
+  );
+  if (!deduplicatedCollections.length) return;
+
+  return db
     .insert(schema.ArticleCollection)
     .values(
-      collections.map((collection) => ({
+      deduplicatedCollections.map((collection) => ({
         id: collection.id,
         name: collection.name,
       })),
@@ -27,17 +34,21 @@ const saveCollections = (collections: ArticleCollectionSummary[]) =>
         name: sql.raw(`excluded."${schema.ArticleCollection.name.name}"`),
       },
     });
+}
 
 async function saveArticles(articles: Article[], now: Date) {
+  const deduplicatedArticles = deduplicate(articles, (article) => article.lid);
+  if (!deduplicatedArticles.length) return;
+
   await saveUserSnapshots(
-    articles.map((article) => article.author),
+    deduplicatedArticles.map((article) => article.author),
     now,
   );
 
   return db
     .insert(schema.Article)
     .values(
-      articles.map((article) => ({
+      deduplicatedArticles.map((article) => ({
         lid: article.lid,
         time: new Date(article.time * 1000),
         authorId: article.author.uid,
