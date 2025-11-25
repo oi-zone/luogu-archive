@@ -4,8 +4,15 @@ import type {
   ArticleDetails,
 } from "@lgjs/types";
 
-import { prisma } from "@luogu-discussion-archive/db";
-import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
+import {
+  and,
+  db,
+  eq,
+  isNull,
+  max,
+  schema,
+  sql,
+} from "@luogu-discussion-archive/db/drizzle";
 
 import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
@@ -78,33 +85,43 @@ async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
     saveCollections(article.collection ? [article.collection] : []),
   ]);
 
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${parseInt(article.lid, 36)});`;
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${parseInt(article.lid, 36)})`,
+    );
 
-    const lastSnapshot = await tx.articleSnapshot.findFirst({
-      where: { articleId: article.lid },
-      orderBy: { capturedAt: "desc" },
-    });
+    const lastCaptured = tx
+      .select({ val: max(schema.ArticleSnapshot.capturedAt) })
+      .from(schema.ArticleSnapshot)
+      .where(eq(schema.ArticleSnapshot.articleId, article.lid));
 
-    if (
-      lastSnapshot &&
-      lastSnapshot.title === article.title &&
-      lastSnapshot.category === article.category &&
-      lastSnapshot.content === article.content &&
-      lastSnapshot.adminNote === article.adminNote
-    )
-      return tx.articleSnapshot.update({
-        where: {
-          articleId_capturedAt: {
-            articleId: article.lid,
-            capturedAt: lastSnapshot.capturedAt,
-          },
-        },
-        data: { lastSeenAt: now },
-      });
+    const { rowCount } = await tx
+      .update(schema.ArticleSnapshot)
+      .set({ lastSeenAt: now })
+      .where(
+        and(
+          eq(schema.ArticleSnapshot.articleId, article.lid),
+          eq(schema.ArticleSnapshot.capturedAt, lastCaptured),
 
-    return tx.articleSnapshot.create({
-      data: {
+          eq(schema.ArticleSnapshot.title, article.title),
+          eq(schema.ArticleSnapshot.category, article.category),
+          eq(schema.ArticleSnapshot.status, article.status),
+          article.solutionFor !== null
+            ? eq(schema.ArticleSnapshot.solutionForPid, article.solutionFor.pid)
+            : isNull(schema.ArticleSnapshot.solutionForPid),
+          eq(schema.ArticleSnapshot.promoteStatus, article.promoteStatus),
+          article.collection !== null
+            ? eq(schema.ArticleSnapshot.collectionId, article.collection.id)
+            : isNull(schema.ArticleSnapshot.collectionId),
+          eq(schema.ArticleSnapshot.content, article.content),
+          article.adminNote !== null
+            ? eq(schema.ArticleSnapshot.adminNote, article.adminNote)
+            : isNull(schema.ArticleSnapshot.adminNote),
+        ),
+      );
+
+    if (rowCount === 0)
+      return tx.insert(schema.ArticleSnapshot).values({
         articleId: article.lid,
         title: article.title,
         category: article.category,
@@ -116,8 +133,7 @@ async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
         adminNote: article.adminNote,
         capturedAt: now,
         lastSeenAt: now,
-      },
-    });
+      });
   });
 }
 
@@ -178,9 +194,9 @@ export async function fetchReplies(lid: string, after?: number) {
   const lastReplyId = replySlice[replySlice.length - 1]?.id;
   if (!lastReplyId) return { lastReplyId: null, lastReplySaved: null };
 
-  const lastReplySaved = await prisma.articleReply.findUnique({
-    select: { updatedAt: true },
-    where: { id: lastReplyId },
+  const lastReplySaved = await db.query.ArticleReply.findFirst({
+    columns: { updatedAt: true },
+    where: eq(schema.ArticleReply.id, lastReplyId),
   });
 
   await saveUserSnapshots(

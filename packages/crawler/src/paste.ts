@@ -1,6 +1,14 @@
 import type { Paste } from "@lgjs/types";
 
-import { prisma } from "@luogu-discussion-archive/db";
+import {
+  and,
+  db,
+  eq,
+  isNull,
+  max,
+  schema,
+  sql,
+} from "@luogu-discussion-archive/db/drizzle";
 
 import { client } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
@@ -9,55 +17,58 @@ import { saveUserSnapshots } from "./user.js";
 async function savePaste(paste: Paste, now: Date) {
   await saveUserSnapshots([paste.user], now);
 
-  return prisma.paste.upsert({
-    where: { id: paste.id },
-    update: {
-      time: new Date(paste.time * 1000),
-      userId: paste.user.uid,
-    },
-    create: {
+  return db
+    .insert(schema.Paste)
+    .values({
       id: paste.id,
       time: new Date(paste.time * 1000),
       userId: paste.user.uid,
-    },
-  });
+    })
+    .onConflictDoUpdate({
+      target: [schema.Paste.id],
+      set: {
+        time: sql.raw(`excluded."${schema.Paste.time.name}"`),
+        userId: sql.raw(`excluded."${schema.Paste.userId.name}"`),
+      },
+    });
 }
 
 async function savePasteSnapshot(paste: Paste, now: Date) {
   await savePaste(paste, now);
 
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${parseInt(paste.id, 36)});`;
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${parseInt(paste.id, 36)})`,
+    );
 
-    const lastSnapshot = await tx.pasteSnapshot.findFirst({
-      where: { pasteId: paste.id },
-      orderBy: { capturedAt: "desc" },
-    });
+    const lastCaptured = tx
+      .select({ val: max(schema.PasteSnapshot.capturedAt) })
+      .from(schema.PasteSnapshot)
+      .where(eq(schema.PasteSnapshot.pasteId, paste.id));
 
-    if (
-      lastSnapshot &&
-      lastSnapshot.public === paste.public &&
-      lastSnapshot.data === paste.data
-    )
-      return tx.pasteSnapshot.update({
-        where: {
-          pasteId_capturedAt: {
-            pasteId: paste.id,
-            capturedAt: lastSnapshot.capturedAt,
-          },
-        },
-        data: { lastSeenAt: now },
-      });
+    const { rowCount } = await tx
+      .update(schema.PasteSnapshot)
+      .set({ lastSeenAt: now })
+      .where(
+        and(
+          eq(schema.PasteSnapshot.pasteId, paste.id),
+          eq(schema.PasteSnapshot.capturedAt, lastCaptured),
 
-    return tx.pasteSnapshot.create({
-      data: {
+          eq(schema.PasteSnapshot.public, paste.public),
+          paste.data !== null // eslint-disable-line @typescript-eslint/no-unnecessary-condition
+            ? eq(schema.PasteSnapshot.data, paste.data)
+            : isNull(schema.PasteSnapshot.data),
+        ),
+      );
+
+    if (rowCount === 0)
+      return tx.insert(schema.PasteSnapshot).values({
         pasteId: paste.id,
         public: paste.public,
         data: paste.data,
         capturedAt: now,
         lastSeenAt: now,
-      },
-    });
+      });
   });
 }
 

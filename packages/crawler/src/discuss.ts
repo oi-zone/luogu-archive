@@ -7,8 +7,14 @@ import type {
   ReplySummary,
 } from "@lgjs/types";
 
-import { prisma } from "@luogu-discussion-archive/db";
-import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
+import {
+  and,
+  db,
+  eq,
+  max,
+  schema,
+  sql,
+} from "@luogu-discussion-archive/db/drizzle";
 
 import { clientLentille } from "./client.js";
 import { AccessError, HttpError } from "./error.js";
@@ -75,37 +81,35 @@ async function saveReplies(replies: { postId: number; reply: ReplySummary }[]) {
 }
 
 const saveReplySnapshot = async (reply: Reply, now: Date) =>
-  prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Reply}::INT4, ${reply.id}::INT4);`;
+  db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${PgAdvisoryLock.Reply}::int4, ${reply.id}::int4)`,
+    );
 
-    const lastSnapshot = await tx.replySnapshot.findFirst({
-      where: {
-        replyId: reply.id,
-      },
-      orderBy: {
-        capturedAt: "desc",
-      },
-    });
+    const lastCaptured = tx
+      .select({ val: max(schema.ReplySnapshot.capturedAt) })
+      .from(schema.ReplySnapshot)
+      .where(eq(schema.ReplySnapshot.replyId, reply.id));
 
-    if (lastSnapshot && lastSnapshot.content === reply.content)
-      return tx.replySnapshot.update({
-        where: {
-          replyId_capturedAt: {
-            replyId: reply.id,
-            capturedAt: lastSnapshot.capturedAt,
-          },
-        },
-        data: { lastSeenAt: now },
-      });
+    const { rowCount } = await tx
+      .update(schema.ReplySnapshot)
+      .set({ lastSeenAt: now })
+      .where(
+        and(
+          eq(schema.ReplySnapshot.replyId, reply.id),
+          eq(schema.ReplySnapshot.capturedAt, lastCaptured),
 
-    return tx.replySnapshot.create({
-      data: {
+          eq(schema.ReplySnapshot.content, reply.content),
+        ),
+      );
+
+    if (rowCount === 0)
+      return tx.insert(schema.ReplySnapshot).values({
         replyId: reply.id,
         content: reply.content,
         capturedAt: now,
         lastSeenAt: now,
-      },
-    });
+      });
   });
 
 async function savePosts(posts: Post[], now: Date) {
@@ -139,37 +143,33 @@ async function savePosts(posts: Post[], now: Date) {
 async function savePostSnapshot(post: PostDetails, now: Date) {
   await saveForums([post.forum], now);
 
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PgAdvisoryLock.Post}::INT4, ${post.id}::INT4);`;
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${PgAdvisoryLock.Post}::int4, ${post.id}::int4)`,
+    );
 
-    const lastSnapshot = await tx.postSnapshot.findFirst({
-      where: {
-        postId: post.id,
-      },
-      orderBy: {
-        capturedAt: "desc",
-      },
-    });
+    const lastCaptured = tx
+      .select({ val: max(schema.PostSnapshot.capturedAt) })
+      .from(schema.PostSnapshot)
+      .where(eq(schema.PostSnapshot.postId, post.id));
 
-    if (
-      lastSnapshot &&
-      lastSnapshot.title === post.title &&
-      lastSnapshot.authorId === post.author.uid &&
-      lastSnapshot.forumSlug === post.forum.slug &&
-      lastSnapshot.content === post.content
-    )
-      return tx.postSnapshot.update({
-        where: {
-          postId_capturedAt: {
-            postId: post.id,
-            capturedAt: lastSnapshot.capturedAt,
-          },
-        },
-        data: { lastSeenAt: now },
-      });
+    const { rowCount } = await tx
+      .update(schema.PostSnapshot)
+      .set({ lastSeenAt: now })
+      .where(
+        and(
+          eq(schema.PostSnapshot.postId, post.id),
+          eq(schema.PostSnapshot.capturedAt, lastCaptured),
 
-    return tx.postSnapshot.create({
-      data: {
+          eq(schema.PostSnapshot.title, post.title),
+          eq(schema.PostSnapshot.authorId, post.author.uid),
+          eq(schema.PostSnapshot.forumSlug, post.forum.slug),
+          eq(schema.PostSnapshot.content, post.content),
+        ),
+      );
+
+    if (rowCount === 0)
+      return tx.insert(schema.PostSnapshot).values({
         postId: post.id,
         title: post.title,
         authorId: post.author.uid,
@@ -177,8 +177,7 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
         content: post.content,
         capturedAt: now,
         lastSeenAt: now,
-      },
-    });
+      });
   });
 }
 
@@ -224,16 +223,14 @@ export async function fetchDiscuss(id: number, page?: number) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     numPages: Math.ceil(data.replies.count / data.replies.perPage!),
     numReplies: replies.length,
-    numNewReplies: replySnapshots.filter(
-      ({ capturedAt }) => capturedAt.getTime() === now.getTime(),
-    ).length,
+    numNewReplies: replySnapshots.filter(Boolean).length,
     recentReply,
     recentReplySnapshot: recentReply
-      ? await prisma.replySnapshot.findFirst({
-          select: { replyId: true, capturedAt: true, lastSeenAt: true },
-          where: { replyId: recentReply.id },
+      ? await db.query.ReplySnapshot.findFirst({
+          columns: { capturedAt: true },
+          where: eq(schema.ReplySnapshot.replyId, recentReply.id),
         })
-      : null,
+      : undefined,
   };
 }
 
