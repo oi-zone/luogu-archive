@@ -1,8 +1,6 @@
 model Post {
   id         Int      @id
   time       DateTime @db.Timestamp(0)
-  topped     Boolean
-  locked     Boolean
   replyCount Int
 
   updatedAt DateTime
@@ -20,14 +18,19 @@ model PostSnapshot {
   post   Post @relation(fields: [postId], references: [id])
   postId Int
 
-  author   User @relation(fields: [authorId], references: [id])
-  authorId Int
-
   title     String
+  author    User   @relation(fields: [authorId], references: [id])
+  authorId  Int
   forum     Forum  @relation(fields: [forumSlug], references: [slug])
   forumSlug String
 
+  topped Boolean
+  locked Boolean
+
   content String @db.Text
+
+  pinnedReply   Reply? @relation(fields: [pinnedReplyId], references: [id])
+  pinnedReplyId Int?   @unique
 
   capturedAt DateTime
   lastSeenAt DateTime
@@ -61,6 +64,8 @@ model Reply {
 
   snapshots ReplySnapshot[]
   takedown  ReplyTakedown?
+
+  pinnedTo PostSnapshot?
 
   @@index([postId])
   @@index([authorId])

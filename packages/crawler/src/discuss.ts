@@ -11,6 +11,7 @@ import {
   and,
   db,
   eq,
+  isNull,
   max,
   schema,
   sql,
@@ -133,8 +134,6 @@ async function savePosts(posts: Post[], now: Date) {
       set: {
         time: sql.raw(`excluded."${schema.Post.time.name}"`),
         replyCount: sql.raw(`excluded."${schema.Post.replyCount.name}"`),
-        topped: sql.raw(`excluded."${schema.Post.topped.name}"`),
-        locked: sql.raw(`excluded."${schema.Post.locked.name}"`),
         updatedAt: sql.raw(`excluded."${schema.Post.updatedAt.name}"`),
       },
     });
@@ -164,7 +163,12 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
           eq(schema.PostSnapshot.title, post.title),
           eq(schema.PostSnapshot.authorId, post.author.uid),
           eq(schema.PostSnapshot.forumSlug, post.forum.slug),
+          eq(schema.PostSnapshot.topped, post.topped),
+          eq(schema.PostSnapshot.locked, post.locked),
           eq(schema.PostSnapshot.content, post.content),
+          post.pinnedReply
+            ? eq(schema.PostSnapshot.pinnedReplyId, post.pinnedReply.id)
+            : isNull(schema.PostSnapshot.pinnedReplyId),
         ),
       );
 
@@ -174,7 +178,10 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
         title: post.title,
         authorId: post.author.uid,
         forumSlug: post.forum.slug,
+        topped: post.topped,
+        locked: post.locked,
         content: post.content,
+        pinnedReplyId: post.pinnedReply?.id ?? null,
         capturedAt: now,
         lastSeenAt: now,
       });
@@ -207,14 +214,13 @@ export async function fetchDiscuss(id: number, page?: number) {
     ),
   ]);
 
+  await saveReplies(
+    (replies as ReplySummary[])
+      .concat(data.post.recentReply ? data.post.recentReply : [])
+      .map((reply) => ({ postId: data.post.id, reply })),
+  );
   const [replySnapshots] = await Promise.all([
-    saveReplies(
-      (replies as ReplySummary[])
-        .concat(data.post.recentReply ? data.post.recentReply : [])
-        .map((reply) => ({ postId: data.post.id, reply })),
-    ).then(() =>
-      Promise.all(replies.map((reply) => saveReplySnapshot(reply, now))),
-    ),
+    Promise.all(replies.map((reply) => saveReplySnapshot(reply, now))),
     savePostSnapshot(data.post, now),
   ]);
 
