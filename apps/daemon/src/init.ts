@@ -1,17 +1,13 @@
-import {
-  client,
-  STREAM_IMMEDIATE,
-  STREAM_ROUTINE,
-} from "@luogu-discussion-archive/redis";
+import { client, Stream } from "@luogu-discussion-archive/redis";
 
 import { GROUP_NAME } from "./config.js";
 
 await client.connect();
 
-await client.xGroupCreate(STREAM_IMMEDIATE, GROUP_NAME, "0", {
+await client.xGroupCreate(Stream.Immediate, GROUP_NAME, "0", {
   MKSTREAM: true,
 });
-await client.xGroupCreate(STREAM_ROUTINE, GROUP_NAME, "0", {
+await client.xGroupCreate(Stream.Routine, GROUP_NAME, "0", {
   MKSTREAM: true,
 });
 

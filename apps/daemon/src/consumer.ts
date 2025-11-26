@@ -5,12 +5,7 @@ import {
   UnexpectedStatusError,
 } from "@luogu-discussion-archive/crawler";
 import logger from "@luogu-discussion-archive/logging";
-import {
-  client,
-  STREAM_IMMEDIATE,
-  STREAM_ROUTINE,
-  type Job,
-} from "@luogu-discussion-archive/redis";
+import { client, Stream, type Job } from "@luogu-discussion-archive/redis";
 
 import {
   BLOCK_IMMEDIATE_MS,
@@ -18,14 +13,14 @@ import {
   JOB_MAX_ATTEMPTS,
   JOB_RETRY_DELAY_MS,
 } from "./config.js";
-import { perform } from "./tasks.js";
+import { execute } from "./jobs.js";
 
 export async function consume(consumerName: string) {
   const log = logger.child({ consumer: consumerName });
   log.info("Consumer started");
 
-  const lastId = { [STREAM_IMMEDIATE]: "0-0", [STREAM_ROUTINE]: "0-0" };
-  const checkingBacklog = { [STREAM_IMMEDIATE]: true, [STREAM_ROUTINE]: true };
+  const lastId = { [Stream.Immediate]: "0-0", [Stream.Routine]: "0-0" };
+  const checkingBacklog = { [Stream.Immediate]: true, [Stream.Routine]: true };
 
   for (;;) {
     log.debug({ lastId, checkingBacklog }, "Reading from stream");
@@ -34,9 +29,9 @@ export async function consume(consumerName: string) {
       consumerName,
       [
         {
-          key: STREAM_IMMEDIATE,
-          id: checkingBacklog[STREAM_IMMEDIATE]
-            ? lastId[STREAM_IMMEDIATE]
+          key: Stream.Immediate,
+          id: checkingBacklog[Stream.Immediate]
+            ? lastId[Stream.Immediate]
             : ">",
         },
       ],
@@ -48,8 +43,8 @@ export async function consume(consumerName: string) {
       consumerName,
       [
         {
-          key: STREAM_ROUTINE,
-          id: checkingBacklog[STREAM_ROUTINE] ? lastId[STREAM_ROUTINE] : ">",
+          key: Stream.Routine,
+          id: checkingBacklog[Stream.Routine] ? lastId[Stream.Routine] : ">",
         },
       ],
       { COUNT: 1 },
@@ -60,7 +55,7 @@ export async function consume(consumerName: string) {
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const { name, messages } = result[0]!;
-    const stream = name as typeof STREAM_IMMEDIATE | typeof STREAM_ROUTINE;
+    const stream = name as Stream;
 
     if (!messages.length) checkingBacklog[stream] = false;
 
@@ -82,7 +77,7 @@ export async function consume(consumerName: string) {
               ),
             },
             (span) =>
-              perform(job, stream)
+              execute(job, stream)
                 .then(() => span.setStatus({ code: 1 }))
                 .catch((err: unknown) => {
                   span.setStatus(
