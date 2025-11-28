@@ -7,9 +7,9 @@ import { saveUserSnapshots } from "./user.js";
 export async function fetchJudgement() {
   const res = await cn.get("judgement");
   const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res.url, res.status);
+    throw res.ok ? err : new HttpError(res);
   });
-  if (status !== 200) throw new HttpError(res.url, status);
+  if (status !== 200) throw new HttpError(res);
 
   const now = new Date(time * 1000);
   await saveUserSnapshots(

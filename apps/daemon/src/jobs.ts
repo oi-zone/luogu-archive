@@ -105,9 +105,6 @@ export async function execute(job: Job, stream: Stream) {
           lastReplySaved ? Stream.Routine : Stream.Immediate,
         );
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, (1 + Math.random()) * 1000),
-      );
       break;
     }
 

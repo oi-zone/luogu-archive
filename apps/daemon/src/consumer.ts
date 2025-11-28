@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/node";
 
 import {
   AccessError,
+  HttpError,
   UnexpectedStatusError,
 } from "@luogu-discussion-archive/crawler";
 import logger from "@luogu-discussion-archive/logging";
@@ -96,6 +97,22 @@ export async function consume(consumerName: string) {
           );
           break;
         } catch (err) {
+          if (err instanceof HttpError && err.status === 429) {
+            const retryAfter = parseRetryAfter(
+              err.response.headers.get("Retry-After"),
+            );
+            if (retryAfter) {
+              jobLog.warn(
+                { retryAfter },
+                "Received 429 Too Many Requests, delaying retry",
+              );
+              await new Promise((resolve) =>
+                setTimeout(resolve, retryAfter * 1000),
+              );
+              continue;
+            }
+          }
+
           const willRetry = attempt < JOB_MAX_ATTEMPTS;
           jobLog.error(
             { err, attempt, willRetry },
@@ -123,4 +140,15 @@ export async function consume(consumerName: string) {
       lastId[stream] = id;
     }
   }
+}
+
+function parseRetryAfter(retryAfter: string | null): number | null {
+  if (!retryAfter) return null;
+  const parsed = Number(retryAfter);
+  if (!isNaN(parsed)) return parsed;
+
+  const date = Date.parse(retryAfter);
+  if (!isNaN(date)) return Math.max(0, (date - Date.now()) / 1000);
+
+  return null;
 }

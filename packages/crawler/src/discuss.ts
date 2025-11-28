@@ -18,7 +18,7 @@ import {
 } from "@luogu-discussion-archive/db/drizzle";
 
 import { clientLentille } from "./client.js";
-import { AccessError, HttpError } from "./error.js";
+import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";
 import { PgAdvisoryLock } from "./locks.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
@@ -194,10 +194,11 @@ export async function fetchDiscuss(id: number, page?: number) {
     query: page ? { page } : {},
   });
   const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res.url, res.status);
+    throw res.ok ? err : new HttpError(res);
   });
   if (status === 403 || status === 404) throw new AccessError(res.url, status);
-  if (status !== 200) throw new HttpError(res.url, status);
+  if (status !== 200)
+    throw new UnexpectedStatusError("Unexpected status", res.url, status);
 
   const now = new Date(time * 1000);
   const replies = data.replies.result as Reply[];
@@ -245,9 +246,10 @@ export async function listDiscuss(forum: string | null = null, page?: number) {
     query: { ...(forum ? { forum } : {}), ...(page ? { page } : {}) },
   });
   const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res.url, res.status);
+    throw res.ok ? err : new HttpError(res);
   });
-  if (status !== 200) throw new HttpError(res.url, status);
+  if (status !== 200)
+    throw new UnexpectedStatusError("Unexpected status", res.url, status);
 
   const now = new Date(time * 1000);
   const posts = data.posts.result as Post[];

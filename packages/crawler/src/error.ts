@@ -9,8 +9,8 @@ export class UnexpectedStatusError extends Error {
 }
 
 export class HttpError extends UnexpectedStatusError {
-  constructor(url: string, status: number) {
-    super(`Failed to fetch ${url}`, url, status);
+  constructor(public response: Response) {
+    super(`Failed to fetch ${response.url}`, response.url, response.status);
   }
 }
 

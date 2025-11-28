@@ -15,7 +15,7 @@ import {
 } from "@luogu-discussion-archive/db/drizzle";
 
 import { clientLentille } from "./client.js";
-import { AccessError, HttpError } from "./error.js";
+import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
 import { deduplicate } from "./utils.js";
@@ -140,10 +140,11 @@ async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
 export async function fetchArticle(lid: string) {
   const res = await clientLentille.get("article.show", { params: { lid } });
   const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res.url, res.status);
+    throw res.ok ? err : new HttpError(res);
   });
   if (status === 403 || status === 404) throw new AccessError(res.url, status);
-  if (status !== 200) throw new HttpError(res.url, status);
+  if (status !== 200)
+    throw new UnexpectedStatusError("Unexpected status", res.url, status);
 
   const now = new Date(time * 1000);
   return saveArticleSnapshot(data.article, now);
@@ -160,10 +161,11 @@ export async function listArticles(
       })
     : clientLentille.get("article.list", page ? { query: { page } } : {}));
   const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res.url, res.status);
+    throw res.ok ? err : new HttpError(res);
   });
   if (status === 403 || status === 404) throw new AccessError(res.url, status);
-  if (status !== 200) throw new HttpError(res.url, status);
+  if (status !== 200)
+    throw new UnexpectedStatusError("Unexpected status", res.url, status);
 
   const now = new Date(time * 1000);
   const articles = data.articles.result as Article[];
@@ -188,7 +190,7 @@ export async function fetchReplies(lid: string, after?: number) {
   });
   if (res.status === 403 || res.status === 404)
     throw new AccessError(res.url, res.status);
-  if (!res.ok) throw new HttpError(res.url, res.status);
+  if (!res.ok) throw new HttpError(res);
   const { replySlice } = await res.json();
 
   const lastReplyId = replySlice[replySlice.length - 1]?.id;

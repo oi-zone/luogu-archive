@@ -11,7 +11,7 @@ import {
 } from "@luogu-discussion-archive/db/drizzle";
 
 import { client } from "./client.js";
-import { AccessError, HttpError } from "./error.js";
+import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";
 import { saveUserSnapshots } from "./user.js";
 
 async function savePaste(paste: Paste, now: Date) {
@@ -77,10 +77,11 @@ export async function fetchPaste(id: string) {
   const { code, currentData, currentTime } = await res
     .json()
     .catch((err: unknown) => {
-      throw res.ok ? err : new HttpError(res.url, res.status);
+      throw res.ok ? err : new HttpError(res);
     });
   if (code === 403 || code === 404) throw new AccessError(res.url, code);
-  if (code !== 200) throw new HttpError(res.url, code);
+  if (code !== 200)
+    throw new UnexpectedStatusError("Unexpected status", res.url, code);
 
   const now = new Date(currentTime * 1000);
   return savePasteSnapshot(currentData.paste, now);
