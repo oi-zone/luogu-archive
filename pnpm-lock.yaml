@@ -53,6 +53,9 @@ importers:
       '@sentry/node':
         specifier: ^10.27.0
         version: 10.27.0
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.2.3
     devDependencies:
       '@luogu-discussion-archive/typescript-config':
         specifier: workspace:*

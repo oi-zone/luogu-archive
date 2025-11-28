@@ -1,3 +1,4 @@
+import "dotenv/config";
 import "./sentry.js";
 
 import logger from "@luogu-discussion-archive/logging";

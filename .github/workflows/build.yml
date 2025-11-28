@@ -1,0 +1,28 @@
+---
+name: Build artifacts
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install
+      - run: pnpm --filter daemon exec turbo build
+        env:
+          NODE_ENV: production
+      - run: pnpm config set --location=project injectWorkspacePackages=true
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm --filter daemon --prod deploy out/daemon/ && tar -cvf out/daemon.tar -C out/daemon/ .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daemon
+          path: out/daemon.tar
+          if-no-files-found: error

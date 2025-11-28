@@ -1,0 +1,3 @@
+*
+!dist/**
+!ecosystem.config.cjs
