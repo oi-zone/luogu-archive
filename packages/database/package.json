@@ -20,17 +20,17 @@
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.0.0",
-    "@prisma/client": "^7.0.0",
+    "@prisma/adapter-pg": "^7.0.1",
+    "@prisma/client": "^7.0.1",
     "drizzle-orm": "^0.44.7"
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
     "@types/node": "^20.19.25",
-    "@types/pg": "^8.15.5",
+    "@types/pg": "^8.15.6",
     "dotenv": "^17.2.3",
     "drizzle-prisma-generator": "^0.1.7",
-    "prisma": "^7.0.0",
+    "prisma": "^7.0.1",
     "typescript": "^5.9.3"
   }
 }
