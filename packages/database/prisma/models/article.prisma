@@ -13,6 +13,8 @@ model Article {
   snapshots ArticleSnapshot[]
   replies   ArticleReply[]
 
+  copra ArticleCopra?
+
   @@index([time])
   @@index([authorId])
   @@index([upvote(sort: Desc)])
@@ -67,4 +69,12 @@ model ArticleReply {
   @@index([articleId])
   @@index([authorId])
   @@index([time])
+}
+
+model ArticleCopra {
+  article   Article @relation(fields: [articleId], references: [lid])
+  articleId String  @id
+
+  summary String? @db.Text
+  tags    Json?
 }
