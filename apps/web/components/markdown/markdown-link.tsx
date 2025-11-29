@@ -360,12 +360,12 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
         <span className="ls-user-mention inline-flex items-center gap-0.25">
           <AtSign
             className={cn(
-              "relative top-0.5 inline-block size-4 stroke-2",
-              `text-luogu-${userInfo.color.toLowerCase()}`,
+              "relative top-0.5 inline-block size-4 stroke-[1.75]",
+              // `text-luogu-${userInfo.color.toLowerCase()}`,
             )}
           />
-          <span className="relative top-1 ms-0.25 -mt-1 inline-flex items-center gap-0">
-            <UserInlineLink user={userInfo} compact />
+          <span className="relative top-1 -ms-0.75 -mt-1 inline-flex items-center gap-0">
+            <UserInlineLink user={userInfo} compact avatar={false} />
             {shouldEnableInference && (
               <MentionReplyOverlayTrigger
                 discussionId={mentionContext.discussionId}

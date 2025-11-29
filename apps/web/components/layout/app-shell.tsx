@@ -304,13 +304,13 @@ function TopBar({
         </Breadcrumb>
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />
-          <Button asChild variant="ghost" size="icon">
+          <Button asChild variant="ghost" size="icon" className="hidden">
             <Link href="/queue" scroll={false}>
               <ListChecks className="size-5" aria-hidden />
               <span className="sr-only">查看保存队列</span>
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="icon">
+          <Button asChild variant="ghost" size="icon" className="hidden">
             <Link href="/search" scroll={false}>
               <Search className="size-5" aria-hidden />
               <span className="sr-only">搜索</span>

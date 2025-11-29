@@ -109,7 +109,16 @@
   }
 
   .markdown-body a.ls-link-preview {
-    @apply text-orange-500 no-underline transition-colors hover:text-orange-600 dark:hover:text-orange-400;
+    @apply bg-linear-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 dark:hover:from-pink-400 dark:hover:to-violet-400;
+    @apply bg-clip-text text-transparent no-underline transition-colors duration-200;
+  }
+
+  .markdown-body a.ls-link-preview > .icon {
+    @apply text-pink-500;
+    @apply transition-colors duration-200;
+  }
+  .markdown-body a.ls-link-preview:hover > .icon {
+    @apply text-pink-600 dark:text-pink-400;
   }
 
   .markdown-body strong {

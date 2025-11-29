@@ -3,13 +3,11 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import type { SearchResult } from "@/lib/search-data";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { SearchResultCard } from "@/components/search/search-result-card";
 
 type RecommendationsPanelProps = {
-  items: SearchResult[];
+  items: unknown[];
   layout?: "stacked" | "inline";
   className?: string;
 };
@@ -27,8 +25,8 @@ export function RecommendationsPanel({
     <div className={className}>
       <h2 className="hidden text-xl font-semibold text-foreground">相关推荐</h2>
       <div className="space-y-4">
-        {items.map((item) => (
-          <SearchResultCard key={item.id} result={item} />
+        {items.map((item, index) => (
+          <div key={index}>1</div>
         ))}
       </div>
     </div>
@@ -36,7 +34,7 @@ export function RecommendationsPanel({
 }
 
 type InlineRecommendationsProps = {
-  items: SearchResult[];
+  items: unknown[];
   className?: string;
 };
 
@@ -127,12 +125,12 @@ function InlineRecommendations({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {visibleItems.map((item) => (
+        {visibleItems.map((item, index) => (
           <div
-            key={item.id}
+            key={index}
             className={cn("min-w-0", shouldFullSpan && "col-span-2")}
           >
-            <SearchResultCard result={item} />
+            1
           </div>
         ))}
       </div>

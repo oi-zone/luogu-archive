@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { formatRelativeTime } from "@/lib/feed-data";
 import { getPermissionNames } from "@/lib/judgement";
+import { formatRelativeTime } from "@/lib/time";
 import type { TimelineEntry } from "@/lib/user-profile-shared";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

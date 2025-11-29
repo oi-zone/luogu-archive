@@ -2,7 +2,7 @@ import React from "react";
 import { Calendar, MessageCircle, Swords, Tag, Users } from "lucide-react";
 
 import { getCategoryInfo } from "@/lib/category-info";
-import { ABSOLUTE_DATE_FORMATTER } from "@/lib/feed-data";
+import { ABSOLUTE_DATE_FORMATTER } from "@/lib/time";
 import MetaItem from "@/components/meta/meta-item";
 import UserInlineLink, {
   UserBasicInfo,

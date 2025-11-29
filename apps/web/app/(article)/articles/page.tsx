@@ -2,15 +2,13 @@ import { Award, Search } from "lucide-react";
 import Link from "next/link";
 
 import {
-  ARTICLE_SCORE_WEIGHT,
   FEATURED_ARTICLE_DEFAULT_LIMIT,
-  FEATURED_ARTICLE_DEFAULT_UPVOTE_DECAY_MS,
   FEATURED_ARTICLE_DEFAULT_WINDOW_MS,
   getFeaturedArticles,
   type FeaturedArticleSummary,
 } from "@luogu-discussion-archive/query";
 
-import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
+import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import { MasonryColumns } from "@/components/layout/masonry-columns";
 import UserInlineLink from "@/components/user/user-inline-link";
@@ -20,18 +18,19 @@ const SCORE_FORMATTER = new Intl.NumberFormat("zh-CN", {
   maximumFractionDigits: 1,
 });
 
-function formatWeight(weight: number) {
-  return `${Math.round(weight * 100)}%`;
-}
-
-const SCORE_FORMULA_LABEL = `回复 ${formatWeight(ARTICLE_SCORE_WEIGHT.replies)} + 收藏 ${formatWeight(ARTICLE_SCORE_WEIGHT.favorites)} + 赞同 ${formatWeight(ARTICLE_SCORE_WEIGHT.upvotes)}`;
 const WINDOW_LABEL = formatWindowLabel(FEATURED_ARTICLE_DEFAULT_WINDOW_MS);
-const UPVOTE_DECAY_LABEL = formatWindowLabel(
-  FEATURED_ARTICLE_DEFAULT_UPVOTE_DECAY_MS,
-);
+
+export const dynamic = "force-dynamic";
 
 export default async function ArticlesPage() {
-  const articles = await getFeaturedArticles();
+  let articles: FeaturedArticleSummary[] = [];
+  let loadError = false;
+  try {
+    articles = await getFeaturedArticles();
+  } catch (error) {
+    loadError = true;
+    console.error("Failed to load featured articles", error);
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
@@ -43,10 +42,8 @@ export default async function ArticlesPage() {
             </p>
             <h1 className="text-3xl font-semibold tracking-tight">精选文章</h1>
             <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              依照 {SCORE_FORMULA_LABEL} 的综合得分，实时列出前{" "}
-              {FEATURED_ARTICLE_DEFAULT_LIMIT} 篇文章；其中回复指标统计最近{" "}
-              {WINDOW_LABEL} 的互动，赞同会按 {UPVOTE_DECAY_LABEL}{" "}
-              的时间尺度指数衰减。
+              依照评论、点赞、收藏的综合得分，实时列出前{" "}
+              {FEATURED_ARTICLE_DEFAULT_LIMIT} 篇文章。
             </p>
           </div>
           <Link
@@ -60,9 +57,11 @@ export default async function ArticlesPage() {
           </Link>
         </div>
         <div className="text-sm text-muted-foreground">
-          {articles.length === 0
-            ? "暂时没有符合条件的文章"
-            : `共 ${articles.length} 篇 · 得分与数据按需实时刷新`}
+          {loadError
+            ? "精选文章列表暂时不可用，请稍后再试。"
+            : articles.length === 0
+              ? "暂时没有符合条件的文章"
+              : `共 ${articles.length} 篇 · 得分与数据按需实时刷新`}
         </div>
       </header>
 
@@ -79,7 +78,9 @@ export default async function ArticlesPage() {
           </MasonryColumns>
         ) : (
           <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            暂无数据，等候新文章发布后再试。
+            {loadError
+              ? "暂时无法获取精选文章数据，刷新页面或稍后重试。"
+              : "暂无数据，等候新文章发布后再试。"}
           </div>
         )}
       </section>

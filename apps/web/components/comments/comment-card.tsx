@@ -1,6 +1,6 @@
 import { Camera, ClipboardCheck, ClipboardCopy } from "lucide-react";
 
-import { formatRelativeTime } from "@/lib/feed-data";
+import { formatRelativeTime } from "@/lib/time";
 import { useClipboard } from "@/hooks/use-clipboard";
 import UserInlineLink, {
   UserBasicInfo,

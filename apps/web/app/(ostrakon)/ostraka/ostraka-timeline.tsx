@@ -5,9 +5,9 @@ import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import { Gavel, Link as LinkIcon, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
 import { getPermissionNames } from "@/lib/judgement";
 import type { OstrakonEntry, OstrakonPage } from "@/lib/ostrakon-shared";
+import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import UserInlineLink from "@/components/user/user-inline-link";
@@ -214,12 +214,7 @@ function OstrakonCard({ entry }: { entry: OstrakonEntry }) {
       </div>
 
       <div className="mt-4 space-y-3">
-        <div
-          className={cn(
-            "markdown-body text-base font-semibold",
-            style.titleClass,
-          )}
-        >
+        <div className={cn("text-base font-semibold", style.titleClass)}>
           <ul>
             {getPermissionNames(entry.addedPermission).map((name) => (
               <li key={name}>

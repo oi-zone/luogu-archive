@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
+import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { Button } from "@/components/ui/button";

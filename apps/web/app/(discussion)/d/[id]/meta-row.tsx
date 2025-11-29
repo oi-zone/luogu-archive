@@ -1,12 +1,12 @@
 import React from "react";
 import { Calendar, MessageCircle, Tag, Users } from "lucide-react";
 
-import { ABSOLUTE_DATE_FORMATTER } from "@/lib/feed-data";
 import {
   getForumNameFull,
   getForumNameShort,
   type ForumBasicInfo,
 } from "@/lib/forum-name";
+import { ABSOLUTE_DATE_FORMATTER } from "@/lib/time";
 import MetaItem from "@/components/meta/meta-item";
 import UserInlineLink, {
   UserBasicInfo,

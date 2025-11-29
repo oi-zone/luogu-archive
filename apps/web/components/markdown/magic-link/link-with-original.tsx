@@ -31,7 +31,7 @@ export default function LinkWithOriginal({
           inlineClassName,
         )}
       >
-        <Icon className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]" />
+        <Icon className="icon relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]" />
         <span>{original}</span>
       </Link>
       <span

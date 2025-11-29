@@ -94,7 +94,7 @@ export async function getFeaturedArticles({
         1 + ((COALESCE("recent_replies"."recentReplyCount", 0) * ${ARTICLE_SCORE_WEIGHTS.replies}::double precision)
         + ("Article"."favorCount" * ${ARTICLE_SCORE_WEIGHTS.favorites}::double precision)
         + ("Article"."upvote" * EXP(-EXTRACT(EPOCH FROM (NOW() - "Article"."time")) / ${upvoteDecaySeconds}::double precision) * ${ARTICLE_SCORE_WEIGHTS.upvotes}::double precision))::double precision
-      )::double precision * 10) AS "score"
+      )::double precision * 2.3) AS "score"
     FROM "Article"
     LEFT JOIN "recent_replies" ON "recent_replies"."articleId" = "Article"."lid"
     ORDER BY "score" DESC

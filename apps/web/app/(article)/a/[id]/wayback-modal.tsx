@@ -4,7 +4,7 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { getCategoryInfo } from "@/lib/category-info";
-import { ABSOLUTE_DATE_FORMATTER } from "@/lib/feed-data";
+import { ABSOLUTE_DATE_FORMATTER } from "@/lib/time";
 import {
   WaybackModal,
   type WaybackDataSource,

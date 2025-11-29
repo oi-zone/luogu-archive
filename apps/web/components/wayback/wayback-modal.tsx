@@ -4,7 +4,7 @@ import * as React from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
 
-import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
+import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,7 @@
 import React from "react";
 import { Calendar } from "lucide-react";
 
-import { ABSOLUTE_DATE_FORMATTER } from "@/lib/feed-data";
+import { ABSOLUTE_DATE_FORMATTER } from "@/lib/time";
 import MetaItem from "@/components/meta/meta-item";
 import UserInlineLink, {
   UserBasicInfo,

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -152,7 +152,7 @@ export function CommentBoard(props: CommentBoardProps) {
     ...rest
   } = props;
 
-  const queryClient = useQueryClient();
+  const queryClient = useFallbackQueryClient();
   const containerRef = React.useRef<HTMLElement | null>(null);
   const listRef = React.useRef<HTMLUListElement | null>(null);
   const initialHashRef = React.useRef<string | null>(null);
@@ -813,6 +813,24 @@ export function CommentBoard(props: CommentBoardProps) {
       </div>
     </section>
   );
+}
+
+function useFallbackQueryClient() {
+  const fallbackRef = React.useRef<QueryClient | null>(null);
+
+  try {
+    return useQueryClient();
+  } catch {
+    if (!fallbackRef.current) {
+      fallbackRef.current = new QueryClient();
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "CommentBoard rendered outside QueryProvider; using an isolated QueryClient. Wrap the tree with <QueryProvider> to share cache.",
+        );
+      }
+    }
+    return fallbackRef.current;
+  }
 }
 
 type DuplicatePlaceholderProps = {

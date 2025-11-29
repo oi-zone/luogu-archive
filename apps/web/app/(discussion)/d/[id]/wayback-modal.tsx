@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { ABSOLUTE_DATE_FORMATTER } from "@/lib/feed-data";
+import { ABSOLUTE_DATE_FORMATTER } from "@/lib/time";
 import type { UserBasicInfo } from "@/components/user/user-inline-link";
 import {
   WaybackModal,

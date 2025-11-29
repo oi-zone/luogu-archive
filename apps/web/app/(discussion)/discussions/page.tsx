@@ -8,15 +8,24 @@ import {
   type HotDiscussionSummary,
 } from "@luogu-discussion-archive/query";
 
-import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
+import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import { MasonryColumns } from "@/components/layout/masonry-columns";
 import UserInlineLink from "@/components/user/user-inline-link";
 
 const WINDOW_LABEL = formatWindowLabel(HOT_DISCUSSION_DEFAULT_WINDOW_MS);
 
+export const dynamic = "force-dynamic";
+
 export default async function DiscussionsPage() {
-  const discussions = await getHotDiscussions();
+  let discussions: HotDiscussionSummary[] = [];
+  let loadError = false;
+  try {
+    discussions = await getHotDiscussions();
+  } catch (error) {
+    loadError = true;
+    console.error("Failed to load hot discussions", error);
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
@@ -42,9 +51,11 @@ export default async function DiscussionsPage() {
           </Link>
         </div>
         <div className="text-sm text-muted-foreground">
-          {discussions.length === 0
-            ? "暂时没有满足条件的讨论"
-            : `共 ${discussions.length} 条记录 · 数据每次访问实时计算`}
+          {loadError
+            ? "热门讨论列表暂时不可用，请稍后再试。"
+            : discussions.length === 0
+              ? "暂时没有满足条件的讨论"
+              : `共 ${discussions.length} 条记录 · 数据每次访问实时计算`}
         </div>
       </header>
 
@@ -57,7 +68,9 @@ export default async function DiscussionsPage() {
           </MasonryColumns>
         ) : (
           <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            暂无热门讨论，稍后再来看看吧。
+            {loadError
+              ? "暂时无法获取热门讨论数据，刷新页面或稍后重试。"
+              : "暂无热门讨论，稍后再来看看吧。"}
           </div>
         )}
       </section>
