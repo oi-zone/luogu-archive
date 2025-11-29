@@ -201,11 +201,11 @@ export default function QueuePage() {
   }, [tasks]);
 
   return (
-    <div className="flex flex-1 flex-col gap-10 px-6 pb-16 pt-8">
+    <div className="flex flex-1 flex-col gap-10 px-6 pt-8 pb-16">
       <header className="space-y-4">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">保存队列</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-muted-foreground">
             查看当前排队的文章、讨论、团队与其他内容的存档进度，了解执行状态与潜在错误。
           </p>
         </div>
@@ -216,16 +216,16 @@ export default function QueuePage() {
               <div
                 key={status}
                 className={cn(
-                  "border-border/60 bg-muted/30 rounded-2xl border p-4",
+                  "rounded-2xl border border-border/60 bg-muted/30 p-4",
                   status === "running" &&
                     "border-emerald-500/50 bg-emerald-500/5",
                   status === "error" && "border-rose-500/50 bg-rose-500/5",
                 )}
               >
-                <div className="text-muted-foreground/70 text-xs font-medium uppercase tracking-wide">
+                <div className="text-xs font-medium tracking-wide text-muted-foreground/70 uppercase">
                   {STATUS_LABEL[status]}
                 </div>
-                <div className="text-foreground mt-2 text-3xl font-semibold">
+                <div className="mt-2 text-3xl font-semibold text-foreground">
                   {statusStats[status]}
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default function QueuePage() {
 
       <section className="space-y-6">
         {visibleTasks.length === 0 ? (
-          <div className="border-border/60 text-muted-foreground rounded-3xl border border-dashed p-10 text-center text-sm">
+          <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
             当前没有正在排队的任务。
           </div>
         ) : (
@@ -248,7 +248,7 @@ export default function QueuePage() {
         )}
 
         {totalPages > 1 && (
-          <div className="border-border/80 bg-background/80 flex items-center justify-between gap-3 rounded-2xl border p-4">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-background/80 p-4">
             <Button
               type="button"
               variant="ghost"
@@ -260,7 +260,7 @@ export default function QueuePage() {
               <ChevronLeft className="size-4" aria-hidden="true" />
               上一页
             </Button>
-            <span className="text-muted-foreground text-xs font-medium">
+            <span className="text-xs font-medium text-muted-foreground">
               第 {pageIndex + 1} / {totalPages} 页
             </span>
             <Button
@@ -315,14 +315,14 @@ function TaskCard({ task }: { task: QueueTask }) {
   return (
     <article
       className={cn(
-        "bg-background/95 rounded-3xl border p-6 shadow-sm transition-colors",
+        "rounded-3xl border bg-background/95 p-6 shadow-sm transition-colors",
         borderTone,
       )}
     >
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="border-border/70 bg-muted/40 flex size-10 items-center justify-center rounded-2xl border">
-            <Icon className="text-muted-foreground size-5" aria-hidden="true" />
+          <div className="flex size-10 items-center justify-center rounded-2xl border border-border/70 bg-muted/40">
+            <Icon className="size-5 text-muted-foreground" aria-hidden="true" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -334,11 +334,11 @@ function TaskCard({ task }: { task: QueueTask }) {
               >
                 {meta.label}
               </span>
-              <span className="text-muted-foreground/70 text-xs">
+              <span className="text-xs text-muted-foreground/70">
                 #{task.entityId}
               </span>
             </div>
-            <h2 className="text-foreground mt-1 text-lg font-semibold">
+            <h2 className="mt-1 text-lg font-semibold text-foreground">
               {task.title}
             </h2>
           </div>
@@ -363,7 +363,7 @@ function TaskCard({ task }: { task: QueueTask }) {
         </span>
       </header>
 
-      <p className="text-muted-foreground mt-3 text-sm">{statusDescription}</p>
+      <p className="mt-3 text-sm text-muted-foreground">{statusDescription}</p>
 
       {failedStep?.error ? (
         <div className="mt-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-600 dark:text-rose-300">
@@ -377,7 +377,7 @@ function TaskCard({ task }: { task: QueueTask }) {
         ))}
       </div>
 
-      <dl className="text-muted-foreground mt-6 grid gap-4 text-xs sm:grid-cols-3">
+      <dl className="mt-6 grid gap-4 text-xs text-muted-foreground sm:grid-cols-3">
         <InfoRow
           label="开始时间"
           value={ABSOLUTE_DATE_FORMATTER.format(task.startedAt)}
@@ -439,12 +439,12 @@ function InfoRow({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className="text-muted-foreground/70 font-medium uppercase tracking-wide">
+      <dt className="font-medium tracking-wide text-muted-foreground/70 uppercase">
         {label}
       </dt>
-      <dd className="text-foreground text-sm font-medium">{value}</dd>
+      <dd className="text-sm font-medium text-foreground">{value}</dd>
       {hint ? (
-        <span className="text-muted-foreground/70 text-[11px]">{hint}</span>
+        <span className="text-[11px] text-muted-foreground/70">{hint}</span>
       ) : null}
     </div>
   );

@@ -13,8 +13,8 @@ export default async function Page({
   return (
     <>
       <div className="mb-2.5">
-        <p className="text-muted-foreground text-sm font-medium">云剪贴板</p>
-        <h1 className="text-foreground text-xl font-semibold tracking-tight">
+        <p className="text-sm font-medium text-muted-foreground">云剪贴板</p>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
           {paste.id.toUpperCase()}
         </h1>
       </div>

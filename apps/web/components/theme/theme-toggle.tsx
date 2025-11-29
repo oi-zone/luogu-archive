@@ -47,7 +47,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="sm"
       onClick={handleToggle}
-      className="border-border/70 bg-background/90 text-muted-foreground hover:border-border hover:text-foreground group flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 shadow-sm transition duration-200"
+      className="group flex cursor-pointer items-center gap-1.5 rounded-full border border-border/70 bg-background/90 px-3 py-1.5 text-muted-foreground shadow-sm transition duration-200 hover:border-border hover:text-foreground"
       aria-label={`当前主题：${currentLabel}。点击切换为${nextLabel}`}
     >
       <span className="sr-only">当前主题：{currentLabel}</span>

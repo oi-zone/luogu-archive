@@ -82,11 +82,11 @@ export function UserTimeline({ entries }: { entries: TimelineEntry[] }) {
     <section>
       <header className="mb-6">
         <h3 className="text-lg font-semibold">时间线</h3>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           最近的文章、讨论、云剪贴板与社区记录
         </p>
       </header>
-      <ol className="border-border/80 space-y-6 border-l pl-6">
+      <ol className="space-y-6 border-l border-border/80 pl-6">
         {entries.map((entry) => {
           const meta = TIMELINE_META[entry.type];
           const createdAt = new Date(entry.createdAt);
@@ -98,7 +98,7 @@ export function UserTimeline({ entries }: { entries: TimelineEntry[] }) {
               <span
                 aria-hidden
                 className={cn(
-                  "border-card absolute -left-[15px] top-2 inline-flex size-3 items-center justify-center rounded-full border-2",
+                  "absolute top-2 -left-[15px] inline-flex size-3 items-center justify-center rounded-full border-2 border-card",
                   meta.dotClass,
                 )}
               />
@@ -113,7 +113,7 @@ export function UserTimeline({ entries }: { entries: TimelineEntry[] }) {
                   {meta.label}
                 </span>
                 <time
-                  className="text-muted-foreground text-xs"
+                  className="text-xs text-muted-foreground"
                   dateTime={entry.createdAt}
                 >
                   {DATE_FORMATTER.format(createdAt)} · {relative}
@@ -134,15 +134,15 @@ function renderTimelineContent(entry: TimelineEntry) {
   switch (entry.type) {
     case "article":
       return (
-        <div className="border-border/70 bg-muted/40 rounded-2xl border p-4 text-sm">
+        <div className="rounded-2xl border border-border/70 bg-muted/40 p-4 text-sm">
           <Link
             href={entry.href}
-            className="text-foreground text-base font-semibold hover:underline"
+            className="text-base font-semibold text-foreground hover:underline"
           >
             {entry.title}
           </Link>
-          <p className="text-muted-foreground mt-2">{entry.summary}</p>
-          <div className="text-muted-foreground mt-3 flex flex-wrap gap-3 text-xs">
+          <p className="mt-2 text-muted-foreground">{entry.summary}</p>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
             <span>获赞 {entry.reactions}</span>
             <span>评论 {entry.comments}</span>
           </div>
@@ -150,15 +150,15 @@ function renderTimelineContent(entry: TimelineEntry) {
       );
     case "discussion":
       return (
-        <div className="border-border/70 bg-muted/40 rounded-2xl border p-4 text-sm">
+        <div className="rounded-2xl border border-border/70 bg-muted/40 p-4 text-sm">
           <Link
             href={entry.href}
-            className="text-foreground text-base font-semibold hover:underline"
+            className="text-base font-semibold text-foreground hover:underline"
           >
             {entry.title}
           </Link>
-          <p className="text-muted-foreground mt-2">{entry.summary}</p>
-          <div className="text-muted-foreground mt-3 flex flex-wrap gap-3 text-xs">
+          <p className="mt-2 text-muted-foreground">{entry.summary}</p>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
             <span>回复 {entry.replies}</span>
             <span>参与人数 {entry.participants}</span>
           </div>
@@ -166,53 +166,53 @@ function renderTimelineContent(entry: TimelineEntry) {
       );
     case "articleComment":
       return (
-        <div className="border-border/70 bg-muted/30 rounded-2xl border p-4 text-sm">
+        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm">
           <p className="text-muted-foreground">
             在文章
             <Link
               href={entry.href}
-              className="text-foreground mx-1 font-medium hover:underline"
+              className="mx-1 font-medium text-foreground hover:underline"
             >
               《{entry.articleTitle}》
             </Link>
             发表评论：
           </p>
-          <blockquote className="border-primary/40 text-muted-foreground mt-2 border-l-2 pl-3">
+          <blockquote className="mt-2 border-l-2 border-primary/40 pl-3 text-muted-foreground">
             {entry.excerpt}
           </blockquote>
         </div>
       );
     case "discussionReply":
       return (
-        <div className="border-border/70 bg-muted/30 rounded-2xl border p-4 text-sm">
+        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm">
           <p className="text-muted-foreground">
             在讨论
             <Link
               href={entry.href}
-              className="text-foreground mx-1 font-medium hover:underline"
+              className="mx-1 font-medium text-foreground hover:underline"
             >
               《{entry.discussionTitle}》
             </Link>
             回复：
           </p>
-          <blockquote className="border-primary/40 text-muted-foreground mt-2 border-l-2 pl-3">
+          <blockquote className="mt-2 border-l-2 border-primary/40 pl-3 text-muted-foreground">
             {entry.excerpt}
           </blockquote>
         </div>
       );
     case "paste":
       return (
-        <div className="border-border/70 bg-muted/30 rounded-2xl border p-4 text-sm">
+        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm">
           <Link
             href={entry.href}
-            className="text-foreground text-base font-semibold hover:underline"
+            className="text-base font-semibold text-foreground hover:underline"
           >
             {entry.title}
           </Link>
-          <p className="text-muted-foreground mt-2 leading-relaxed">
+          <p className="mt-2 leading-relaxed text-muted-foreground">
             {entry.description}
           </p>
-          <div className="text-muted-foreground mt-3 text-xs">
+          <div className="mt-3 text-xs text-muted-foreground">
             可见性：{VISIBILITY_LABEL[entry.visibility]}
           </div>
         </div>

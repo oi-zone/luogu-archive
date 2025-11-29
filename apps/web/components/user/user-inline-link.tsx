@@ -45,7 +45,7 @@ export function UserInlineLink({
     <Link
       href={`/u/${user.id}`}
       className={cn(
-        "clear-markdown-style hover:bg-muted inline-flex items-center rounded-full transition-colors duration-200",
+        "clear-markdown-style inline-flex items-center rounded-full transition-colors duration-200 hover:bg-muted",
         className,
       )}
       prefetch={false}
@@ -152,7 +152,7 @@ function UserInlineContent({
       {user.xcpcLevel !== 0 && (
         <IconBalloon
           className={cn(
-            "me-0.25 size-4.5 top-0.25 relative",
+            "relative top-0.25 me-0.25 size-4.5",
             compact && "-ms-0.25",
             `text-luogu-${xcpcLevelToColor(user.xcpcLevel)}`,
           )}

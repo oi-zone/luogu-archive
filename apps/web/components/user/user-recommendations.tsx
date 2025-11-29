@@ -26,11 +26,11 @@ export function UserRecommendations({
   }
 
   return (
-    <section className="border-border text-card-foreground rounded-3xl border p-5 shadow-sm">
+    <section className="rounded-3xl border border-border p-5 text-card-foreground shadow-sm">
       <header className="mb-4 flex items-center justify-between gap-2">
         <div>
           <h3 className="text-base font-semibold">相关用户</h3>
-          <p className="text-muted-foreground text-xs">可能感兴趣的同好</p>
+          <p className="text-xs text-muted-foreground">可能感兴趣的同好</p>
         </div>
       </header>
       <div className="space-y-4">
@@ -68,11 +68,11 @@ function MobileRecommendationsPager({ users }: { users: RelatedUser[] }) {
   };
 
   return (
-    <section className="border-border bg-background/95 rounded-3xl border p-4 shadow-sm sm:p-5">
+    <section className="rounded-3xl border border-border bg-background/95 p-4 shadow-sm sm:p-5">
       <header className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold">相关用户</h3>
-          <p className="text-muted-foreground text-xs">向右切换查看更多</p>
+          <p className="text-xs text-muted-foreground">向右切换查看更多</p>
         </div>
         {showNav && (
           <div className="flex items-center gap-1.5">
@@ -87,7 +87,7 @@ function MobileRecommendationsPager({ users }: { users: RelatedUser[] }) {
             >
               <ChevronLeft className="size-4" aria-hidden />
             </Button>
-            <span className="text-muted-foreground text-xs font-medium">
+            <span className="text-xs font-medium text-muted-foreground">
               {clampedIndex + 1} / {totalPages}
             </span>
             <Button
@@ -119,11 +119,11 @@ function UserRecommendationCard({
   return (
     <article
       className={cn(
-        "border-border/60 bg-muted/40 flex flex-col items-start gap-4 rounded-2xl border p-4 shadow-none sm:flex-row",
+        "flex flex-col items-start gap-4 rounded-2xl border border-border/60 bg-muted/40 p-4 shadow-none sm:flex-row",
         className,
       )}
     >
-      <div className="border-border/60 bg-background relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border">
+      <div className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-background">
         <Image
           src={user.avatarUrl}
           alt={user.name}
@@ -137,31 +137,31 @@ function UserRecommendationCard({
           <div className="min-w-0">
             <p
               className={cn(
-                "text-sm font-semibold leading-tight",
+                "text-sm leading-tight font-semibold",
                 NAME_COLOR_CLASS[user.nameColor],
               )}
             >
               {user.name}
             </p>
-            <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>#{user.id}</span>
               {user.ccfLevel ? (
-                <span className="border-border/60 rounded-full border px-2.5 py-0.5 text-[11px] font-medium">
+                <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium">
                   CCF Lv.{user.ccfLevel}
                 </span>
               ) : null}
             </div>
             {user.tag ? (
-              <span className="border-border/60 text-muted-foreground mt-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium">
+              <span className="mt-2 inline-flex items-center rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                 {user.tag}
               </span>
             ) : null}
           </div>
-          <span className="bg-primary/10 text-primary inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-medium">
+          <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
             共同标签 {user.mutualTags}
           </span>
         </div>
-        <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           {user.slogan}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">

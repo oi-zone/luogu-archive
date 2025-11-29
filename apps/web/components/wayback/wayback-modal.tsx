@@ -199,7 +199,7 @@ export function WaybackModal<T extends WaybackTimelineItem>(
   const timelineContent = (() => {
     if (isPending) {
       return (
-        <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 text-sm">
+        <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
           <Loader2 className="size-5 animate-spin" aria-hidden="true" />
           {loadingMessage}
         </div>
@@ -208,7 +208,7 @@ export function WaybackModal<T extends WaybackTimelineItem>(
 
     if (isError) {
       return (
-        <div className="text-destructive/90 flex h-full flex-col items-center justify-center gap-3 text-sm">
+        <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-destructive/90">
           <p>{error instanceof Error ? error.message : errorMessage}</p>
           <Button
             variant="outline"
@@ -223,7 +223,7 @@ export function WaybackModal<T extends WaybackTimelineItem>(
 
     if (timelineItems.length === 0) {
       return (
-        <div className="text-muted-foreground/80 flex h-full flex-col items-center justify-center text-sm">
+        <div className="flex h-full flex-col items-center justify-center text-sm text-muted-foreground/80">
           {emptyMessage}
         </div>
       );
@@ -240,8 +240,8 @@ export function WaybackModal<T extends WaybackTimelineItem>(
               <button
                 type="button"
                 className={cn(
-                  "bg-card/70 hover:bg-muted group border text-left transition-all",
-                  "border-border/70 w-full rounded-3xl px-5 py-4 backdrop-blur-sm",
+                  "group border bg-card/70 text-left transition-all hover:bg-muted",
+                  "w-full rounded-3xl border-border/70 px-5 py-4 backdrop-blur-sm",
                   isActive && "bg-muted",
                 )}
                 onClick={() => handleItemSelect(item)}
@@ -250,7 +250,7 @@ export function WaybackModal<T extends WaybackTimelineItem>(
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="inline-flex flex-wrap items-center gap-2">
                     <time
-                      className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
+                      className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                       dateTime={item.capturedAt}
                     >
                       {ABSOLUTE_DATE_FORMATTER.format(capturedAt)} ·{" "}
@@ -258,13 +258,13 @@ export function WaybackModal<T extends WaybackTimelineItem>(
                     </time>
 
                     {item.badges && item.badges.length > 0 ? (
-                      <div className="-mt-0.75 inline-block flex flex-wrap gap-1.5">
+                      <div className="-mt-0.75 flex inline-block flex-wrap gap-1.5">
                         {item.badges.map((badge) => (
                           <Badge
                             key={badge.key}
                             className={cn(
                               "bg-muted/70 text-muted-foreground",
-                              "border-border/50 border",
+                              "border border-border/50",
                               badge.className,
                             )}
                           >
@@ -283,13 +283,13 @@ export function WaybackModal<T extends WaybackTimelineItem>(
                 </div>
 
                 {item.title && (
-                  <p className="text-foreground mt-3 text-base font-semibold leading-relaxed">
+                  <p className="mt-3 text-base leading-relaxed font-semibold text-foreground">
                     {item.title}
                   </p>
                 )}
 
                 {item.meta && item.meta.length > 0 ? (
-                  <div className="text-muted-foreground/90 mt-3 flex flex-wrap items-center gap-3 text-xs">
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground/90">
                     {item.meta.map((meta, index) => (
                       <span
                         key={index}
@@ -314,23 +314,23 @@ export function WaybackModal<T extends WaybackTimelineItem>(
 
   return (
     <div
-      className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm sm:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm sm:p-8"
       onClick={close}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="时光机"
-        className="border-border bg-background relative flex h-full w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border shadow-2xl"
+        className="relative flex h-full w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-border bg-background shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="border-border/70 relative flex items-start gap-3 border-b px-6 py-5">
+        <header className="relative flex items-start gap-3 border-b border-border/70 px-6 py-5">
           <div className="flex-1">
-            <h2 className="text-foreground text-lg font-semibold">
+            <h2 className="text-lg font-semibold text-foreground">
               {headerTitle}
             </h2>
             {headerDescription ? (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm text-muted-foreground">
                 {headerDescription}
               </p>
             ) : null}
@@ -340,7 +340,7 @@ export function WaybackModal<T extends WaybackTimelineItem>(
             variant="ghost"
             size="icon-sm"
             type="button"
-            className="absolute right-4 top-4 rounded-full"
+            className="absolute top-4 right-4 rounded-full"
             onClick={close}
           >
             <X className="size-4" aria-hidden="true" />
@@ -353,7 +353,7 @@ export function WaybackModal<T extends WaybackTimelineItem>(
         </div>
 
         {hasNextPage ? (
-          <div className="border-border/70 bg-background/95 flex items-center justify-center border-t px-6 py-4">
+          <div className="flex items-center justify-center border-t border-border/70 bg-background/95 px-6 py-4">
             <Button
               variant="outline"
               type="button"

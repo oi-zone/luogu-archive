@@ -207,7 +207,7 @@
   }
 
   .markdown-body :is(h1, h2, h3, h4, h5, h6) {
-    @apply text-foreground font-semibold;
+    @apply font-semibold text-foreground;
     line-height: 1.2;
     letter-spacing: -0.025em;
     scroll-margin-top: 7rem;
@@ -218,20 +218,20 @@
   }
 
   .markdown-body h1 {
-    @apply mb-[24] mt-[32] text-4xl leading-tight;
+    @apply mt-[32] mb-[24] text-4xl leading-tight;
   }
   .markdown-body h2 {
-    @apply mb-[20] mt-[28] text-3xl leading-tight;
+    @apply mt-[28] mb-[20] text-3xl leading-tight;
   }
   .markdown-body h3 {
-    @apply mb-[16] mt-[24] text-2xl leading-snug;
+    @apply mt-[24] mb-[16] text-2xl leading-snug;
   }
   .markdown-body h4 {
-    @apply mb-[13] mt-[20] text-xl leading-snug;
+    @apply mt-[20] mb-[13] text-xl leading-snug;
   }
   .markdown-body h5,
   .markdown-body h6 {
-    @apply text-foreground mb-[10] mt-[16] text-base uppercase tracking-[0.025em];
+    @apply mt-[16] mb-[10] text-base tracking-[0.025em] text-foreground uppercase;
   }
 
   .markdown-body p {
@@ -247,7 +247,7 @@
   }
 
   .markdown-body strong {
-    @apply text-foreground font-semibold;
+    @apply font-semibold text-foreground;
   }
   .markdown-body em {
     @apply text-foreground italic;
@@ -367,7 +367,7 @@
   }
 
   .markdown-body code {
-    @apply text-foreground rounded bg-transparent px-2 py-1 font-mono text-sm;
+    @apply rounded bg-transparent px-2 py-1 font-mono text-sm text-foreground;
   }
 
   .markdown-body pre {
@@ -390,7 +390,7 @@
   }
 
   .markdown-body kbd {
-    @apply border-border bg-muted text-muted-foreground inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-semibold;
+    @apply inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground;
   }
 
   .markdown-body mark {
@@ -432,12 +432,12 @@
     @apply mt-3;
   }
   .markdown-body figcaption {
-    @apply text-muted-foreground text-[0.8rem];
+    @apply text-[0.8rem] text-muted-foreground;
   }
 
   .markdown-body iframe,
   .markdown-body video {
-    @apply border-border w-full rounded-2xl border;
+    @apply w-full rounded-2xl border border-border;
   }
 
   .markdown-body sup,
@@ -490,7 +490,7 @@
 
   .markdown-heading-anchor {
     opacity: 0;
-    @apply text-muted-foreground text-[0.8em] transition-opacity;
+    @apply text-[0.8em] text-muted-foreground transition-opacity;
   }
 
   .markdown-heading-anchor-wrapper:hover .markdown-heading-anchor,
@@ -520,7 +520,7 @@
   }
 
   .article-toc-card-header {
-    @apply text-muted-foreground mb-3 text-[0.85rem] font-semibold uppercase tracking-[0.08em];
+    @apply mb-3 text-[0.85rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase;
   }
 
   .article-toc-list {
@@ -528,7 +528,7 @@
   }
 
   .article-toc-entry {
-    @apply text-muted-foreground w-full rounded-[0.95rem] border-l-2 border-transparent px-2.5 py-1.5 text-left text-[0.92rem] transition-colors;
+    @apply w-full rounded-[0.95rem] border-l-2 border-transparent px-2.5 py-1.5 text-left text-[0.92rem] text-muted-foreground transition-colors;
   }
 
   .article-toc-entry:hover {
@@ -568,7 +568,7 @@
   }
 
   .article-floating-toc-button {
-    @apply border-border bg-background text-muted-foreground relative inline-flex items-center justify-center rounded-full border p-2 shadow-[0_18px_40px_-30px_var(--primary)] transition;
+    @apply relative inline-flex items-center justify-center rounded-full border border-border bg-background p-2 text-muted-foreground shadow-[0_18px_40px_-30px_var(--primary)] transition;
   }
 
   .article-floating-toc-button:hover,

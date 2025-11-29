@@ -686,14 +686,14 @@ export function CommentBoard(props: CommentBoardProps) {
   const defaultEmptyContent = React.useCallback(() => {
     if (loadingInitial) {
       return (
-        <div className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           正在加载评论...
         </div>
       );
     }
     if (error) {
       return (
-        <div className="text-destructive flex flex-col items-center gap-3 text-center text-sm">
+        <div className="flex flex-col items-center gap-3 text-center text-sm text-destructive">
           <p>{error}</p>
           <Button type="button" size="sm" onClick={requestRetry}>
             重试
@@ -709,12 +709,12 @@ export function CommentBoard(props: CommentBoardProps) {
   let errorBanner: React.ReactNode = null;
   if (error && comments.length > 0) {
     errorBanner = renderErrorBanner?.(renderState) ?? (
-      <p className="text-destructive text-sm">{error}</p>
+      <p className="text-sm text-destructive">{error}</p>
     );
   }
 
   const sortControls = (
-    <div className="border-border bg-background flex items-center gap-1 rounded-xl border px-1 py-1">
+    <div className="flex items-center gap-1 rounded-xl border border-border bg-background px-1 py-1">
       <Button
         type="button"
         variant={activeSort === "newest" ? "secondary" : "ghost"}
@@ -775,7 +775,7 @@ export function CommentBoard(props: CommentBoardProps) {
         ) : null}
 
         {comments.length === 0 ? (
-          <div className="border-border/60 text-muted-foreground rounded-2xl border border-dashed p-10 text-center text-sm">
+          <div className="rounded-2xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
             {emptyContent}
           </div>
         ) : (
@@ -833,7 +833,7 @@ function DuplicatePlaceholder({ group, onExpand }: DuplicatePlaceholderProps) {
           {previewUsers.map((user) => (
             <UserInlineLink key={user.id} user={user} compact />
           ))}
-          <span className="text-muted-foreground text-sm font-medium">
+          <span className="text-sm font-medium text-muted-foreground">
             等 {repeatCount} 位用户复读了
           </span>
         </div>

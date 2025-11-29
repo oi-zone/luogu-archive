@@ -11,8 +11,8 @@ export default async function Page({
 
   return (
     <div>
-      <p className="text-muted-foreground text-sm font-medium">云剪贴板</p>
-      <h1 className="text-foreground text-2xl font-semibold tracking-tight">
+      <p className="text-sm font-medium text-muted-foreground">云剪贴板</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
         云剪贴板&thinsp;{paste.id.toUpperCase()}
       </h1>
     </div>

@@ -224,8 +224,8 @@ export default function DiscussionReplies({
       const count = Math.max(totalCount, discussion.allRepliesCount);
       return (
         <>
-          <h2 className="text-foreground text-xl font-semibold">回复</h2>
-          <p className="text-muted-foreground text-sm">
+          <h2 className="text-xl font-semibold text-foreground">回复</h2>
+          <p className="text-sm text-muted-foreground">
             共 {count.toLocaleString("zh-CN")} 条回复，欢迎继续交流。
           </p>
         </>
@@ -237,7 +237,7 @@ export default function DiscussionReplies({
   const renderEmpty = React.useCallback((state: CommentBoardRenderState) => {
     if (state.loadingInitial) {
       return (
-        <div className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           正在加载回复...
         </div>
       );
@@ -245,7 +245,7 @@ export default function DiscussionReplies({
 
     if (state.error) {
       return (
-        <div className="text-destructive flex flex-col items-center gap-3 text-center text-sm">
+        <div className="flex flex-col items-center gap-3 text-center text-sm text-destructive">
           <p>{state.error}</p>
           <Button type="button" size="sm" onClick={state.retry}>
             重试
@@ -260,7 +260,7 @@ export default function DiscussionReplies({
   const renderErrorBanner = React.useCallback(
     (state: CommentBoardRenderState) =>
       state.error ? (
-        <p className="text-destructive mt-4 text-sm">{state.error}</p>
+        <p className="mt-4 text-sm text-destructive">{state.error}</p>
       ) : null,
     [],
   );

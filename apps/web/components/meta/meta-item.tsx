@@ -14,7 +14,7 @@ export default function MetaItem({
   return (
     <span
       className={cn(
-        "text-muted-foreground inline-flex items-center gap-1.5",
+        "inline-flex items-center gap-1.5 text-muted-foreground",
         compact && "gap-1",
       )}
     >

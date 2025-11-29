@@ -24,12 +24,12 @@ type StatRowProps = {
 function StatRow({ label, value, hint }: StatRowProps) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+      <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
         {label}
       </dt>
-      <dd className="text-foreground text-sm font-medium">{value}</dd>
+      <dd className="text-sm font-medium text-foreground">{value}</dd>
       {hint ? (
-        <span className="text-muted-foreground/70 text-xs">{hint}</span>
+        <span className="text-xs text-muted-foreground/70">{hint}</span>
       ) : null}
     </div>
   );
@@ -61,20 +61,20 @@ export default function PasteOperationPanel({
   return (
     <div
       className={cn(
-        "border-border bg-background rounded-3xl border px-5 py-4 shadow-sm",
+        "rounded-3xl border border-border bg-background px-5 py-4 shadow-sm",
         className,
       )}
     >
       <div className="space-y-1">
-        <h2 className="text-foreground text-lg font-semibold">云剪贴板操作</h2>
-        <p className="text-muted-foreground text-sm">
+        <h2 className="text-lg font-semibold text-foreground">云剪贴板操作</h2>
+        <p className="text-sm text-muted-foreground">
           由 {paste.author.name} 于 {ABSOLUTE_DATE_FORMATTER.format(paste.time)}{" "}
           创建，当前
           {paste.public ? "公开" : "私密"}。
         </p>
       </div>
 
-      <dl className="text-foreground mt-6 space-y-3 text-sm">
+      <dl className="mt-6 space-y-3 text-sm text-foreground">
         <StatRow
           label="当前快照"
           value={`${paste.snapshotsCount.toLocaleString("zh-CN")}\u2009份`}

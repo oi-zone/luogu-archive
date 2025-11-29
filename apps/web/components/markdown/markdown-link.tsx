@@ -153,11 +153,11 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
         <span className="ls-user-mention me-0.5">
           <AtSign
             className={cn(
-              "-top-0.25 relative inline-block size-4 stroke-[1.5]",
+              "relative -top-0.25 inline-block size-4 stroke-[1.5]",
               `text-luogu-${userInfo.color.toLowerCase()}`,
             )}
           />
-          <span className="ms-0.25 relative top-1 -mt-1 inline-block">
+          <span className="relative top-1 ms-0.25 -mt-1 inline-block">
             <UserInlineLink user={userInfo} compact />
           </span>
         </span>
@@ -174,28 +174,28 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
           href={`/d/${discussionSummary.id}`}
           className={cn(
             "clear-markdown-style relative top-0.5 -my-0.5",
-            "ls-discussion-link px-2.75 text-foreground inline-flex items-center gap-2 rounded-full py-1 text-sm font-medium no-underline",
+            "ls-discussion-link inline-flex items-center gap-2 rounded-full px-2.75 py-1 text-sm font-medium text-foreground no-underline",
             "bg-gray-100 transition duration-200 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800",
             className,
           )}
           {...rest}
         >
           <MessageSquare
-            className="text-muted-foreground size-4"
+            className="size-4 text-muted-foreground"
             aria-hidden="true"
           />
           <span>
             {discussionSummary.title}
-            <span className="text-muted-foreground align-bottom text-xs">
+            <span className="align-bottom text-xs text-muted-foreground">
               #{discussionSummary.id}
             </span>
           </span>
-          <span className="top-0.25 relative inline-block">
+          <span className="relative top-0.25 inline-block">
             <MetaItem icon={MessageCircle} compact>
               {discussionSummary.allRepliesCount.toLocaleString("zh-CN")}
             </MetaItem>
           </span>
-          <span className="top-0.25 relative inline-block">
+          <span className="relative top-0.25 inline-block">
             <MetaItem icon={Camera} compact>
               {discussionSummary.snapshotsCount.toLocaleString("zh-CN")}
             </MetaItem>
@@ -218,28 +218,28 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
           href={`/a/${articleSummary.id}`}
           className={cn(
             "clear-markdown-style relative top-0.5 -my-0.5",
-            "ls-discussion-link px-2.75 text-foreground inline-flex items-center gap-2 rounded-full py-1 text-sm font-medium no-underline",
+            "ls-discussion-link inline-flex items-center gap-2 rounded-full px-2.75 py-1 text-sm font-medium text-foreground no-underline",
             "bg-gray-100 transition duration-200 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800",
             className,
           )}
           {...rest}
         >
           <FileText
-            className="text-muted-foreground size-4"
+            className="size-4 text-muted-foreground"
             aria-hidden="true"
           />
           <span>
             {articleSummary.title}
-            <span className="text-muted-foreground align-bottom text-xs">
+            <span className="align-bottom text-xs text-muted-foreground">
               #{articleSummary.id}
             </span>
           </span>
-          <span className="top-0.25 relative inline-block">
+          <span className="relative top-0.25 inline-block">
             <MetaItem icon={MessageCircle} compact>
               {articleSummary.allRepliesCount.toLocaleString("zh-CN")}
             </MetaItem>
           </span>
-          <span className="top-0.25 relative inline-block">
+          <span className="relative top-0.25 inline-block">
             <MetaItem icon={Camera} compact>
               {articleSummary.snapshotsCount.toLocaleString("zh-CN")}
             </MetaItem>
@@ -262,23 +262,23 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
           href={`/p/${pasteSummary.id}`}
           className={cn(
             "clear-markdown-style relative top-0.5 -my-0.5",
-            "ls-discussion-link px-2.75 text-foreground inline-flex items-center gap-2 rounded-full py-1 text-sm font-medium no-underline",
+            "ls-discussion-link inline-flex items-center gap-2 rounded-full px-2.75 py-1 text-sm font-medium text-foreground no-underline",
             "bg-gray-100 transition duration-200 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800",
             className,
           )}
           {...rest}
         >
           <ClipboardList
-            className="text-muted-foreground size-4"
+            className="size-4 text-muted-foreground"
             aria-hidden="true"
           />
           <span>云剪贴板&thinsp;{pasteSummary.id}</span>
-          <span className="top-0.25 relative inline-block">
+          <span className="relative top-0.25 inline-block">
             <MetaItem icon={Camera} compact>
               {pasteSummary.snapshotsCount.toLocaleString("zh-CN")}
             </MetaItem>
           </span>
-          <span className="top-0.25 relative inline-block">
+          <span className="relative top-0.25 inline-block">
             <MetaItem icon={pasteSummary.isPublic ? Globe : Lock} compact>
               {pasteSummary.isPublic ? "公开" : "私密"}
             </MetaItem>

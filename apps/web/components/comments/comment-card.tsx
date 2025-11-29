@@ -80,7 +80,7 @@ export function CommentCard({
             </Badge>
           )}
         </div>
-        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
           <MetaItem>{formatRelativeTime(comment.time)}</MetaItem>
           {comment.type === "discussionReply" && (
             <MetaItem icon={Camera}>
@@ -90,8 +90,8 @@ export function CommentCard({
           )}
         </div>
       </header>
-      <div className="border-border bg-background/80 mt-1.5 rounded-2xl border shadow-sm sm:ms-4">
-        <div className="mx-3 mb-3 mt-3.5 leading-relaxed sm:mx-4">
+      <div className="mt-1.5 rounded-2xl border border-border bg-background/80 shadow-sm sm:ms-4">
+        <div className="mx-3 mt-3.5 mb-3 leading-relaxed sm:mx-4">
           <Markdown
             originalUrl={
               comment.type === "discussionReply"
@@ -103,9 +103,9 @@ export function CommentCard({
             {comment.content}
           </Markdown>
         </div>
-        <footer className="bg-muted flex flex-wrap items-center justify-between gap-3 rounded-b-2xl px-3 py-1 sm:px-4">
+        <footer className="flex flex-wrap items-center justify-between gap-3 rounded-b-2xl bg-muted px-3 py-1 sm:px-4">
           <button
-            className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer select-none items-center gap-1 text-xs transition-colors duration-200"
+            className="inline-flex cursor-pointer items-center gap-1 text-xs text-muted-foreground transition-colors duration-200 select-none hover:text-foreground"
             onClick={() => copy(comment.content)}
             aria-live="polite"
           >
@@ -114,11 +114,11 @@ export function CommentCard({
           </button>
           <div>
             {comment.type === "discussionReply" ? (
-              <span className="text-muted-foreground text-xs">
+              <span className="text-xs text-muted-foreground">
                 #reply-{comment.id}@{comment.capturedAt.getTime().toString(36)}
               </span>
             ) : (
-              <span className="text-muted-foreground text-xs">
+              <span className="text-xs text-muted-foreground">
                 #comment-{comment.id}
               </span>
             )}

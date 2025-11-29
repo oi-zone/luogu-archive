@@ -12,8 +12,8 @@ export default async function Page({
 
   return (
     <div>
-      <p className="text-muted-foreground text-sm font-medium">云剪贴板</p>
-      <h1 className="text-foreground text-3xl font-semibold tracking-tight sm:text-4xl">
+      <p className="text-sm font-medium text-muted-foreground">云剪贴板</p>
+      <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
         云剪贴板&thinsp;{paste.id.toUpperCase()}@
         {paste.capturedAt.getTime().toString(36).toUpperCase()}
       </h1>

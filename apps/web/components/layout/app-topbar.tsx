@@ -24,7 +24,7 @@ export function AppTopbar({
   const navigationCrumbs = crumbs?.length ? crumbs : defaultCrumbs;
 
   return (
-    <header className="bg-background/70 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-20 flex h-16 shrink-0 items-center border-b backdrop-blur">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <Breadcrumb>

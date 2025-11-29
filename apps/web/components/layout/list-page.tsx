@@ -69,7 +69,7 @@ export function ListPage({
         <div className="flex items-center space-x-2">
           <Link href={`/search?type=${searchType}`} className="w-64">
             <div className="relative">
-              <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search..."
                 className="cursor-pointer pl-9"

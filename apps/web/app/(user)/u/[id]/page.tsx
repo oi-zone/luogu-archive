@@ -26,7 +26,7 @@ export default async function UserDetailPage({
   ];
 
   return (
-    <div className="mx-auto w-full px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full px-4 pt-8 pb-16 sm:px-6 lg:px-8">
       <BreadcrumbSetter trail={breadcrumbs} />
       <header className="mb-8 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -38,19 +38,19 @@ export default async function UserDetailPage({
           >
             {profile.name}
           </h1>
-          <span className="text-muted-foreground text-sm">#{profile.id}</span>
+          <span className="text-sm text-muted-foreground">#{profile.id}</span>
           {profile.ccfLevel ? (
-            <span className="border-border/60 rounded-full border px-3 py-1 text-xs font-medium">
+            <span className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium">
               CCF Lv.{profile.ccfLevel}
             </span>
           ) : null}
           {profile.highlightTag ? (
-            <span className="bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium">
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               {profile.highlightTag}
             </span>
           ) : null}
         </div>
-        <p className="text-muted-foreground max-w-3xl text-base">
+        <p className="max-w-3xl text-base text-muted-foreground">
           {profile.slogan}
         </p>
       </header>

@@ -120,7 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function DesktopSidebar({ pathname }: { pathname: string }) {
   return (
     <div className="pointer-events-none fixed inset-y-0 left-0 z-40 hidden md:flex">
-      <aside className="group/sidebar w-15.25 bg-background/80 pointer-events-auto flex h-full flex-col border-r px-2 py-6 shadow-sm backdrop-blur transition-[width] duration-300 ease-in-out hover:w-56">
+      <aside className="group/sidebar pointer-events-auto flex h-full w-15.25 flex-col border-r bg-background/80 px-2 py-6 shadow-sm backdrop-blur transition-[width] duration-300 ease-in-out hover:w-56">
         <div className="flex flex-1 flex-col gap-6 overflow-hidden">
           <SidebarBrand variant="desktop" />
           <nav className="space-y-1.5">
@@ -150,7 +150,7 @@ function DesktopNavItem({
     <Link
       href={item.href}
       className={cn(
-        "group/nav focus-visible:ring-primary/30 focus-visible:ring-offset-background flex items-center overflow-hidden rounded-full p-3 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "group/nav flex items-center overflow-hidden rounded-full p-3 text-sm transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
         active
           ? "bg-blue-500/85 text-white"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -209,14 +209,14 @@ function MobileNavItem({
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "focus-visible:ring-primary/30 focus-visible:ring-offset-background flex items-center rounded-full p-3 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "flex items-center rounded-full p-3 text-sm font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
         active
           ? "bg-blue-500/85 text-white"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
       <Icon className="size-5 shrink-0" size={20} aria-hidden />
-      <span className="text-base/1 ml-3 whitespace-nowrap">{item.title}</span>
+      <span className="ml-3 text-base/1 whitespace-nowrap">{item.title}</span>
     </Link>
   );
 }
@@ -226,12 +226,12 @@ function SidebarBrand({ variant }: { variant: "desktop" | "mobile" }) {
     <Link
       href="/"
       className={cn(
-        "text-foreground hover:bg-muted/40 flex items-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors",
+        "flex items-center rounded-xl px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted/40",
         variant === "desktop" && "pointer-events-none",
       )}
       tabIndex={variant === "desktop" ? -1 : 0}
     >
-      <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-2xl text-lg font-bold">
+      <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary">
         LG
       </div>
       {variant === "desktop" ? (
@@ -260,7 +260,7 @@ function TopBar({
   const hideRootOnMobile = breadcrumbs.length > 1;
 
   return (
-    <header className="bg-background/80 sticky top-0 z-30 border-b backdrop-blur">
+    <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
       <div className="flex h-16 items-center gap-3 px-4">
         {isMobile && (
           <Button

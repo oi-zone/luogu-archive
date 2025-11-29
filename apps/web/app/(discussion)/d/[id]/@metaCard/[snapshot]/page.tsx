@@ -19,8 +19,8 @@ export default async function Page({
   return (
     <>
       <div className="mb-2.5">
-        <p className="text-muted-foreground text-sm font-medium">社区讨论</p>
-        <h1 className="text-foreground text-2xl font-semibold tracking-tight">
+        <p className="text-sm font-medium text-muted-foreground">社区讨论</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {discussion.title}
         </h1>
       </div>

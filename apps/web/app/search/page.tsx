@@ -136,16 +136,16 @@ export default function SearchPage() {
   }, [results, selectedCategories]);
 
   return (
-    <div className="flex flex-1 flex-col gap-10 px-6 pb-16 pt-8">
+    <div className="flex flex-1 flex-col gap-10 px-6 pt-8 pb-16">
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
             <h1 className="text-3xl font-semibold tracking-tight">站内搜索</h1>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-sm text-muted-foreground">
               通过高级筛选快速定位文章、讨论、团队、用户等内容。
             </p>
           </div>
-          <div className="text-muted-foreground flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <FilterIcon className="size-3.5" />
             当前筛选：{appliedFilterSummary}
           </div>
@@ -153,30 +153,30 @@ export default function SearchPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-card border-border rounded-3xl border p-6 shadow-sm"
+          className="rounded-3xl border border-border bg-card p-6 shadow-sm"
         >
           <div className="space-y-8">
             <div className="relative">
-              <SearchIcon className="text-muted-foreground pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2" />
+              <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onFocus={() => setIsSuggestionOpen(true)}
                 placeholder="搜索文章、讨论、团队或用户..."
-                className="bg-muted/40 h-12 rounded-2xl border-none pl-12 pr-4 text-base shadow-none focus-visible:ring-4"
+                className="h-12 rounded-2xl border-none bg-muted/40 pr-4 pl-12 text-base shadow-none focus-visible:ring-4"
               />
               {isSuggestionOpen && suggestions.length > 0 && (
-                <div className="bg-popover border-border absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border shadow-lg">
-                  <ul className="divide-border divide-y">
+                <div className="absolute top-[calc(100%+0.5rem)] right-0 left-0 z-20 overflow-hidden rounded-2xl border border-border bg-popover shadow-lg">
+                  <ul className="divide-y divide-border">
                     {suggestions.map((item) => (
                       <li key={item}>
                         <button
                           type="button"
                           onMouseDown={(event) => event.preventDefault()}
                           onClick={() => handleSuggestionSelect(item)}
-                          className="hover:bg-muted flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition"
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition hover:bg-muted"
                         >
-                          <SearchIcon className="text-muted-foreground size-4" />
+                          <SearchIcon className="size-4 text-muted-foreground" />
                           <span>{item}</span>
                         </button>
                       </li>
@@ -189,7 +189,7 @@ export default function SearchPage() {
             <div className="grid gap-6 lg:grid-cols-3">
               <section className="lg:col-span-2">
                 <header className="flex items-center justify-between">
-                  <h2 className="text-foreground text-sm font-semibold">
+                  <h2 className="text-sm font-semibold text-foreground">
                     检索范围
                   </h2>
                   <Button
@@ -215,9 +215,9 @@ export default function SearchPage() {
                         type="button"
                         onClick={() => handleCategoryToggle(option.value)}
                         className={cn(
-                          "border-border text-foreground/80 hover:text-foreground inline-flex items-center rounded-full border px-3 py-1.5 text-sm transition",
+                          "inline-flex items-center rounded-full border border-border px-3 py-1.5 text-sm text-foreground/80 transition hover:text-foreground",
                           isActive
-                            ? "bg-primary/10 border-primary/40 text-primary"
+                            ? "border-primary/40 bg-primary/10 text-primary"
                             : "bg-muted/40",
                         )}
                         aria-pressed={isActive}
@@ -230,13 +230,13 @@ export default function SearchPage() {
                 </div>
               </section>
 
-              <section className="bg-muted/30 space-y-3 rounded-2xl p-4">
-                <h2 className="text-foreground text-sm font-semibold">
+              <section className="space-y-3 rounded-2xl bg-muted/30 p-4">
+                <h2 className="text-sm font-semibold text-foreground">
                   日期 / 时间范围
                 </h2>
-                <div className="text-muted-foreground space-y-4 text-sm">
+                <div className="space-y-4 text-sm text-muted-foreground">
                   <label className="flex flex-col gap-1">
-                    <span className="text-muted-foreground/70 flex items-center gap-2 text-xs font-medium uppercase tracking-wide">
+                    <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground/70 uppercase">
                       <CalendarIcon className="size-3.5" />
                       起始时间
                     </span>
@@ -246,11 +246,11 @@ export default function SearchPage() {
                       onChange={(event) =>
                         handleDateChange("from", event.target.value)
                       }
-                      className="border-border/70 bg-background h-10 rounded-xl border"
+                      className="h-10 rounded-xl border border-border/70 bg-background"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-muted-foreground/70 flex items-center gap-2 text-xs font-medium uppercase tracking-wide">
+                    <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground/70 uppercase">
                       <Clock4 className="size-3.5" />
                       截止时间
                     </span>
@@ -260,7 +260,7 @@ export default function SearchPage() {
                       onChange={(event) =>
                         handleDateChange("to", event.target.value)
                       }
-                      className="border-border/70 bg-background h-10 rounded-xl border"
+                      className="h-10 rounded-xl border border-border/70 bg-background"
                     />
                   </label>
                 </div>
@@ -268,7 +268,7 @@ export default function SearchPage() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-muted-foreground text-xs">
+              <div className="text-xs text-muted-foreground">
                 输入关键字并按回车，或直接调整筛选项刷新结果。
               </div>
               <div className="flex gap-2">
@@ -297,7 +297,7 @@ export default function SearchPage() {
         <header className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold">搜索结果</h2>
-            <p className="text-muted-foreground mt-1 text-sm">
+            <p className="mt-1 text-sm text-muted-foreground">
               为你找到 {filteredResults.length} 条匹配结果。
             </p>
           </div>
@@ -312,11 +312,11 @@ export default function SearchPage() {
         </header>
 
         {filteredResults.length === 0 ? (
-          <div className="bg-muted/40 border-border flex flex-col items-center justify-center rounded-3xl border py-16 text-center">
-            <p className="text-foreground/80 text-lg font-medium">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-muted/40 py-16 text-center">
+            <p className="text-lg font-medium text-foreground/80">
               暂无匹配内容
             </p>
-            <p className="text-muted-foreground mt-2 text-sm">
+            <p className="mt-2 text-sm text-muted-foreground">
               可尝试放宽时间范围或调整检索范围。
             </p>
           </div>

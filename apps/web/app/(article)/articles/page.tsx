@@ -33,15 +33,15 @@ export default async function ArticlesPage() {
   const articles = await getFeaturedArticles();
 
   return (
-    <div className="flex flex-1 flex-col gap-8 px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+    <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-muted-foreground text-sm font-medium">
+            <p className="text-sm font-medium text-muted-foreground">
               文章列表
             </p>
             <h1 className="text-3xl font-semibold tracking-tight">精选文章</h1>
-            <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
               依照 {SCORE_FORMULA_LABEL} 的综合得分，实时列出前{" "}
               {FEATURED_ARTICLE_DEFAULT_LIMIT} 篇文章；其中回复指标统计最近{" "}
               {WINDOW_LABEL} 的互动，赞同会按 {UPVOTE_DECAY_LABEL}{" "}
@@ -52,13 +52,13 @@ export default async function ArticlesPage() {
             href="/search?category=article"
             scroll={false}
             prefetch={false}
-            className="bg-muted/40 text-foreground/80 hover:text-foreground border-border focus-visible:ring-primary/20 focus-visible:ring-offset-background relative flex h-12 w-full items-center rounded-2xl border px-4 text-sm transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-2 sm:w-72"
+            className="relative flex h-12 w-full items-center rounded-2xl border border-border bg-muted/40 px-4 text-sm text-foreground/80 transition hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none sm:w-72"
           >
-            <Search className="text-muted-foreground absolute left-4 top-1/2 size-4 -translate-y-1/2" />
+            <Search className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
             <span className="pl-8">搜索文章、作者或话题…</span>
           </Link>
         </div>
-        <div className="text-muted-foreground text-sm">
+        <div className="text-sm text-muted-foreground">
           {articles.length === 0
             ? "暂时没有符合条件的文章"
             : `共 ${articles.length} 篇 · 得分与数据按需实时刷新`}
@@ -70,7 +70,7 @@ export default async function ArticlesPage() {
           <ArticleCard key={article.lid} article={article} rank={index + 1} />
         ))}
         {articles.length === 0 && (
-          <div className="text-muted-foreground rounded-3xl border border-dashed p-8 text-center text-sm">
+          <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">
             暂无数据，等候新文章发布后再试。
           </div>
         )}
@@ -91,7 +91,7 @@ function ArticleCard({
   const formattedScore = SCORE_FORMATTER.format(article.score);
 
   return (
-    <article className="bg-card border-border text-card-foreground relative overflow-hidden rounded-3xl border p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+    <article className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Badge className="bg-sky-500/10 text-sky-600 dark:text-sky-200">
           TOP {rank}
@@ -100,30 +100,30 @@ function ArticleCard({
           <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-200">
             综合得分 {formattedScore}
           </Badge>
-          <Award className="text-muted-foreground size-5" aria-hidden="true" />
+          <Award className="size-5 text-muted-foreground" aria-hidden="true" />
         </div>
       </div>
 
       <div className="mt-4 space-y-3">
-        <h3 className="text-foreground text-xl font-semibold leading-tight">
+        <h3 className="text-xl leading-tight font-semibold text-foreground">
           <Link href={href} scroll={false} prefetch={false}>
             {article.snapshot.title}
             <div className="absolute inset-0" />
           </Link>
         </h3>
-        <p className="text-muted-foreground text-sm leading-relaxed">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           收藏 {article.favorCount.toLocaleString("zh-CN")} · 回复{" "}
           {article.replyCount.toLocaleString("zh-CN")} · 赞同{" "}
           {article.upvote.toLocaleString("zh-CN")}。
           {article.recentReplyCount > 0 && (
-            <span className="text-foreground/80 ms-1 inline-flex items-center">
+            <span className="ms-1 inline-flex items-center text-foreground/80">
               近 {WINDOW_LABEL} +{article.recentReplyCount} 条评论
             </span>
           )}
         </p>
       </div>
 
-      <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
         {hasAuthor ? (
           <UserInlineLink user={article.author!} compact avatar />
         ) : (

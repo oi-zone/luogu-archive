@@ -32,4 +32,5 @@ export default {
     "^[.]",
   ],
   importOrderTypeScriptVersion: typescriptVersion,
+  tailwindStylesheet: "./apps/web/app/globals.css",
 };

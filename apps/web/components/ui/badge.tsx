@@ -11,10 +11,10 @@ export function Badge({
 }) {
   return (
     <span
-      className={cn("select-none rounded-full", className, {
-        "py-0.25 px-1.25 text-xs": (size ?? "md") === "md",
-        "py-0.25 px-1.75 text-sm": size === "lg",
-        "py-0.25 px-2.25 text-base": size === "xl",
+      className={cn("rounded-full select-none", className, {
+        "px-1.25 py-0.25 text-xs": (size ?? "md") === "md",
+        "px-1.75 py-0.25 text-sm": size === "lg",
+        "px-2.25 py-0.25 text-base": size === "xl",
       })}
     >
       {children}

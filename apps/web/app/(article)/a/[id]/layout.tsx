@@ -419,7 +419,7 @@ export default function Layout({
 
   return (
     <>
-      <div className="flex flex-1 justify-center px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+      <div className="flex flex-1 justify-center px-4 pt-8 pb-16 sm:px-6 lg:px-8">
         <div className="relative w-full">
           {hasToc ? (
             <div
@@ -463,7 +463,7 @@ export default function Layout({
           >
             <aside className="hidden 2xl:order-1 2xl:flex 2xl:flex-col 2xl:gap-4">
               {hasToc ? (
-                <div className="3xl:hidden hidden 2xl:block">
+                <div className="hidden 2xl:block 3xl:hidden">
                   <div className="article-toc-track" style={tocTrackStyle}>
                     <div
                       ref={assignTocDesktopCardRef}
@@ -480,14 +480,14 @@ export default function Layout({
                   </div>
                 </div>
               ) : null}
-              <div className={cn(hasToc ? "3xl:block hidden" : "block")}>
+              <div className={cn(hasToc ? "hidden 3xl:block" : "block")}>
                 {recommendationsStacked}
               </div>
             </aside>
 
             {hasToc ? (
               <aside
-                className="article-toc-3xl 3xl:order-2 3xl:block hidden"
+                className="article-toc-3xl hidden 3xl:order-2 3xl:block"
                 aria-label="文章目录"
               >
                 <div className="article-toc-track" style={tocTrackStyle}>
@@ -516,7 +516,7 @@ export default function Layout({
                       {hasToc ? (
                         <button
                           type="button"
-                          className="article-toc-mobile-trigger text-muted-foreground hover:border-foreground/40 hover:text-foreground inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition lg:hidden"
+                          className="article-toc-mobile-trigger inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-foreground/40 hover:text-foreground lg:hidden"
                           onClick={() => setIsMobileTocOpen(true)}
                         >
                           <ListTree className="h-3.5 w-3.5" />
@@ -533,7 +533,7 @@ export default function Layout({
 
                 <section
                   ref={contentRef}
-                  className="text-muted-foreground space-y-6 text-base leading-relaxed sm:text-lg"
+                  className="space-y-6 text-base leading-relaxed text-muted-foreground sm:text-lg"
                 >
                   {content}
                 </section>
@@ -564,7 +564,7 @@ export default function Layout({
                     )}
                   >
                     <div className="pointer-events-none absolute inset-0 rounded-2xl shadow-sm" />
-                    <div className="border-border bg-background/95 h-full overflow-hidden rounded-2xl border">
+                    <div className="h-full overflow-hidden rounded-2xl border border-border bg-background/95">
                       <div ref={floatingMetaRef} className="px-5 py-4">
                         {metaCard}
                       </div>
@@ -589,20 +589,20 @@ export default function Layout({
       {hasToc ? (
         <div
           className={cn(
-            "article-mobile-toc bg-background/70 fixed inset-0 z-50 px-4 py-6 backdrop-blur lg:hidden",
+            "article-mobile-toc fixed inset-0 z-50 bg-background/70 px-4 py-6 backdrop-blur lg:hidden",
             isMobileTocOpen
               ? "pointer-events-auto opacity-100"
               : "pointer-events-none opacity-0",
           )}
         >
-          <div className="bg-background mx-auto w-full max-w-sm rounded-3xl border p-5 shadow-xl">
+          <div className="mx-auto w-full max-w-sm rounded-3xl border bg-background p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <div className="text-muted-foreground text-sm font-semibold uppercase tracking-wide">
+              <div className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
                 内容目录
               </div>
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground rounded-full border p-1 transition"
+                className="rounded-full border p-1 text-muted-foreground transition hover:text-foreground"
                 onClick={() => setIsMobileTocOpen(false)}
               >
                 <X className="h-4 w-4" />

@@ -18,13 +18,13 @@ export default async function DiscussionsPage() {
   const discussions = await getHotDiscussions();
 
   return (
-    <div className="flex flex-1 flex-col gap-8 px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+    <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-muted-foreground text-sm font-medium">讨论区</p>
+            <p className="text-sm font-medium text-muted-foreground">讨论区</p>
             <h1 className="text-3xl font-semibold tracking-tight">热门讨论</h1>
-            <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
               基于最近 {WINDOW_LABEL}
               内的回复增量，实时筛选前 {HOT_DISCUSSION_DEFAULT_LIMIT}{" "}
               条讨论；用于快速了解正在被热烈回应的话题。
@@ -34,13 +34,13 @@ export default async function DiscussionsPage() {
             href="/search?category=discussion"
             scroll={false}
             prefetch={false}
-            className="bg-muted/40 text-foreground/80 hover:text-foreground border-border focus-visible:ring-primary/20 focus-visible:ring-offset-background relative flex h-12 w-full items-center rounded-2xl border px-4 text-sm transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-2 sm:w-72"
+            className="relative flex h-12 w-full items-center rounded-2xl border border-border bg-muted/40 px-4 text-sm text-foreground/80 transition hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none sm:w-72"
           >
-            <Search className="text-muted-foreground absolute left-4 top-1/2 size-4 -translate-y-1/2" />
+            <Search className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
             <span className="pl-8">搜索讨论、作者或标签…</span>
           </Link>
         </div>
-        <div className="text-muted-foreground text-sm">
+        <div className="text-sm text-muted-foreground">
           {discussions.length === 0
             ? "暂时没有满足条件的讨论"
             : `共 ${discussions.length} 条记录 · 数据每次访问实时计算`}
@@ -52,7 +52,7 @@ export default async function DiscussionsPage() {
           <DiscussionCard key={discussion.id} discussion={discussion} />
         ))}
         {discussions.length === 0 && (
-          <div className="text-muted-foreground rounded-3xl border border-dashed p-8 text-center text-sm">
+          <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">
             暂无热门讨论，稍后再来看看吧。
           </div>
         )}
@@ -66,7 +66,7 @@ function DiscussionCard({ discussion }: { discussion: HotDiscussionSummary }) {
   const hasAuthor = Boolean(discussion.author);
 
   return (
-    <article className="bg-card border-border text-card-foreground relative overflow-hidden rounded-3xl border p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+    <article className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="bg-violet-500/10 text-violet-600 dark:text-violet-200">
@@ -77,7 +77,7 @@ function DiscussionCard({ discussion }: { discussion: HotDiscussionSummary }) {
           </Badge>
         </div>
         <time
-          className="text-muted-foreground text-xs"
+          className="text-xs text-muted-foreground"
           dateTime={discussion.updatedAt.toISOString()}
         >
           {formatRelativeTime(discussion.updatedAt)} 更新
@@ -85,19 +85,19 @@ function DiscussionCard({ discussion }: { discussion: HotDiscussionSummary }) {
       </div>
 
       <div className="mt-4 space-y-3">
-        <h3 className="text-foreground text-xl font-semibold leading-tight">
+        <h3 className="text-xl leading-tight font-semibold text-foreground">
           <Link href={href} scroll={false} prefetch={false}>
             {discussion.snapshot.title}
             <div className="absolute inset-0" />
           </Link>
         </h3>
-        <p className="text-muted-foreground text-sm leading-relaxed">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           累计 {discussion.replyCount.toLocaleString("zh-CN")} 条回复 · 最近回帖
           +{discussion.recentReplyCount}。
         </p>
       </div>
 
-      <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
         {hasAuthor ? (
           <UserInlineLink
             className="z-10"

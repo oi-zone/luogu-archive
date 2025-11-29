@@ -220,8 +220,8 @@ export default function ArticleComments({ article }: ArticleCommentsProps) {
       const count = Math.max(totalCount, article.allCommentsCount);
       return (
         <>
-          <h2 className="text-foreground text-xl font-semibold">评论</h2>
-          <p className="text-muted-foreground text-sm">
+          <h2 className="text-xl font-semibold text-foreground">评论</h2>
+          <p className="text-sm text-muted-foreground">
             共 {count.toLocaleString("zh-CN")} 条评论，欢迎与作者交流。
           </p>
         </>
@@ -233,7 +233,7 @@ export default function ArticleComments({ article }: ArticleCommentsProps) {
   const renderEmpty = React.useCallback((state: CommentBoardRenderState) => {
     if (state.loadingInitial) {
       return (
-        <div className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           正在加载评论...
         </div>
       );
@@ -241,7 +241,7 @@ export default function ArticleComments({ article }: ArticleCommentsProps) {
 
     if (state.error) {
       return (
-        <div className="text-destructive flex flex-col items-center gap-3 text-center text-sm">
+        <div className="flex flex-col items-center gap-3 text-center text-sm text-destructive">
           <p>{state.error}</p>
           <Button type="button" size="sm" onClick={state.retry}>
             重试
@@ -256,7 +256,7 @@ export default function ArticleComments({ article }: ArticleCommentsProps) {
   const renderErrorBanner = React.useCallback(
     (state: CommentBoardRenderState) =>
       state.error ? (
-        <p className="text-destructive mt-4 text-sm">{state.error}</p>
+        <p className="mt-4 text-sm text-destructive">{state.error}</p>
       ) : null,
     [],
   );

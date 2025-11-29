@@ -137,7 +137,7 @@ export default function Layout({
 
   return (
     <>
-      <div className="flex flex-1 justify-center px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+      <div className="flex flex-1 justify-center px-4 pt-8 pb-16 sm:px-6 lg:px-8">
         <div className="w-full">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,3.2fr)] xl:grid-cols-[minmax(0,8fr)_minmax(0,2.7fr)] 2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]">
             <aside className="hidden 2xl:flex 2xl:flex-col 2xl:gap-4">
@@ -156,7 +156,7 @@ export default function Layout({
 
                 <section
                   ref={contentRef}
-                  className="text-muted-foreground space-y-6 text-base leading-relaxed sm:text-lg"
+                  className="space-y-6 text-base leading-relaxed text-muted-foreground sm:text-lg"
                 >
                   {content}
                 </section>
@@ -181,7 +181,7 @@ export default function Layout({
                     )}
                   >
                     <div className="pointer-events-none absolute inset-0 rounded-2xl shadow-sm" />
-                    <div className="border-border bg-background/95 h-full overflow-hidden rounded-2xl border">
+                    <div className="h-full overflow-hidden rounded-2xl border border-border bg-background/95">
                       <div ref={floatingMetaRef} className="px-5 py-4">
                         {metaCard}
                       </div>

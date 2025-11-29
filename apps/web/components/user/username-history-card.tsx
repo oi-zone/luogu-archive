@@ -43,17 +43,17 @@ export function UsernameHistoryCard({
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className="border-border text-card-foreground rounded-3xl border shadow-sm"
+      className="rounded-3xl border border-border text-card-foreground shadow-sm"
     >
       <div className="flex items-center justify-between gap-2 px-6 py-4">
         <div>
           <h3 className="text-base font-semibold">历史用户名</h3>
-          <p className="text-muted-foreground text-xs">追踪最近的改名记录</p>
+          <p className="text-xs text-muted-foreground">追踪最近的改名记录</p>
         </div>
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="text-muted-foreground inline-flex items-center gap-1 text-xs font-medium"
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
           >
             {open ? "收起" : "展开"}
             <ChevronDown
@@ -71,9 +71,9 @@ export function UsernameHistoryCard({
         className="px-6 pb-5 data-[state=closed]:hidden"
       >
         {collapsedEntries.length === 0 ? (
-          <p className="text-muted-foreground text-sm">暂无改名记录</p>
+          <p className="text-sm text-muted-foreground">暂无改名记录</p>
         ) : (
-          <ol className="border-border/80 space-y-5 border-l border-dashed pl-5">
+          <ol className="space-y-5 border-l border-dashed border-border/80 pl-5">
             {collapsedEntries.map((entry, index) => {
               const current = index === 0;
               const latestChange = getEntryDate(entry.entries[0]);
@@ -84,7 +84,7 @@ export function UsernameHistoryCard({
                   <span
                     aria-hidden
                     className={cn(
-                      "border-card bg-background absolute -left-[17px] top-1.5 flex size-3 items-center justify-center rounded-full border-2",
+                      "absolute top-1.5 -left-[17px] flex size-3 items-center justify-center rounded-full border-2 border-card bg-background",
                       current ? "bg-primary" : "bg-border/80",
                     )}
                   />
@@ -93,7 +93,7 @@ export function UsernameHistoryCard({
                     compact
                     className="pr-1"
                   />
-                  <div className="text-muted-foreground/80 mt-1 flex flex-wrap gap-3 text-[11px]">
+                  <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground/80">
                     <span title={latestChange?.toISOString()}>
                       最后捕获于 {formatDate(latestChange)}
                     </span>
