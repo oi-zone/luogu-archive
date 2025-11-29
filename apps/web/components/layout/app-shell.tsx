@@ -2,20 +2,15 @@
 
 import * as React from "react";
 import {
-  Clipboard,
-  Compass,
-  FileText,
   Gavel,
   Home,
-  Layers,
   ListChecks,
-  MessageSquare,
   MessagesSquare,
   Newspaper,
   PanelLeft,
-  PenLine,
   Search,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -38,6 +33,8 @@ import {
 } from "@/components/layout/breadcrumb-context";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
+import piterator from "../../app/piterator.svg";
+
 const NAV_ITEMS = [
   {
     title: "首页",
@@ -54,11 +51,11 @@ const NAV_ITEMS = [
     href: "/articles",
     icon: Newspaper,
   },
-  {
-    title: "云剪贴板",
-    href: "/pastes",
-    icon: Clipboard,
-  },
+  // {
+  //   title: "云剪贴板",
+  //   href: "/pastes",
+  //   icon: Clipboard,
+  // },
   // {
   //   title: "犇犇",
   //   href: "/benben",
@@ -231,9 +228,7 @@ function SidebarBrand({ variant }: { variant: "desktop" | "mobile" }) {
       )}
       tabIndex={variant === "desktop" ? -1 : 0}
     >
-      <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary">
-        LG
-      </div>
+      <Image src={piterator} alt="Piterator" className="size-5" />
       {variant === "desktop" ? (
         <span className={desktopLabelClass}>洛谷仓库</span>
       ) : (

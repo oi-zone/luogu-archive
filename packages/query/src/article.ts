@@ -1,9 +1,23 @@
-import { prisma } from "@luogu-discussion-archive/db";
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  db,
+  desc,
+  eq,
+  gt,
+  inArray,
+  lt,
+  or,
+  schema,
+  sql,
+} from "@luogu-discussion-archive/db/drizzle";
 
 import type { BasicUserSnapshot } from "./types.js";
 
 const DEFAULT_ARTICLE_LIMIT = Number.parseInt(
-  process.env.NUM_ARTICLES_HOME_PAGE ?? "60",
+  process.env.NUM_ARTICLES_HOME_PAGE ?? "120",
   10,
 );
 
@@ -15,15 +29,14 @@ const DEFAULT_ARTICLE_WINDOW_MS = Number.parseInt(
 );
 
 const DEFAULT_ARTICLE_UPVOTE_DECAY_MS = Number.parseInt(
-  process.env.LIMIT_MILLISECONDS_FEATURED_ARTICLE_UPVOTE_DECAY ??
-    DEFAULT_ARTICLE_WINDOW_MS.toString(),
+  process.env.LIMIT_MILLISECONDS_FEATURED_ARTICLE_UPVOTE_DECAY ?? "2592000000",
   10,
 );
 
 const ARTICLE_SCORE_WEIGHTS = {
-  replies: 0.4,
-  favorites: 0.4,
-  upvotes: 0.2,
+  replies: 0.9,
+  favorites: 0.05,
+  upvotes: 0.05,
 } as const;
 
 export interface FeaturedArticleSummary {
@@ -52,22 +65,22 @@ export const ARTICLE_SCORE_WEIGHT = ARTICLE_SCORE_WEIGHTS;
 export async function getFeaturedArticles({
   limit = FEATURED_ARTICLE_DEFAULT_LIMIT,
   windowMs = FEATURED_ARTICLE_DEFAULT_WINDOW_MS,
-  upvoteDecayMs = FEATURED_ARTICLE_DEFAULT_UPVOTE_DECAY_MS,
 }: {
   limit?: number;
   windowMs?: number;
-  upvoteDecayMs?: number;
 } = {}): Promise<FeaturedArticleSummary[]> {
-  if (limit <= 0 || windowMs <= 0 || upvoteDecayMs <= 0) {
+  if (limit <= 0 || windowMs <= 0) {
     return [];
   }
 
   const since = new Date(Date.now() - windowMs);
-  const upvoteDecaySeconds = upvoteDecayMs / 1000;
+  const upvoteDecaySeconds = FEATURED_ARTICLE_DEFAULT_UPVOTE_DECAY_MS / 1000;
 
-  const scoreRows = await prisma.$queryRaw<
-    { lid: string; score: unknown; recentReplyCount: unknown }[]
-  >`
+  const { rows: scoreRows } = await db.execute<{
+    lid: string;
+    score: unknown;
+    recentReplyCount: unknown;
+  }>(sql`
     WITH "recent_replies" AS (
       SELECT "articleId", COUNT(*)::integer AS "recentReplyCount"
       FROM "ArticleReply"
@@ -77,39 +90,41 @@ export async function getFeaturedArticles({
     SELECT
       "Article"."lid" AS "lid",
       COALESCE("recent_replies"."recentReplyCount", 0) AS "recentReplyCount",
-      ((COALESCE("recent_replies"."recentReplyCount", 0) * ${ARTICLE_SCORE_WEIGHTS.replies}) +
-       ("Article"."favorCount" * ${ARTICLE_SCORE_WEIGHTS.favorites}) +
-       ("Article"."upvote" * EXP(-EXTRACT(EPOCH FROM (NOW() - "Article"."updatedAt")) / ${upvoteDecaySeconds}) * ${ARTICLE_SCORE_WEIGHTS.upvotes}))::double precision AS "score"
+      (LN(
+        1 + ((COALESCE("recent_replies"."recentReplyCount", 0) * ${ARTICLE_SCORE_WEIGHTS.replies}::double precision)
+        + ("Article"."favorCount" * ${ARTICLE_SCORE_WEIGHTS.favorites}::double precision)
+        + ("Article"."upvote" * EXP(-EXTRACT(EPOCH FROM (NOW() - "Article"."time")) / ${upvoteDecaySeconds}::double precision) * ${ARTICLE_SCORE_WEIGHTS.upvotes}::double precision))::double precision
+      )::double precision * 10) AS "score"
     FROM "Article"
     LEFT JOIN "recent_replies" ON "recent_replies"."articleId" = "Article"."lid"
     ORDER BY "score" DESC
     LIMIT ${limit}
-  `;
+  `);
 
   if (scoreRows.length === 0) {
     return [];
   }
 
   const lids = scoreRows.map((row) => row.lid);
-  const articles = await prisma.article.findMany({
-    where: { lid: { in: lids } },
-    include: {
+  const articles = await db.query.Article.findMany({
+    where: inArray(schema.Article.lid, lids),
+    with: {
       snapshots: {
-        orderBy: { capturedAt: "desc" },
-        take: 1,
-        select: {
+        orderBy: desc(schema.ArticleSnapshot.capturedAt),
+        limit: 1,
+        columns: {
           title: true,
           capturedAt: true,
           lastSeenAt: true,
         },
       },
       author: {
-        select: {
-          id: true,
+        columns: { id: true },
+        with: {
           snapshots: {
-            orderBy: { capturedAt: "desc" },
-            take: 1,
-            select: {
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
+            columns: {
               name: true,
               badge: true,
               color: true,
@@ -167,83 +182,107 @@ export async function getFeaturedArticles({
 }
 
 export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
-  const articlePromise = prisma.article.findUnique({
-    where: { lid },
-    include: {
+  const article = await db.query.Article.findFirst({
+    where: eq(schema.Article.lid, lid),
+    with: {
       snapshots: {
-        ...(capturedAt ? { where: { capturedAt } } : {}),
-        orderBy: { capturedAt: "desc" },
-        take: 1,
-        include: {
-          solutionFor: true,
-          collection: true,
-        },
-      },
-      author: {
-        include: {
-          snapshots: {
-            orderBy: { capturedAt: "desc" },
-            take: 1,
+        orderBy: desc(schema.ArticleSnapshot.capturedAt),
+        limit: 1,
+        ...(capturedAt
+          ? { where: eq(schema.ArticleSnapshot.capturedAt, capturedAt) }
+          : {}),
+        with: {
+          solutionFor: {
+            columns: {
+              pid: true,
+              title: true,
+              difficulty: true,
+            },
+          },
+          collection: {
+            columns: {
+              id: true,
+              name: true,
+            },
           },
         },
       },
-      _count: {
-        select: {
-          replies: true,
-          snapshots: true,
+      author: {
+        with: {
+          snapshots: {
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
+          },
         },
       },
     },
   });
 
-  const article = await articlePromise;
-
   if (!article) throw new Error("Article not found");
 
+  const [replyCountRow] = await db
+    .select({ total: count() })
+    .from(schema.ArticleReply)
+    .where(eq(schema.ArticleReply.articleId, lid));
+  const [snapshotCountRow] = await db
+    .select({ total: count() })
+    .from(schema.ArticleSnapshot)
+    .where(eq(schema.ArticleSnapshot.articleId, lid));
+
+  const [participantRow] = await db
+    .select({ participants: countDistinct(schema.ArticleReply.authorId) })
+    .from(schema.ArticleReply)
+    .where(eq(schema.ArticleReply.articleId, lid));
+
   const articleAuthorId = article.authorId;
+  const [authorReplyRow] = articleAuthorId
+    ? await db
+        .select({ total: count() })
+        .from(schema.ArticleReply)
+        .where(
+          and(
+            eq(schema.ArticleReply.articleId, lid),
+            eq(schema.ArticleReply.authorId, articleAuthorId),
+          ),
+        )
+    : [{ total: 0 }];
 
-  const participantCountPromise = prisma.user.count({
-    where: {
-      articleReplies: {
-        some: { articleId: lid },
-      },
-    },
-  });
-
-  const [replyParticipantCount, authorReplyCount] = await Promise.all([
-    participantCountPromise,
-    prisma.articleReply.count({
-      where: {
-        articleId: lid,
-        authorId: articleAuthorId,
-      },
-    }),
-  ]);
+  const replyParticipantCount = participantRow?.participants ?? 0;
 
   return {
     ...article,
+    _count: {
+      replies: replyCountRow?.total ?? 0,
+      snapshots: snapshotCountRow?.total ?? 0,
+    },
     _replyParticipantCount: replyParticipantCount,
-    _authorHasReplied: authorReplyCount > 0,
+    _authorHasReplied: (authorReplyRow?.total ?? 0) > 0,
   };
 }
 
 export async function getArticleBasicInfo(lid: string) {
-  const article = await prisma.article.findUnique({
-    where: { lid },
-    select: {
-      lid: true,
-      authorId: true,
-      _count: {
-        select: {
-          replies: true,
-        },
-      },
-    },
-  });
+  const [article] = await db
+    .select({
+      lid: schema.Article.lid,
+      authorId: schema.Article.authorId,
+    })
+    .from(schema.Article)
+    .where(eq(schema.Article.lid, lid))
+    .limit(1);
 
   if (!article) throw new Error("Article not found");
 
-  return article;
+  const [replyCountRow] = await db
+    .select({ total: count() })
+    .from(schema.ArticleReply)
+    .where(eq(schema.ArticleReply.articleId, lid));
+
+  return {
+    ...article,
+    _count: {
+      replies: replyCountRow?.total ?? 0,
+    },
+  };
 }
 
 export async function getArticleComments(
@@ -264,25 +303,63 @@ export async function getArticleComments(
     skip: 0,
   },
 ) {
-  return prisma.articleReply.findMany({
-    where: { articleId },
-    orderBy:
+  const orderExpressions =
+    orderBy === "time_asc"
+      ? [asc(schema.ArticleReply.time), asc(schema.ArticleReply.id)]
+      : [desc(schema.ArticleReply.time), desc(schema.ArticleReply.id)];
+
+  let whereClause = eq(schema.ArticleReply.articleId, articleId);
+
+  if (takeAfterComment !== undefined) {
+    const [cursorRow] = await db
+      .select({
+        id: schema.ArticleReply.id,
+        time: schema.ArticleReply.time,
+      })
+      .from(schema.ArticleReply)
+      .where(eq(schema.ArticleReply.id, takeAfterComment))
+      .limit(1);
+
+    if (!cursorRow) {
+      return [];
+    }
+
+    const comparator =
       orderBy === "time_asc"
-        ? [{ time: "asc" }, { id: "asc" }]
-        : [{ time: "desc" }, { id: "desc" }],
-    ...(takeAfterComment !== undefined
-      ? {
-          cursor: { id: takeAfterComment },
-          skip: skip + 1,
-        }
-      : { skip }),
-    take,
-    include: {
+        ? or(
+            gt(schema.ArticleReply.time, cursorRow.time),
+            and(
+              eq(schema.ArticleReply.time, cursorRow.time),
+              gt(schema.ArticleReply.id, cursorRow.id),
+            ),
+          )
+        : or(
+            lt(schema.ArticleReply.time, cursorRow.time),
+            and(
+              eq(schema.ArticleReply.time, cursorRow.time),
+              lt(schema.ArticleReply.id, cursorRow.id),
+            ),
+          );
+
+    const combined = and(whereClause, comparator);
+    if (!combined) {
+      return [];
+    }
+
+    whereClause = combined;
+  }
+
+  return db.query.ArticleReply.findMany({
+    where: whereClause,
+    orderBy: orderExpressions,
+    offset: skip,
+    limit: take,
+    with: {
       author: {
-        include: {
+        with: {
           snapshots: {
-            orderBy: { capturedAt: "desc" },
-            take: 1,
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
           },
         },
       },
@@ -291,14 +368,14 @@ export async function getArticleComments(
 }
 
 export async function getArticleComment(commentId: number) {
-  return prisma.articleReply.findUnique({
-    where: { id: commentId },
-    include: {
+  return db.query.ArticleReply.findFirst({
+    where: eq(schema.ArticleReply.id, commentId),
+    with: {
       author: {
-        include: {
+        with: {
           snapshots: {
-            orderBy: { capturedAt: "desc" },
-            take: 1,
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
           },
         },
       },
@@ -350,30 +427,24 @@ export async function getArticleSnapshotsTimeline(
   hasMore: boolean;
   nextCursor: Date | null;
 }> {
-  const snapshots = await prisma.articleSnapshot.findMany({
-    where: { articleId },
-    orderBy: { capturedAt: "desc" },
-    ...(cursorCapturedAt
-      ? {
-          cursor: {
-            articleId_capturedAt: {
-              articleId,
-              capturedAt: cursorCapturedAt,
-            },
-          },
-          skip: 1,
-        }
-      : {}),
-    take: take + 1,
-    include: {
+  const snapshots = await db.query.ArticleSnapshot.findMany({
+    where: cursorCapturedAt
+      ? and(
+          eq(schema.ArticleSnapshot.articleId, articleId),
+          lt(schema.ArticleSnapshot.capturedAt, cursorCapturedAt),
+        )
+      : eq(schema.ArticleSnapshot.articleId, articleId),
+    orderBy: desc(schema.ArticleSnapshot.capturedAt),
+    limit: take + 1,
+    with: {
       solutionFor: {
-        select: {
+        columns: {
           pid: true,
           title: true,
         },
       },
       collection: {
-        select: {
+        columns: {
           id: true,
           name: true,
         },

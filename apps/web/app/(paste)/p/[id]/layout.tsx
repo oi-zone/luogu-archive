@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-import { PasteWaybackModal } from "./paste-wayback-modal";
+import { PasteWaybackModal } from "./wayback-modal";
 
 export default function Layout({
   titleRow,
@@ -180,10 +180,11 @@ export default function Layout({
                       isMetaPinned ? "opacity-100" : "opacity-0",
                     )}
                   >
-                    <div className="pointer-events-none absolute inset-0 rounded-2xl shadow-sm" />
-                    <div className="h-full overflow-hidden rounded-2xl border border-border bg-background/95">
-                      <div ref={floatingMetaRef} className="px-5 py-4">
+                    <div className="pointer-events-none absolute inset-0" />
+                    <div className="h-full overflow-hidden">
+                      <div ref={floatingMetaRef} className="pb-2.5">
                         {metaCard}
+                        <hr className="mt-7" />
                       </div>
                     </div>
                   </div>

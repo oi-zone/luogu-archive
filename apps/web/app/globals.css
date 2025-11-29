@@ -178,327 +178,6 @@
     content: attr(data-text-after);
   }
 
-  .markdown-body {
-    @apply text-muted-foreground;
-    font-size: 1rem;
-    line-height: 1.75;
-    letter-spacing: -0.003em;
-    word-break: break-word;
-    white-space: normal;
-    overflow: hidden;
-    --md-top-level-block-mt: 1.5rem;
-    --md-block-mt: 0.75rem;
-  }
-
-  .markdown-body.markdown-body-compact {
-    --md-top-level-block-mt: 0.75rem;
-  }
-
-  .markdown-body
-    :is(p, blockquote, pre, table, ul, ol, dl, figure)
-    + :is(p, blockquote, pre, table, ul, ol, dl, figure) {
-    margin-top: var(--md-block-mt);
-  }
-
-  .markdown-body
-    > :is(p, blockquote, pre, table, ul, ol, dl, figure)
-    + :is(p, blockquote, pre, table, ul, ol, dl, figure) {
-    margin-top: var(--md-top-level-block-mt);
-  }
-
-  .markdown-body :is(h1, h2, h3, h4, h5, h6) {
-    @apply font-semibold text-foreground;
-    line-height: 1.2;
-    letter-spacing: -0.025em;
-    scroll-margin-top: 7rem;
-  }
-
-  .markdown-body h6 {
-    @apply text-muted-foreground;
-  }
-
-  .markdown-body h1 {
-    @apply mt-[32] mb-[24] text-4xl leading-tight;
-  }
-  .markdown-body h2 {
-    @apply mt-[28] mb-[20] text-3xl leading-tight;
-  }
-  .markdown-body h3 {
-    @apply mt-[24] mb-[16] text-2xl leading-snug;
-  }
-  .markdown-body h4 {
-    @apply mt-[20] mb-[13] text-xl leading-snug;
-  }
-  .markdown-body h5,
-  .markdown-body h6 {
-    @apply mt-[16] mb-[10] text-base tracking-[0.025em] text-foreground uppercase;
-  }
-
-  .markdown-body p {
-    @apply text-muted-foreground;
-  }
-
-  .markdown-body a:not(.clear-markdown-style) {
-    @apply text-indigo-500 underline decoration-1 underline-offset-[3px] transition-colors;
-  }
-
-  .markdown-body a:not(.clear-markdown-style):hover {
-    @apply text-indigo-700 dark:text-indigo-400;
-  }
-
-  .markdown-body strong {
-    @apply font-semibold text-foreground;
-  }
-  .markdown-body em {
-    @apply text-foreground italic;
-  }
-
-  .markdown-body :is(ul, ol) {
-    --md-top-level-block-mt: 1.1rem;
-    padding-inline-start: 1.65rem;
-  }
-
-  .markdown-body ul {
-    @apply list-disc;
-  }
-  .markdown-body ol {
-    @apply list-decimal;
-  }
-  .markdown-body :is(ul, ol) :is(ul, ol) {
-    @apply mt-3;
-  }
-  .markdown-body li + li {
-    @apply mt-3;
-  }
-  .markdown-body li {
-    @apply text-muted-foreground;
-  }
-  .markdown-body li::marker {
-    color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
-  }
-
-  .markdown-body :is(blockquote, details) {
-    position: relative;
-    margin-inline: 0;
-    padding: 0.5rem 0.5rem 0.5rem 1.25rem;
-    color: var(--muted-foreground);
-  }
-
-  @media (min-width: 40rem) {
-    .markdown-body :is(blockquote, details) {
-      padding: 0.5rem 1rem 0.5rem 1.75rem;
-    }
-  }
-
-  .markdown-body details > summary {
-    @apply font-semibold;
-    position: relative;
-    list-style: none;
-    color: var(--summary-color);
-    cursor: pointer;
-  }
-
-  .markdown-body details[open] > summary {
-    margin-bottom: 0.5rem;
-  }
-
-  .markdown-body details > summary::after {
-    content: "";
-    display: block;
-    width: 0;
-    height: 0;
-    border-top: 0.4rem solid transparent;
-    border-bottom: 0.4rem solid transparent;
-    border-left: 0.5rem solid currentColor;
-    position: absolute;
-    inset-block: 0.5rem;
-    inset-inline-end: 0;
-    transform: rotate(0deg);
-    transition: transform 100ms ease-out;
-  }
-
-  .markdown-body details[open] > summary::after {
-    transform: rotate(90deg);
-  }
-
-  .markdown-body :is(blockquote, details)::before {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0.25rem;
-    width: 5px;
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--before-bar-color) 68%, transparent),
-      color-mix(in srgb, var(--before-bar-color) 36%, transparent)
-    );
-  }
-
-  .markdown-body blockquote {
-    --before-bar-color: var(--primary);
-    --summary-color: var(--primary);
-  }
-
-  .markdown-body details.info {
-    --before-bar-color: var(--color-sky-600);
-    --summary-color: var(--color-sky-500);
-  }
-
-  .markdown-body details.success {
-    --before-bar-color: var(--color-lime-500);
-    --summary-color: var(--color-lime-400);
-  }
-
-  .markdown-body details.warning {
-    --before-bar-color: var(--color-amber-500);
-    --summary-color: var(--color-amber-400);
-  }
-
-  .markdown-body details.error {
-    --before-bar-color: var(--color-rose-600);
-    --summary-color: var(--color-rose-500);
-  }
-
-  .markdown-body hr {
-    @apply my-12 h-px border-none;
-    background: linear-gradient(90deg, transparent, var(--border), transparent);
-  }
-
-  .markdown-body code {
-    @apply rounded bg-transparent px-2 py-1 font-mono text-sm text-foreground;
-  }
-
-  .markdown-body pre {
-    background: var(--muted);
-    border-radius: 1.25rem;
-    border: 1px solid var(--border);
-    padding: 1.25rem 1.5rem;
-    overflow-x: auto;
-    box-shadow: 0 22px 42px -32px var(--primary);
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    line-height: 1.7;
-  }
-
-  .markdown-body pre code {
-    background: none;
-    padding: 0;
-    box-shadow: none;
-    color: inherit;
-  }
-
-  .markdown-body kbd {
-    @apply inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground;
-  }
-
-  .markdown-body mark {
-    background: var(--accent);
-    color: var(--foreground);
-    border-radius: 0.25rem;
-    padding: 0.1rem 0.2rem;
-  }
-
-  .markdown-body table {
-    @apply w-full border-collapse text-[0.95rem];
-    border-radius: 1.25rem;
-    overflow: hidden;
-  }
-
-  .markdown-body thead {
-    background: var(--muted);
-    color: var(--foreground);
-  }
-
-  .markdown-body th {
-    @apply px-4 py-3 text-left font-semibold;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .markdown-body td {
-    @apply px-4 py-3 align-top;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .markdown-body tbody tr:nth-child(even) {
-    background: var(--muted);
-  }
-
-  .markdown-body figure {
-    @apply my-9 text-center;
-  }
-  .markdown-body figure > * + * {
-    @apply mt-3;
-  }
-  .markdown-body figcaption {
-    @apply text-[0.8rem] text-muted-foreground;
-  }
-
-  .markdown-body iframe,
-  .markdown-body video {
-    @apply w-full rounded-2xl border border-border;
-  }
-
-  .markdown-body sup,
-  .markdown-body sub {
-    @apply relative text-[0.75em] leading-none;
-  }
-
-  .markdown-body sup {
-    top: -0.4em;
-  }
-  .markdown-body sub {
-    bottom: -0.2em;
-  }
-  .markdown-body > *:first-child {
-    @apply mt-0;
-  }
-  .markdown-body > *:last-child {
-    @apply mb-0;
-  }
-
-  .markdown-body .task-list-item {
-    list-style: none;
-    padding-inline-start: 0;
-    margin-inline-start: -0.4rem;
-  }
-
-  .markdown-body .task-list-item input[type="checkbox"] {
-    margin-inline-end: 0.6rem;
-    width: 1.05rem;
-    height: 1.05rem;
-    border-radius: 0.35rem;
-    border: 1px solid var(--border);
-    accent-color: var(--primary);
-  }
-
-  .markdown-heading-anchor-wrapper {
-    @apply relative flex items-baseline gap-1;
-    scroll-margin-top: 96px;
-  }
-
-  @media (max-width: 1023px) {
-    .markdown-heading-anchor-wrapper {
-      scroll-margin-top: 72px;
-    }
-  }
-
-  .markdown-heading-text {
-    @apply flex-1;
-  }
-
-  .markdown-heading-anchor {
-    opacity: 0;
-    @apply text-[0.8em] text-muted-foreground transition-opacity;
-  }
-
-  .markdown-heading-anchor-wrapper:hover .markdown-heading-anchor,
-  .markdown-heading-anchor-wrapper:focus-within .markdown-heading-anchor {
-    opacity: 1;
-    color: var(--primary);
-  }
-
   .article-grid {
     position: relative;
   }
@@ -506,21 +185,13 @@
     position: relative;
   }
 
-  .article-toc-card {
-    border-radius: var(--radius);
-    border-style: solid;
-    border-width: 1px;
-    border-color: var(--border);
-    background-color: var(--background);
-    padding-inline: calc(var(--spacing) * 5);
-    padding-block: calc(var(--spacing) * 4);
-    box-shadow:
-      0 1px 3px 0 rgb(0 0 0 / 0.1),
-      0 1px 2px -1px rgb(0 0 0 / 0.1);
+  .article-toc-3xl .article-toc-card {
+    max-height: calc(100dvh - 8rem);
+    overflow: auto;
   }
 
   .article-toc-card-header {
-    @apply mb-3 text-[0.85rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase;
+    @apply mb-3 text-base font-semibold text-muted-foreground uppercase;
   }
 
   .article-toc-list {
@@ -528,30 +199,51 @@
   }
 
   .article-toc-entry {
-    @apply w-full rounded-[0.95rem] border-l-2 border-transparent px-2.5 py-1.5 text-left text-[0.92rem] text-muted-foreground transition-colors;
+    @apply w-full cursor-pointer rounded-[0.95rem] p-1 text-left text-[0.92rem] text-muted-foreground transition-colors;
   }
 
   .article-toc-entry:hover {
-    color: var(--foreground);
-    border-color: var(--border);
+    @apply text-foreground;
   }
 
   .article-toc-entry-active {
-    @apply text-foreground;
-    border-color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 16%, transparent);
+    @apply font-medium text-foreground;
   }
 
   .article-toc-level-2 {
-    @apply pl-4;
+    @apply relative ps-4;
+  }
+  .article-toc-level-2::before {
+    content: "";
+    @apply absolute top-3.25 left-0 h-1 w-2 rounded-full bg-primary/10;
   }
   .article-toc-level-3 {
-    @apply pl-6;
+    @apply relative ps-8;
   }
-  .article-toc-level-4,
-  .article-toc-level-5,
+  .article-toc-level-3::before {
+    content: "";
+    @apply absolute top-3.25 left-0 h-1 w-6 rounded-full bg-primary/10;
+  }
+  .article-toc-level-4 {
+    @apply relative ps-12 text-[0.92rem];
+  }
+  .article-toc-level-4::before {
+    content: "";
+    @apply absolute top-3.25 left-0 h-1 w-10 rounded-full bg-primary/10;
+  }
+  .article-toc-level-5 {
+    @apply relative ps-14 text-[0.92rem];
+  }
+  .article-toc-level-5::before {
+    content: "";
+    @apply absolute top-3.25 left-0 h-1 w-12 rounded-full bg-primary/10;
+  }
   .article-toc-level-6 {
-    @apply pl-9 text-[0.88rem];
+    @apply relative ps-16 text-[0.92rem];
+  }
+  .article-toc-level-6::before {
+    content: "";
+    @apply absolute top-3.25 left-0 h-1 w-14 rounded-full bg-primary/10;
   }
 
   .article-floating-toc {
@@ -568,7 +260,11 @@
   }
 
   .article-floating-toc-button {
-    @apply relative inline-flex items-center justify-center rounded-full border border-border bg-background p-2 text-muted-foreground shadow-[0_18px_40px_-30px_var(--primary)] transition;
+    @apply fixed inline-flex items-center justify-center rounded-full border border-border bg-background p-1 text-muted-foreground shadow-[0_18px_40px_-30px_var(--primary)] transition;
+    top: calc((100dvh - 6rem) / 2 + 4.5rem);
+    left: 4.25rem;
+    opacity: 1;
+    transition: opacity 300ms ease;
   }
 
   .article-floating-toc-button:hover,
@@ -579,26 +275,48 @@
   }
 
   .article-floating-toc-panel {
-    position: absolute;
+    position: fixed;
     inset-inline-start: calc(100% - 0.5rem);
-    top: 50%;
-    width: 15rem;
-    transform: translate(-8px, -50%);
+    top: 5rem;
+    left: 5rem;
+    max-height: calc(100dvh - 6rem);
+    width: 18rem;
+    transform: translate(-8px, 0);
     opacity: 0;
     pointer-events: none;
     transition:
-      opacity 150ms ease,
-      transform 150ms ease;
+      opacity 300ms ease,
+      transform 300ms ease-out;
+  }
+
+  .article-floating-toc-panel > .article-toc-card {
+    max-height: calc(100dvh - 6rem);
+    overflow: auto;
   }
 
   .article-floating-toc-hitbox:hover .article-floating-toc-panel,
   .article-floating-toc-hitbox:focus-within .article-floating-toc-panel {
     opacity: 1;
-    transform: translate(0, -50%);
+    transform: translate(0, 0);
     pointer-events: auto;
+  }
+
+  .article-floating-toc-hitbox:hover .article-floating-toc-button {
+    opacity: 0;
   }
 
   .article-mobile-toc {
     @apply transition-opacity;
   }
+
+  /* .comment-card > .comment-card-footer {
+    opacity: 0;
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: opacity 120ms ease, transform 120ms ease-out;
+  }
+  .comment-card:hover > .comment-card-footer {
+    opacity: 1;
+    transform: scaleY(1);
+  } */
 }

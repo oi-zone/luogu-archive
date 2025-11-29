@@ -1,5 +1,5 @@
 import { getDiscussionData } from "../../data-cache";
-import DiscussionMetaRow from "../../discussion-meta-row";
+import DiscussionMetaRow from "../../meta-row";
 
 export default async function Page({
   params,
@@ -12,7 +12,6 @@ export default async function Page({
   const { id: idStr, snapshot: snapshotStr } = await params;
   const id = parseInt(idStr, 10);
   const snapshot = new Date(parseInt(snapshotStr, 36));
-  console.log("snapshot", snapshot);
 
   const discussion = await getDiscussionData(id, snapshot);
 

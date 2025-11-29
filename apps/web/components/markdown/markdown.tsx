@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Link as LinkIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
@@ -8,17 +9,28 @@ import remarkLuoguFlavor from "@luogu-discussion-archive/remark-lda-lfm";
 
 import { cn } from "@/lib/utils";
 
+import MarkdownCodeBlock from "./markdown-code-block";
 import MarkdownLink from "./markdown-link";
-
-import "katex/dist/katex.min.css";
-
 import MarkdownSummary from "./markdown-summary";
+
+import "./markdown.css";
+import "katex/dist/katex.min.css";
+import "./highlight.css";
+
+export type MarkdownDiscussionMentionContext = {
+  kind: "discussion";
+  discussionId: number;
+  relativeReplyId?: number;
+};
+
+export type MarkdownMentionContext = MarkdownDiscussionMentionContext;
 
 type MarkdownProps = {
   children: string;
   originalUrl?: string;
   compact?: boolean;
   enableHeadingAnchors?: boolean;
+  mentionContext?: MarkdownMentionContext;
 };
 
 type HeadingProps = {
@@ -64,11 +76,45 @@ function slugify(text: string): string {
   );
 }
 
+function isIntrinsicElement(
+  node: React.ReactNode,
+  tag: keyof React.JSX.IntrinsicElements,
+): node is React.ReactElement {
+  return React.isValidElement(node) && node.type === tag;
+}
+
+function lineSetFromDataAttribute(dataAttr?: string): Set<number> {
+  const lineSet = new Set<number>();
+  if (!dataAttr) return lineSet;
+
+  const parts = dataAttr.split(",");
+  for (const part of parts) {
+    if (part.includes("-")) {
+      const [startStr, endStr] = part.split("-");
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      if (!isNaN(start) && !isNaN(end) && start <= end) {
+        for (let i = start; i <= end; i++) {
+          lineSet.add(i);
+        }
+      }
+    } else {
+      const lineNum = parseInt(part, 10);
+      if (!isNaN(lineNum)) {
+        lineSet.add(lineNum);
+      }
+    }
+  }
+
+  return lineSet;
+}
+
 export default function Markdown({
   children,
   originalUrl,
   compact = false,
   enableHeadingAnchors = false,
+  mentionContext,
 }: MarkdownProps) {
   const headingSlugCounter: Record<string, number> = {};
 
@@ -114,7 +160,10 @@ export default function Markdown({
                 className: "markdown-heading-anchor",
                 "aria-label": `跳转到 ${text}`,
               },
-              "#",
+              React.createElement(LinkIcon, {
+                className: "size-4 markdown-heading-anchor-icon",
+                "aria-hidden": "true",
+              }),
             )
           : null,
       );
@@ -140,13 +189,61 @@ export default function Markdown({
           [remarkMath, {}],
           [remarkLuoguFlavor, { linkOriginalUrl: originalUrl }],
         ]}
-        rehypePlugins={[rehypeKatex, rehypeHighlight]}
+        rehypePlugins={[
+          rehypeKatex,
+          [rehypeHighlight, { detect: false, ignoreMissing: true }],
+        ]}
         skipHtml
         components={{
+          p(props) {
+            const { node, className, children, ...rest } = props;
+            void node;
+            let newClassName = className ?? "";
+            newClassName = cn(newClassName, "fake-p");
+            return (
+              <div className={newClassName} {...rest}>
+                {children}
+              </div>
+            );
+          },
+          pre(props) {
+            const { node, children, ...rest } = props;
+            void node;
+            if (isIntrinsicElement(children, "code")) {
+              const codeProps =
+                children.props as React.JSX.IntrinsicElements["code"] & {
+                  "data-ls-line-numbers"?: boolean;
+                  "data-ls-highlight-lines"?: string;
+                };
+              const languageMatch = /language-([\w-]+)/.exec(
+                codeProps.className ?? "",
+              );
+              const language = languageMatch?.[1] ?? undefined;
+              return (
+                <MarkdownCodeBlock
+                  className={codeProps.className}
+                  language={language}
+                  showLineNumbers={codeProps["data-ls-line-numbers"] === true}
+                  highlightLines={lineSetFromDataAttribute(
+                    codeProps["data-ls-highlight-lines"],
+                  )}
+                >
+                  {codeProps.children}
+                </MarkdownCodeBlock>
+              );
+            }
+            return <pre {...rest}>{children}</pre>;
+          },
           a(props) {
             const { node, ...rest } = props;
             void node;
-            return <MarkdownLink originalUrl={originalUrl} {...rest} />;
+            return (
+              <MarkdownLink
+                originalUrl={originalUrl}
+                mentionContext={mentionContext}
+                {...rest}
+              />
+            );
           },
           summary(props) {
             const { node, children, ...rest } = props;

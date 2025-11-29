@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Tooltip from "@/components/ui/tooltip";
 
 import { Badge } from "../ui/badge";
 
@@ -45,7 +46,7 @@ export function UserInlineLink({
     <Link
       href={`/u/${user.id}`}
       className={cn(
-        "clear-markdown-style inline-flex items-center rounded-full transition-colors duration-200 hover:bg-muted",
+        "clear-markdown-style inline-flex items-center rounded-full transition-colors duration-200 hover:bg-primary/7",
         className,
       )}
       prefetch={false}
@@ -56,6 +57,41 @@ export function UserInlineLink({
 }
 
 export default UserInlineLink;
+
+export function UserAvatarHoverLink({
+  user,
+  className,
+}: {
+  user: UserBasicInfo;
+  className?: string;
+}) {
+  return (
+    <Tooltip
+      overview={
+        <Link
+          href={`/u/${user.id}`}
+          className={cn(
+            "relative inline-flex items-center justify-center rounded-full",
+            className,
+          )}
+          aria-label={user.name}
+          prefetch={false}
+        >
+          <Avatar className="size-5 bg-muted">
+            <AvatarImage
+              src={`https://cdn.luogu.com.cn/upload/usericon/${user.id}.png`}
+              alt={user.name}
+            />
+            <AvatarFallback className="text-[0.5rem] font-semibold">
+              {user.name.slice(0, 1)}
+            </AvatarFallback>
+          </Avatar>
+        </Link>
+      }
+      full={<UserInlineDisplay user={user} />}
+    />
+  );
+}
 
 export function UserInlineDisplay({
   user,
@@ -75,7 +111,12 @@ export function UserInlineDisplay({
         className,
       )}
     >
-      <UserInlineContent user={user} compact={compact} avatar={avatar} />
+      <UserInlineContent
+        user={user}
+        compact={compact}
+        avatar={avatar}
+        noStartSpace={!avatar}
+      />
     </span>
   );
 }
@@ -84,14 +125,16 @@ function UserInlineContent({
   user,
   compact,
   avatar,
+  noStartSpace = false,
 }: {
   user: UserBasicInfo;
   compact: boolean;
   avatar: boolean;
+  noStartSpace?: boolean;
 }) {
   return (
     <>
-      {avatar && (
+      {avatar ? (
         <Avatar
           className={cn("bg-muted", compact ? "ms-0.5 size-5" : "size-6")}
         >
@@ -103,12 +146,18 @@ function UserInlineContent({
             {user.name.slice(0, 1)}
           </AvatarFallback>
         </Avatar>
-      )}
+      ) : null}
 
       <span
         className={cn(
           "text-base font-medium",
-          compact ? "ms-1" : "ms-1.25",
+          noStartSpace
+            ? undefined
+            : avatar
+              ? compact
+                ? "ms-1"
+                : "ms-1.25"
+              : "ms-0.75",
           user.badge
             ? "me-1.25"
             : user.ccfLevel !== 0
@@ -116,8 +165,8 @@ function UserInlineContent({
               : user.xcpcLevel !== 0
                 ? "me-0.5"
                 : compact
-                  ? "me-1.5"
-                  : "me-1.75",
+                  ? "me-1"
+                  : "me-1.5",
           `text-luogu-${user.color.toLowerCase()}`,
         )}
       >

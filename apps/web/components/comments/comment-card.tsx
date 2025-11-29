@@ -1,4 +1,4 @@
-import { Camera, ClipboardCopy } from "lucide-react";
+import { Camera, ClipboardCheck, ClipboardCopy } from "lucide-react";
 
 import { formatRelativeTime } from "@/lib/feed-data";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -6,7 +6,9 @@ import UserInlineLink, {
   UserBasicInfo,
 } from "@/components/user/user-inline-link";
 
-import Markdown from "../markdown/markdown";
+import Markdown, {
+  type MarkdownDiscussionMentionContext,
+} from "../markdown/markdown";
 import MetaItem from "../meta/meta-item";
 import { Badge } from "../ui/badge";
 
@@ -45,7 +47,16 @@ export function CommentCard({
   isFromArticleAuthor = false,
   isPinned = false,
 }: CommentCardProps) {
-  const { copy } = useClipboard();
+  const { copy, copied } = useClipboard();
+
+  const mentionContext: MarkdownDiscussionMentionContext | undefined =
+    comment.type === "discussionReply"
+      ? {
+          kind: "discussion",
+          discussionId: comment.postId,
+          relativeReplyId: comment.id,
+        }
+      : undefined;
 
   return (
     <article
@@ -58,7 +69,7 @@ export function CommentCard({
           {isFromDiscussionAuthor && (
             <Badge
               className="text-inverse bg-pink-500 dark:bg-pink-400"
-              size="lg"
+              size="md"
             >
               楼主
             </Badge>
@@ -66,7 +77,7 @@ export function CommentCard({
           {isFromArticleAuthor && (
             <Badge
               className="text-inverse bg-pink-500 dark:bg-pink-400"
-              size="lg"
+              size="md"
             >
               作者
             </Badge>
@@ -74,7 +85,7 @@ export function CommentCard({
           {isPinned && (
             <Badge
               className="bg-amber-500/80 text-amber-950 dark:text-amber-100"
-              size="lg"
+              size="md"
             >
               置顶
             </Badge>
@@ -90,8 +101,8 @@ export function CommentCard({
           )}
         </div>
       </header>
-      <div className="mt-1.5 rounded-2xl border border-border bg-background/80 shadow-sm sm:ms-4">
-        <div className="mx-3 mt-3.5 mb-3 leading-relaxed sm:mx-4">
+      <div className="comment-card group/comment-card relative mt-1.5 rounded-2xl border border-muted/75 bg-muted/75">
+        <div className="m-3 leading-relaxed sm:m-3.5">
           <Markdown
             originalUrl={
               comment.type === "discussionReply"
@@ -99,31 +110,30 @@ export function CommentCard({
                 : `https://www.luogu.com.cn/article/${comment.articleId}`
             }
             compact
+            mentionContext={mentionContext}
           >
             {comment.content}
           </Markdown>
         </div>
-        <footer className="flex flex-wrap items-center justify-between gap-3 rounded-b-2xl bg-muted px-3 py-1 sm:px-4">
+        <span className="comment-card-footer pointer-events-none absolute -bottom-4 left-1 z-1 opacity-0 transition-opacity duration-150 group-focus-within/comment-card:pointer-events-auto group-focus-within/comment-card:opacity-100 group-hover/comment-card:pointer-events-auto group-hover/comment-card:opacity-100 sm:left-1.5">
           <button
-            className="inline-flex cursor-pointer items-center gap-1 text-xs text-muted-foreground transition-colors duration-200 select-none hover:text-foreground"
+            className="relative top-0 inline-flex cursor-pointer items-center gap-1 rounded-full bg-background/50 px-2.5 py-1.5 text-xs text-muted-foreground shadow-lg ring-1 ring-border backdrop-blur transition-[color,top] duration-200 select-none hover:-top-0.25 hover:text-foreground"
             onClick={() => copy(comment.content)}
             aria-live="polite"
           >
-            <ClipboardCopy className="inline-block size-3.5" />
+            {copied ? (
+              <ClipboardCheck className="inline-block size-3.5" />
+            ) : (
+              <ClipboardCopy className="inline-block size-3.5" />
+            )}
             复制&thinsp;Markdown
           </button>
-          <div>
-            {comment.type === "discussionReply" ? (
-              <span className="text-xs text-muted-foreground">
-                #reply-{comment.id}@{comment.capturedAt.getTime().toString(36)}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                #comment-{comment.id}
-              </span>
-            )}
-          </div>
-        </footer>
+        </span>
+        <span className="comment-card-footer pointer-events-none absolute right-1 -bottom-4 rounded-full bg-background/50 px-2.5 py-1.5 text-xs text-muted-foreground opacity-0 shadow-lg ring-1 ring-border backdrop-blur transition-opacity duration-150 group-focus-within/comment-card:pointer-events-auto group-focus-within/comment-card:opacity-100 group-hover/comment-card:pointer-events-auto group-hover/comment-card:opacity-100 sm:right-1.5">
+          {comment.type === "discussionReply"
+            ? `#reply-${comment.id}@${comment.capturedAt.getTime().toString(36)}`
+            : `#comment-${comment.id}`}
+        </span>
       </div>
     </article>
   );

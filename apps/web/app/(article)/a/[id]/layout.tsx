@@ -6,13 +6,25 @@ import { useParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-import { ArticleWaybackModal } from "./article-wayback-modal";
+import { ArticleWaybackModal } from "./wayback-modal";
 
 type TocItem = {
   id: string;
   text: string;
   level: number;
 };
+
+const DESKTOP_HEADING_OFFSET = 96;
+const MOBILE_HEADING_OFFSET = 72;
+
+function getHeadingViewportOffset() {
+  if (typeof window === "undefined") {
+    return MOBILE_HEADING_OFFSET;
+  }
+  return window.matchMedia("(min-width: 1024px)").matches
+    ? DESKTOP_HEADING_OFFSET
+    : MOBILE_HEADING_OFFSET;
+}
 
 export default function Layout({
   titleRow,
@@ -110,12 +122,36 @@ export default function Layout({
     const target = document.getElementById(headingId);
     if (!target) return;
 
-    const prefersDesktop = window.matchMedia("(min-width: 1024px)").matches;
-    const offset = prefersDesktop ? 96 : 72;
+    const offset = getHeadingViewportOffset();
     const top = target.getBoundingClientRect().top + window.scrollY - offset;
     window.scrollTo({ top, behavior: "smooth" });
     setIsMobileTocOpen(false);
   }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const container = contentRef.current;
+    if (!container) return;
+
+    const handleClick = (event: MouseEvent) => {
+      const anchor = (event.target as HTMLElement | null)?.closest(
+        ".markdown-heading-anchor",
+      ) as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const href = anchor.getAttribute("href") ?? "";
+      if (!href.startsWith("#")) return;
+      const headingId = href.slice(1);
+      if (!headingId) return;
+      event.preventDefault();
+      scrollToHeading(headingId);
+      const url = new URL(window.location.href);
+      url.hash = headingId;
+      window.history.replaceState(null, "", url);
+    };
+
+    container.addEventListener("click", handleClick);
+    return () => container.removeEventListener("click", handleClick);
+  }, [scrollToHeading]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -254,6 +290,7 @@ export default function Layout({
 
     const updateActiveHeading = () => {
       frameId = 0;
+      const offset = getHeadingViewportOffset();
       if (!headingElements.length) {
         headingElements = resolveHeadingElements();
         if (!headingElements.length) {
@@ -264,7 +301,8 @@ export default function Layout({
 
       let candidateId: string | null = headingElements[0]?.id ?? null;
       for (const element of headingElements) {
-        if (element.getBoundingClientRect().top <= VIEWPORT_TOP_EPSILON) {
+        const topDistance = element.getBoundingClientRect().top - offset;
+        if (topDistance <= VIEWPORT_TOP_EPSILON) {
           candidateId = element.id;
         } else {
           break;
@@ -429,16 +467,11 @@ export default function Layout({
               )}
             >
               <div className="article-floating-toc-hitbox">
-                <button
-                  type="button"
-                  aria-label="查看文章目录"
-                  className="article-floating-toc-button"
-                >
-                  <ListTree className="h-5 w-5" />
-                </button>
+                <span className="article-floating-toc-button">
+                  <ListTree className="size-4" />
+                </span>
                 <div className="article-floating-toc-panel">
                   <div className="article-toc-card">
-                    <div className="article-toc-card-header">内容目录</div>
                     <TocNavigation
                       items={tocItems}
                       activeId={activeHeadingId}
@@ -456,9 +489,11 @@ export default function Layout({
               "article-grid grid gap-8",
               "lg:grid-cols-[minmax(0,8fr)_minmax(0,3.2fr)]",
               "xl:grid-cols-[minmax(0,8fr)_minmax(0,2.7fr)]",
-              "2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]",
+              hasToc
+                ? "2xl:grid-cols-[minmax(0,2fr)_minmax(0,8fr)_minmax(0,3fr)]"
+                : "2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]",
               hasToc &&
-                "3xl:grid-cols-[minmax(0,2.5fr)_minmax(0,2.4fr)_minmax(0,9fr)_minmax(0,3fr)]",
+                "3xl:grid-cols-[minmax(0,2.5fr)_minmax(0,2fr)_minmax(0,9fr)_minmax(0,3fr)]",
             )}
           >
             <aside className="hidden 2xl:order-1 2xl:flex 2xl:flex-col 2xl:gap-4">
@@ -470,7 +505,6 @@ export default function Layout({
                       className="article-toc-card sticky"
                       style={tocStickyStyle}
                     >
-                      <div className="article-toc-card-header">内容目录</div>
                       <TocNavigation
                         items={tocItems}
                         activeId={activeHeadingId}
@@ -496,7 +530,6 @@ export default function Layout({
                     className="article-toc-card sticky"
                     style={tocStickyStyle}
                   >
-                    <div className="article-toc-card-header">内容目录</div>
                     <TocNavigation
                       items={tocItems}
                       activeId={activeHeadingId}
@@ -563,10 +596,11 @@ export default function Layout({
                       isMetaPinned ? "opacity-100" : "opacity-0",
                     )}
                   >
-                    <div className="pointer-events-none absolute inset-0 rounded-2xl shadow-sm" />
-                    <div className="h-full overflow-hidden rounded-2xl border border-border bg-background/95">
-                      <div ref={floatingMetaRef} className="px-5 py-4">
+                    <div className="pointer-events-none absolute inset-0" />
+                    <div className="h-full overflow-hidden">
+                      <div ref={floatingMetaRef} className="pb-2.5">
                         {metaCard}
+                        <hr className="mt-7" />
                       </div>
                     </div>
                   </div>
@@ -597,9 +631,6 @@ export default function Layout({
         >
           <div className="mx-auto w-full max-w-sm rounded-3xl border bg-background p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <div className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-                内容目录
-              </div>
               <button
                 type="button"
                 className="rounded-full border p-1 text-muted-foreground transition hover:text-foreground"
@@ -608,7 +639,7 @@ export default function Layout({
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto pr-1">
+            <div className="max-h-[80dvh] overflow-y-auto pr-1">
               <TocNavigation
                 items={tocItems}
                 activeId={activeHeadingId}
@@ -649,7 +680,9 @@ function TocNavigation({ items, activeId, onNavigate }: TocNavigationProps) {
               )}
               onClick={() => onNavigate(item.id)}
             >
-              <span className="line-clamp-2 text-left">{item.text}</span>
+              <span className="line-clamp-1 truncate text-left">
+                {item.text}
+              </span>
             </button>
           </li>
         );

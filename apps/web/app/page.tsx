@@ -1,81 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Eye, Loader2, MessageSquare } from "lucide-react";
-import Link from "next/link";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { Loader2, TriangleAlert } from "lucide-react";
 
-import { getContentHref } from "@/lib/content-links";
-import {
-  ABSOLUTE_DATE_FORMATTER,
-  formatRelativeTime,
-  generateFeedItem,
-  TYPE_BADGE_CLASS,
-  TYPE_LABEL,
-  type FeedItem,
-} from "@/lib/feed-data";
-import { cn } from "@/lib/utils";
-import UserInlineLink from "@/components/user/user-inline-link";
-
-const BATCH_SIZE = 18;
+import { fetchFeedPage } from "@/lib/feed-client";
+import { Button } from "@/components/ui/button";
+import { FeedCard } from "@/components/feed-cards/feed-card";
 
 export default function Page() {
-  const [items, setItems] = React.useState<FeedItem[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
-  const loadingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
-  const loadMore = React.useCallback(() => {
-    if (loadingTimeoutRef.current !== null) {
-      return;
-    }
-    setIsLoading(true);
-    setItems((prev) => {
-      const next = [...prev];
-      for (let index = 0; index < BATCH_SIZE; index += 1) {
-        next.push(generateFeedItem());
-      }
-      return next;
-    });
-    loadingTimeoutRef.current = setTimeout(() => {
-      setIsLoading(false);
-      loadingTimeoutRef.current = null;
-    }, 220);
-  }, []);
-
-  React.useEffect(() => {
-    loadMore();
-  }, [loadMore]);
-
-  React.useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first.isIntersecting) {
-          loadMore();
-        }
-      },
-      { rootMargin: "600px" },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadMore]);
-
-  React.useEffect(() => {
-    return () => {
-      if (loadingTimeoutRef.current !== null) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
-    };
-  }, []);
-
   return (
     <div className="flex flex-1 flex-col gap-8 px-6 pt-8 pb-12">
       <div className="flex flex-col gap-2">
@@ -88,93 +21,104 @@ export default function Page() {
           </div>
         </div>
       </div>
-      <div className="columns-1 gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
-        {items.map((item) => (
-          <FeedCard key={item.id} item={item} />
-        ))}
-      </div>
-      <div ref={sentinelRef} className="flex justify-center py-6">
-        {isLoading && (
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        )}
-      </div>
+      <FeedTimeline />
     </div>
   );
 }
 
-function FeedCard({ item }: { item: FeedItem }) {
-  const href = getContentHref(item);
+function FeedTimeline() {
+  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const {
+    data,
+    status,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["home-feed"],
+    queryFn: ({ signal, pageParam }) =>
+      fetchFeedPage(pageParam ?? null, signal),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore && lastPage.nextCursor ? lastPage.nextCursor : undefined,
+    staleTime: 30_000,
+  });
 
-  const content = (
-    <div className="group relative mb-6 flex flex-col rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-      <div className="flex items-center justify-between gap-3">
-        <span
-          className={cn(
-            "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-            TYPE_BADGE_CLASS[item.type],
-          )}
-        >
-          {TYPE_LABEL[item.type]}
-        </span>
-        <time
-          className="text-xs text-muted-foreground"
-          dateTime={item.publishedAt.toISOString()}
-        >
-          {formatRelativeTime(item.publishedAt)}
-        </time>
+  const items = data?.pages.flatMap((page) => page.items) ?? [];
+  const errorMessage = error instanceof Error ? error.message : "请稍后再试";
+
+  React.useEffect(() => {
+    if (!hasNextPage) {
+      return undefined;
+    }
+    const node = sentinelRef.current;
+    if (!node) {
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first?.isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "720px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  if (status === "pending") {
+    return (
+      <div className="flex flex-1 items-center justify-center py-16">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
 
-      {item.type !== "status" ? (
-        <div className="mt-4 space-y-3">
-          <h3 className="text-lg leading-tight font-semibold">{item.title}</h3>
-          <div className="space-y-1.5">
-            <span className="text-xs tracking-wide text-muted-foreground/70 uppercase">
-              {item.type === "article" ? "摘要" : "内容梗概"}
-            </span>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {item.summary}
-            </p>
-          </div>
+  if (status === "error") {
+    return (
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card/40 py-16 text-center text-sm text-muted-foreground">
+        <TriangleAlert className="size-10 text-amber-500" />
+        <div>
+          <p className="text-lg font-medium text-foreground">加载失败</p>
+          <p className="mt-1">{errorMessage}</p>
         </div>
-      ) : (
-        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          {item.content}
-        </p>
-      )}
-
-      <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-        <UserInlineLink user={item.author} />
-        {item.type !== "status" && (
-          <>
-            <span className="flex items-center gap-1">
-              <MessageSquare className="size-3.5 text-muted-foreground" />
-              {item.replies}
-            </span>
-            <span className="flex items-center gap-1">
-              <Eye className="size-3.5 text-muted-foreground" />
-              {item.views.toLocaleString("zh-CN")}
-            </span>
-          </>
-        )}
-        <time
-          className="text-muted-foreground/80"
-          dateTime={item.publishedAt.toISOString()}
-        >
-          {ABSOLUTE_DATE_FORMATTER.format(item.publishedAt)}
-        </time>
+        <Button variant="outline" onClick={() => refetch()}>
+          重试
+        </Button>
       </div>
-    </div>
-  );
-
-  if (!href) {
-    return <article className="break-inside-avoid">{content}</article>;
+    );
   }
 
   return (
-    <article className="break-inside-avoid">
-      <Link href={href} className="block" scroll={false}>
-        {content}
-      </Link>
-    </article>
+    <>
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-border py-16 text-sm text-muted-foreground">
+          <p>暂时没有新的内容，稍后再来看看吧。</p>
+        </div>
+      ) : (
+        <div className="columns-1 gap-6 [column-fill:_balance] sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
+          {items.map((item) => (
+            <FeedCard key={`${item.type}-${item.id}`} item={item} />
+          ))}
+        </div>
+      )}
+      <div ref={sentinelRef} className="flex justify-center py-6">
+        {hasNextPage ? (
+          isFetchingNextPage ? (
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              向下滚动以加载更多
+            </span>
+          )
+        ) : (
+          <span className="text-xs text-muted-foreground/70">已经到底了</span>
+        )}
+      </div>
+    </>
   );
 }

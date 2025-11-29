@@ -1,5 +1,5 @@
-import ArticleMetaRow from "../../article-meta-row";
 import { getArticleData } from "../../data-cache";
+import ArticleMetaRow from "../../meta-row";
 
 export default async function Page({
   params,
@@ -11,7 +11,6 @@ export default async function Page({
 }) {
   const { id, snapshot: snapshotStr } = await params;
   const snapshot = new Date(parseInt(snapshotStr, 36));
-  console.log("snapshot", snapshot);
 
   const article = await getArticleData(id, snapshot);
 

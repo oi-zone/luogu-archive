@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import {
+  ClipboardCheck,
+  ClipboardCopy,
   History,
   Reply,
   SquareArrowOutUpRight,
@@ -34,12 +36,14 @@ function StatRow({ label, value, hint }: StatRowProps) {
   );
 }
 
-export default function ArticleOperationPanel({
-  article,
+export default function DiscussionOperationPanel({
+  discussion,
   className,
 }: {
-  article: {
-    lid: string;
+  discussion: {
+    id: number;
+    title: string;
+    content: string | null;
     replyCount: number;
     capturedAt: Date;
     lastSeenAt: Date;
@@ -49,58 +53,56 @@ export default function ArticleOperationPanel({
 }) {
   const { copy: copyLink, copied: copiedLink } = useClipboard();
   const { copy: copySnapshotLink, copied: copiedSnapshotLink } = useClipboard();
+  const { copy: copyTopicMarkdown, copied: copiedTopicMarkdown } =
+    useClipboard();
   const openWayback = React.useCallback(() => {
     if (typeof window === "undefined") return;
     if (window.location.hash === "#wayback") return;
     window.location.hash = "wayback";
   }, []);
+  const snapshotToken = discussion.capturedAt.getTime().toString(36);
+  const originalLink = `https://www.luogu.com.cn/discuss/${discussion.id}`;
+  const archiveLink = `https://luogu.store/d/${discussion.id}`;
+  const archiveSnapshotLink = `https://luogu.store/d/${discussion.id}@${snapshotToken}`;
+  const topicMarkdown = discussion.content ?? "";
 
   return (
-    <div
-      className={cn(
-        "rounded-3xl border border-border bg-background px-5 py-4 shadow-sm",
-        className,
-      )}
-    >
+    <div className={className}>
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-foreground">文章操作</h2>
+        <h2 className="text-lg font-semibold text-foreground">讨论操作</h2>
         <p className="text-sm text-muted-foreground">
-          快速查看文章的活跃度、提醒设置与操作入口。
+          快速查看讨论及其快照的属性，并进行相关操作。
         </p>
       </div>
 
       <dl className="mt-6 space-y-3 text-sm text-foreground">
         <StatRow
           label="当前回复"
-          value={`${article.replyCount.toLocaleString("zh-CN")}\u2009条`}
+          value={`${discussion.replyCount.toLocaleString("zh-CN")}\u2009条`}
         />
         <StatRow
           label="当前快照"
-          value={`${article.snapshotsCount.toLocaleString("zh-CN")}\u2009份`}
+          value={`${discussion.snapshotsCount.toLocaleString("zh-CN")}\u2009份`}
         />
         <StatRow
           label="快照标识符"
-          value={`@${article.capturedAt.getTime().toString(36)}`}
+          value={`@${discussion.capturedAt.getTime().toString(36)}`}
         />
         <StatRow
           label="此快照首次捕获于"
-          value={ABSOLUTE_DATE_FORMATTER.format(article.capturedAt)}
-          hint={formatRelativeTime(article.capturedAt)}
+          value={ABSOLUTE_DATE_FORMATTER.format(discussion.capturedAt)}
+          hint={formatRelativeTime(discussion.capturedAt)}
         />
         <StatRow
           label="此快照最后确认于"
-          value={ABSOLUTE_DATE_FORMATTER.format(article.lastSeenAt)}
-          hint={formatRelativeTime(article.lastSeenAt)}
+          value={ABSOLUTE_DATE_FORMATTER.format(discussion.lastSeenAt)}
+          hint={formatRelativeTime(discussion.lastSeenAt)}
         />
       </dl>
 
       <div className="mt-6 grid gap-2">
         <Button asChild className="justify-start gap-2 rounded-2xl py-2">
-          <Link
-            href={`https://www.luogu.com.cn/article/${article.lid}`}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <Link href={originalLink} target="_blank" rel="noreferrer">
             <Reply className="size-4" aria-hidden="true" /> 查看原帖
           </Link>
         </Button>
@@ -116,7 +118,7 @@ export default function ArticleOperationPanel({
           variant="outline"
           className="cursor-pointer justify-start gap-2 rounded-2xl py-2"
           type="button"
-          onClick={() => copyLink(`https://luogu.store/a/${article.lid}`)}
+          onClick={() => copyLink(archiveLink)}
           aria-live="polite"
         >
           {copiedLink ? (
@@ -130,11 +132,7 @@ export default function ArticleOperationPanel({
           variant="outline"
           className="cursor-pointer justify-start gap-2 rounded-2xl py-2"
           type="button"
-          onClick={() =>
-            copySnapshotLink(
-              `https://luogu.store/a/${article.lid}@${article.capturedAt.getTime().toString(36)}`,
-            )
-          }
+          onClick={() => copySnapshotLink(archiveSnapshotLink)}
           aria-live="polite"
         >
           {copiedSnapshotLink ? (
@@ -143,6 +141,20 @@ export default function ArticleOperationPanel({
             <SquareArrowOutUpRight className="size-4" aria-hidden="true" />
           )}
           复制快照链接
+        </Button>
+        <Button
+          variant="outline"
+          className="cursor-pointer justify-start gap-2 rounded-2xl py-2"
+          type="button"
+          onClick={() => copyTopicMarkdown(topicMarkdown)}
+          aria-live="polite"
+        >
+          {copiedTopicMarkdown ? (
+            <ClipboardCheck className="size-4" aria-hidden="true" />
+          ) : (
+            <ClipboardCopy className="size-4" aria-hidden="true" />
+          )}
+          复制主题 Markdown
         </Button>
       </div>
     </div>

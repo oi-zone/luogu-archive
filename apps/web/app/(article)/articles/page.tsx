@@ -12,6 +12,7 @@ import {
 
 import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
 import { Badge } from "@/components/ui/badge";
+import { MasonryColumns } from "@/components/layout/masonry-columns";
 import UserInlineLink from "@/components/user/user-inline-link";
 
 const SCORE_FORMATTER = new Intl.NumberFormat("zh-CN", {
@@ -65,11 +66,18 @@ export default async function ArticlesPage() {
         </div>
       </header>
 
-      <section className="space-y-4">
-        {articles.map((article, index) => (
-          <ArticleCard key={article.lid} article={article} rank={index + 1} />
-        ))}
-        {articles.length === 0 && (
+      <section className="flex flex-col gap-4">
+        {articles.length > 0 ? (
+          <MasonryColumns>
+            {articles.map((article, index) => (
+              <ArticleCard
+                key={article.lid}
+                article={article}
+                rank={index + 1}
+              />
+            ))}
+          </MasonryColumns>
+        ) : (
           <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">
             暂无数据，等候新文章发布后再试。
           </div>

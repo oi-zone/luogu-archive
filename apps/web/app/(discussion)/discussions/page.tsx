@@ -10,6 +10,7 @@ import {
 
 import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/feed-data";
 import { Badge } from "@/components/ui/badge";
+import { MasonryColumns } from "@/components/layout/masonry-columns";
 import UserInlineLink from "@/components/user/user-inline-link";
 
 const WINDOW_LABEL = formatWindowLabel(HOT_DISCUSSION_DEFAULT_WINDOW_MS);
@@ -47,11 +48,14 @@ export default async function DiscussionsPage() {
         </div>
       </header>
 
-      <section className="space-y-4">
-        {discussions.map((discussion) => (
-          <DiscussionCard key={discussion.id} discussion={discussion} />
-        ))}
-        {discussions.length === 0 && (
+      <section className="flex flex-col gap-4">
+        {discussions.length > 0 ? (
+          <MasonryColumns>
+            {discussions.map((discussion) => (
+              <DiscussionCard key={discussion.id} discussion={discussion} />
+            ))}
+          </MasonryColumns>
+        ) : (
           <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">
             暂无热门讨论，稍后再来看看吧。
           </div>

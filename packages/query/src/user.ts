@@ -1,14 +1,13 @@
-import { prisma } from "@luogu-discussion-archive/db";
+import { db, desc, eq, schema } from "@luogu-discussion-archive/db/drizzle";
 
 export async function getUserWithLatestSnapshot(id: number) {
-  return await prisma.user.findFirst({
-    where: { id },
-    include: {
+  return db.query.User.findFirst({
+    where: eq(schema.User.id, id),
+    with: {
       snapshots: {
-        orderBy: { capturedAt: "desc" },
-        take: 1,
+        orderBy: desc(schema.UserSnapshot.capturedAt),
+        limit: 1,
       },
     },
-    take: 1,
   });
 }

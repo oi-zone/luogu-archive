@@ -1,5 +1,5 @@
-import ArticleMetaRow from "../../article-meta-row";
 import { getArticleData } from "../../data-cache";
+import ArticleMetaRow from "../../meta-row";
 
 export default async function Page({
   params,

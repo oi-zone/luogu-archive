@@ -1,5 +1,5 @@
 import { getDiscussionData } from "../../data-cache";
-import DiscussionMetaRow from "../../discussion-meta-row";
+import DiscussionMetaRow from "../../meta-row";
 
 export default async function Page({
   params,

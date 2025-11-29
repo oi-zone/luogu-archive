@@ -17,7 +17,13 @@ export const getArticleData = cache(async (lid: string, snapshot?: Date) => {
     lid,
     time: articleWithSnapshot.time,
     replyCount: articleWithSnapshot.replyCount,
-    solutionFor: articleWithSnapshot.snapshots[0].solutionFor,
+    solutionFor: articleWithSnapshot.snapshots[0].solutionFor
+      ? {
+          ...articleWithSnapshot.snapshots[0].solutionFor,
+          difficulty:
+            articleWithSnapshot.snapshots[0].solutionFor.difficulty ?? null,
+        }
+      : null,
     title: articleWithSnapshot.snapshots[0].title,
     content: articleWithSnapshot.snapshots[0].content,
     capturedAt: articleWithSnapshot.snapshots[0].capturedAt,

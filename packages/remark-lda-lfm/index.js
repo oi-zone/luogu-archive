@@ -44,6 +44,10 @@
  */
 
 import {
+  directiveFromMarkdown,
+  directiveToMarkdown,
+} from "mdast-util-directive";
+import {
   gfmAutolinkLiteralFromMarkdown,
   gfmAutolinkLiteralToMarkdown,
 } from "mdast-util-gfm-autolink-literal";
@@ -56,13 +60,22 @@ import {
   gfmStrikethroughToMarkdown,
 } from "mdast-util-gfm-strikethrough";
 import { gfmTableFromMarkdown, gfmTableToMarkdown } from "mdast-util-gfm-table";
+import {
+  gfmTaskListItemFromMarkdown,
+  gfmTaskListItemToMarkdown,
+} from "mdast-util-gfm-task-list-item";
+import { toString } from "mdast-util-to-string";
+import { directive } from "micromark-extension-directive";
 import { gfmAutolinkLiteral } from "micromark-extension-gfm-autolink-literal";
 import { gfmFootnote } from "micromark-extension-gfm-footnote";
 import { gfmStrikethrough } from "micromark-extension-gfm-strikethrough";
 import { gfmTable } from "micromark-extension-gfm-table";
+import { gfmTaskListItem } from "micromark-extension-gfm-task-list-item";
 import { visit } from "unist-util-visit";
 
-import { transformAdmonitions } from "./admonitions.js";
+import { transformLuoguCode } from "./luogu-code.js";
+import { transformLuoguDirectives } from "./luogu-directives.js";
+import { transformLuoguTables } from "./luogu-tables.js";
 
 const mentionRegexes = [
   /^luogu:\/\/user\/(\d+)$/,
@@ -73,6 +86,7 @@ const mentionRegexes = [
 const discussionRegexes = [
   /^https:\/\/www.luogu.com.cn\/discuss\/(\d+)(?:\?.*)?(?:#.*)?$/,
   /^https:\/\/www.luogu.com\/discuss\/(\d+)(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/www.luogu.com.cn\/discuss\/show\/(\d+)(?:\?.*)?(?:#.*)?$/,
   /^https:\/\/lglg.top\/(\d+)(?:\/.*)?(?:\?.*)?(?:#.*)?$/,
 ];
 
@@ -94,6 +108,11 @@ const pasteRegexes = [
   /^https:\/\/www.luogu.com.cn\/paste\/([a-z0-9]{8})(?:\?.*)?(?:#.*)?$/,
   /^https:\/\/www.luogu.com\/paste\/([a-z0-9]{8})(?:\?.*)?(?:#.*)?$/,
   /^https:\/\/www.luogu.me\/paste\/([a-z0-9]{8})(?:\?.*)?(?:#.*)?$/,
+];
+
+const problemRegexes = [
+  /^https:\/\/www.luogu.com.cn\/problem\/([A-Za-z0-9_]+)(?:\?.*)?(?:#.*)?$/,
+  /^https:\/\/www.luogu.com\/problem\/([A-Za-z0-9_]+)(?:\?.*)?(?:#.*)?$/,
 ];
 
 function captureFromFirstMatch(regexes, url) {
@@ -130,23 +149,29 @@ export default function remarkLuoguFlavor(options) {
     data.toMarkdownExtensions || (data.toMarkdownExtensions = []);
 
   micromarkExtensions.push(
+    directive(),
     gfmFootnote(),
     gfmStrikethrough({ singleTilde: false, ...settings }),
     gfmTable(),
+    gfmTaskListItem(),
     gfmAutolinkLiteral(),
   );
 
   fromMarkdownExtensions.push(
+    directiveFromMarkdown(),
     gfmFootnoteFromMarkdown(),
     gfmStrikethroughFromMarkdown(),
     gfmTableFromMarkdown(),
+    gfmTaskListItemFromMarkdown(),
     gfmAutolinkLiteralFromMarkdown(),
   );
 
   toMarkdownExtensions.push(
+    directiveToMarkdown(),
     gfmFootnoteToMarkdown(),
     gfmTableToMarkdown(),
     gfmStrikethroughToMarkdown(),
+    gfmTaskListItemToMarkdown(),
     gfmAutolinkLiteralToMarkdown(),
   );
 
@@ -159,7 +184,9 @@ export default function remarkLuoguFlavor(options) {
    *   Nothing.
    */
   return (tree, file) => {
-    transformAdmonitions(tree, self, file);
+    transformLuoguDirectives(tree, self, file);
+    transformLuoguCode(tree, self, file);
+    transformLuoguTables(tree, self, file);
 
     visit(tree, "paragraph", (node) => {
       const childNode = node.children;
@@ -223,44 +250,54 @@ export default function remarkLuoguFlavor(options) {
       try {
         const newUrl = new URL(node.url, linkOriginalUrl).href;
         let match;
+        const hProperties = (node.data ||= {}).hProperties || {};
+        node.data.hProperties = hProperties;
+
+        const linkText = toString(node);
+        if (linkText) {
+          hProperties["data-ls-link-text"] = linkText;
+        }
+
+        if (
+          node.position &&
+          typeof node.position.start?.offset === "number" &&
+          typeof node.position.end?.offset === "number" &&
+          typeof file.value === "string"
+        ) {
+          const raw = file.value.slice(
+            node.position.start.offset,
+            node.position.end.offset,
+          );
+          hProperties["data-ls-link-source"] = raw;
+        }
 
         match = captureFromFirstMatch(discussionRegexes, newUrl);
         if (match) {
-          node.data = {
-            hProperties: {
-              "data-ls-discussion": match[1],
-            },
-          };
+          hProperties["data-ls-discussion"] = match[1];
           return;
         }
 
         match = captureFromFirstMatch(articleRegexes, newUrl);
         if (match) {
-          node.data = {
-            hProperties: {
-              "data-ls-article": match[1],
-            },
-          };
+          hProperties["data-ls-article"] = match[1];
           return;
         }
 
         match = captureFromFirstMatch(userRegexes, newUrl);
         if (match) {
-          node.data = {
-            hProperties: {
-              "data-ls-user": match[1],
-            },
-          };
+          hProperties["data-ls-user"] = match[1];
           return;
         }
 
         match = captureFromFirstMatch(pasteRegexes, newUrl);
         if (match) {
-          node.data = {
-            hProperties: {
-              "data-ls-paste": match[1],
-            },
-          };
+          hProperties["data-ls-paste"] = match[1];
+          return;
+        }
+
+        match = captureFromFirstMatch(problemRegexes, newUrl);
+        if (match) {
+          hProperties["data-ls-problem"] = match[1];
           return;
         }
 

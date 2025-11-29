@@ -47,8 +47,10 @@ export function UsernameHistoryCard({
     >
       <div className="flex items-center justify-between gap-2 px-6 py-4">
         <div>
-          <h3 className="text-base font-semibold">历史用户名</h3>
-          <p className="text-xs text-muted-foreground">追踪最近的改名记录</p>
+          <h3 className="text-base font-semibold">历史用户名外显</h3>
+          <p className="text-xs text-muted-foreground">
+            追踪最近的用户名外显变动记录。
+          </p>
         </div>
         <CollapsibleTrigger asChild>
           <button
@@ -71,29 +73,27 @@ export function UsernameHistoryCard({
         className="px-6 pb-5 data-[state=closed]:hidden"
       >
         {collapsedEntries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">暂无改名记录</p>
+          <p className="text-sm text-muted-foreground">暂无外显变动记录</p>
         ) : (
-          <ol className="space-y-5 border-l border-dashed border-border/80 pl-5">
+          <ol className="space-y-4">
             {collapsedEntries.map((entry, index) => {
               const current = index === 0;
               const latestChange = getEntryDate(entry.entries[0]);
               const earliest = entry.entries[entry.entries.length - 1];
               const earliestDate = getEntryDate(earliest) ?? latestChange;
               return (
-                <li key={entry.id} className="relative pl-3">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "absolute top-1.5 -left-[17px] flex size-3 items-center justify-center rounded-full border-2 border-card bg-background",
-                      current ? "bg-primary" : "bg-border/80",
-                    )}
-                  />
+                <li key={entry.id} className="relative">
                   <UserInlineDisplay
                     user={entry.snapshot}
                     compact
-                    className="pr-1"
+                    avatar={false}
                   />
-                  <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground/80">
+                  <div
+                    className={cn(
+                      "mt-1 flex flex-wrap gap-x-3 text-[11px] leading-none text-muted-foreground/80",
+                      current ? "font-medium text-foreground" : "",
+                    )}
+                  >
                     <span title={latestChange?.toISOString()}>
                       最后捕获于 {formatDate(latestChange)}
                     </span>

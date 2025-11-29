@@ -1,6 +1,5 @@
 import {
   Color,
-  prisma,
   type Article,
   type ArticleReply,
   type ArticleSnapshot,
@@ -13,6 +12,20 @@ import {
   type ReplySnapshot,
   type UserSnapshot,
 } from "@luogu-discussion-archive/db";
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  db,
+  desc,
+  eq,
+  inArray,
+  lte,
+  schema,
+  sql,
+  sum,
+} from "@luogu-discussion-archive/db/drizzle";
 
 export type UserNameColor =
   | "purple"
@@ -125,6 +138,10 @@ export type TimelineEntry =
       type: "judgement";
       action: string;
       reason: string;
+      addedPermission: number;
+      revokedPermission: number;
+      hasAddedPermission: boolean;
+      hasRevokedPermission: boolean;
       createdAt: string;
     };
 
@@ -133,10 +150,25 @@ export interface UserProfileBundle {
   usernameHistory: UsernameHistoryEntry[];
   related: RelatedUser[];
   timeline: TimelineEntry[];
+  timelineHasMore: boolean;
+  timelineNextCursor: string | null;
 }
 
 const USERNAME_HISTORY_LIMIT = 120;
-const TIMELINE_FETCH_LIMIT = 30;
+const TIMELINE_PAGE_DEFAULT_LIMIT = 30;
+const TIMELINE_PAGE_MAX_LIMIT = 60;
+const TIMELINE_FETCH_BUFFER = 20;
+
+export interface UserTimelineCursor {
+  timestamp: Date;
+  entryId: string;
+}
+
+export interface UserTimelinePage {
+  entries: TimelineEntry[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
 
 export async function getUserProfileBundle(
   userId: number,
@@ -147,12 +179,12 @@ export async function getUserProfileBundle(
 
   console.log("Fetching user profile for userId:", userId);
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
+  const user = await db.query.User.findFirst({
+    where: eq(schema.User.id, userId),
+    with: {
       snapshots: {
-        orderBy: { capturedAt: "desc" },
-        take: 1,
+        orderBy: desc(schema.UserSnapshot.capturedAt),
+        limit: 1,
       },
     },
   });
@@ -162,19 +194,21 @@ export async function getUserProfileBundle(
     return null;
   }
 
-  const [stats, joinRecord, snapshotHistory, timeline] = await Promise.all([
+  const [stats, joinRecord, snapshotHistory, timelinePage] = await Promise.all([
     getUserStats(userId),
-    prisma.userSnapshot.findFirst({
-      where: { userId },
-      orderBy: { capturedAt: "asc" },
-      select: { capturedAt: true },
+    db.query.UserSnapshot.findFirst({
+      where: eq(schema.UserSnapshot.userId, userId),
+      orderBy: asc(schema.UserSnapshot.capturedAt),
+      columns: { capturedAt: true },
     }),
-    prisma.userSnapshot.findMany({
-      where: { userId },
-      orderBy: { capturedAt: "desc" },
-      take: USERNAME_HISTORY_LIMIT,
+    db.query.UserSnapshot.findMany({
+      where: eq(schema.UserSnapshot.userId, userId),
+      orderBy: desc(schema.UserSnapshot.capturedAt),
+      limit: USERNAME_HISTORY_LIMIT,
     }),
-    getUserTimelineEntries(userId, TIMELINE_FETCH_LIMIT),
+    getUserTimelinePage(userId, {
+      limit: TIMELINE_PAGE_DEFAULT_LIMIT,
+    }),
   ]);
 
   const profile: UserProfile = {
@@ -208,47 +242,238 @@ export async function getUserProfileBundle(
     profile,
     usernameHistory,
     related: [],
-    timeline,
+    timeline: timelinePage?.entries ?? [],
+    timelineHasMore: timelinePage?.hasMore ?? false,
+    timelineNextCursor: timelinePage?.nextCursor ?? null,
+  };
+}
+
+export async function getUserTimelinePage(
+  userId: number,
+  options?: {
+    cursor?: UserTimelineCursor | null;
+    limit?: number;
+  },
+): Promise<UserTimelinePage | null> {
+  if (!Number.isFinite(userId) || userId <= 0) {
+    return null;
+  }
+
+  const requestedLimit = options?.limit ?? TIMELINE_PAGE_DEFAULT_LIMIT;
+  const clampedLimit = Math.min(
+    Math.max(1, requestedLimit),
+    TIMELINE_PAGE_MAX_LIMIT,
+  );
+
+  const fetchLimit = clampedLimit + TIMELINE_FETCH_BUFFER;
+  const beforeDate = options?.cursor?.timestamp ?? null;
+
+  const rawEntries = await getUserTimelineEntries(
+    userId,
+    fetchLimit,
+    beforeDate,
+  );
+
+  const cursor = options?.cursor ?? null;
+  const filteredEntries = cursor
+    ? rawEntries.filter((entry) => isEntryBeforeCursor(entry, cursor))
+    : rawEntries;
+
+  const hasMore = filteredEntries.length > clampedLimit;
+  const entries = filteredEntries.slice(0, clampedLimit);
+  const lastEntry = entries[entries.length - 1];
+  const nextCursor =
+    hasMore && lastEntry ? encodeUserTimelineCursor(lastEntry) : null;
+
+  return {
+    entries,
+    hasMore,
+    nextCursor,
   };
 }
 
 async function getUserStats(userId: number) {
   const [
-    articleAggregate,
-    postCount,
-    [articleComments, discussionReplies],
-    judgementCount,
+    [articleStats],
+    [postStats],
+    [articleReplies],
+    [discussionReplies],
+    [judgementStats],
   ] = await Promise.all([
-    prisma.article.aggregate({
-      where: { authorId: userId },
-      _count: { _all: true },
-      _sum: { upvote: true, favorCount: true },
-    }),
-    prisma.post.count({ where: { snapshots: { some: { authorId: userId } } } }),
-    Promise.all([
-      prisma.articleReply.count({ where: { authorId: userId } }),
-      prisma.reply.count({ where: { authorId: userId } }),
-    ]),
-    prisma.judgement.count({ where: { userId } }),
+    db
+      .select({
+        total: count(),
+        upvotes: sum(schema.Article.upvote),
+        favorites: sum(schema.Article.favorCount),
+      })
+      .from(schema.Article)
+      .where(eq(schema.Article.authorId, userId)),
+    db
+      .select({ total: countDistinct(schema.PostSnapshot.postId) })
+      .from(schema.PostSnapshot)
+      .where(eq(schema.PostSnapshot.authorId, userId)),
+    db
+      .select({ total: count() })
+      .from(schema.ArticleReply)
+      .where(eq(schema.ArticleReply.authorId, userId)),
+    db
+      .select({ total: count() })
+      .from(schema.Reply)
+      .where(eq(schema.Reply.authorId, userId)),
+    db
+      .select({ total: count() })
+      .from(schema.Judgement)
+      .where(eq(schema.Judgement.userId, userId)),
   ]);
 
-  const interactions = articleComments + discussionReplies;
+  const interactions =
+    (articleReplies?.total ?? 0) + (discussionReplies?.total ?? 0);
 
   return {
-    posts: postCount,
-    articles: articleAggregate._count._all,
+    posts: postStats?.total ?? 0,
+    articles: articleStats?.total ?? 0,
     interactions,
-    judgements: judgementCount,
+    judgements: judgementStats?.total ?? 0,
     bens: 0,
-    articleUpvotes: articleAggregate._sum.upvote ?? 0,
-    articleFavorites: articleAggregate._sum.favorCount ?? 0,
+    articleUpvotes: Number(articleStats?.upvotes ?? 0),
+    articleFavorites: Number(articleStats?.favorites ?? 0),
   };
 }
 
 async function getUserTimelineEntries(
   userId: number,
   limit: number,
+  before?: Date | null,
 ): Promise<TimelineEntry[]> {
+  const articleWhere = before
+    ? and(eq(schema.Article.authorId, userId), lte(schema.Article.time, before))
+    : eq(schema.Article.authorId, userId);
+
+  const articlePromise = db.query.Article.findMany({
+    where: articleWhere,
+    orderBy: desc(schema.Article.time),
+    limit,
+    with: {
+      snapshots: {
+        orderBy: desc(schema.ArticleSnapshot.capturedAt),
+        limit: 1,
+      },
+    },
+  });
+
+  const { rows: postIdRows } = await db.execute<{ postId: number }>(
+    sql`
+      SELECT ps."postId"
+      FROM "PostSnapshot" ps
+      JOIN "Post" p ON p."id" = ps."postId"
+      WHERE ps."authorId" = ${userId}
+        ${before ? sql`AND p."time" <= ${before}` : sql``}
+      GROUP BY ps."postId"
+      ORDER BY MAX(p."time") DESC
+      LIMIT ${limit}
+    `,
+  );
+  const postIds = postIdRows.map((row) => row.postId);
+  const postWhereBase = postIds.length
+    ? inArray(schema.Post.id, postIds)
+    : undefined;
+  const postWhere = before
+    ? postWhereBase
+      ? and(postWhereBase, lte(schema.Post.time, before))
+      : lte(schema.Post.time, before)
+    : postWhereBase;
+
+  const postsPromise = postIds.length
+    ? db.query.Post.findMany({
+        where: postWhere,
+        orderBy: desc(schema.Post.time),
+        limit,
+        with: {
+          snapshots: {
+            orderBy: desc(schema.PostSnapshot.capturedAt),
+            limit: 1,
+          },
+        },
+      })
+    : Promise.resolve([]);
+
+  const articleRepliesPromise = db.query.ArticleReply.findMany({
+    where: before
+      ? and(
+          eq(schema.ArticleReply.authorId, userId),
+          lte(schema.ArticleReply.time, before),
+        )
+      : eq(schema.ArticleReply.authorId, userId),
+    orderBy: desc(schema.ArticleReply.time),
+    limit,
+    with: {
+      article: {
+        with: {
+          snapshots: {
+            orderBy: desc(schema.ArticleSnapshot.capturedAt),
+            limit: 1,
+          },
+        },
+      },
+    },
+  });
+
+  const discussionRepliesPromise = db.query.Reply.findMany({
+    where: before
+      ? and(eq(schema.Reply.authorId, userId), lte(schema.Reply.time, before))
+      : eq(schema.Reply.authorId, userId),
+    orderBy: desc(schema.Reply.time),
+    limit,
+    with: {
+      post: {
+        with: {
+          snapshots: {
+            orderBy: desc(schema.PostSnapshot.capturedAt),
+            limit: 1,
+          },
+        },
+      },
+      snapshots: {
+        orderBy: desc(schema.ReplySnapshot.capturedAt),
+        limit: 1,
+      },
+    },
+  });
+
+  const pastesPromise = db.query.Paste.findMany({
+    where: before
+      ? and(eq(schema.Paste.userId, userId), lte(schema.Paste.time, before))
+      : eq(schema.Paste.userId, userId),
+    orderBy: desc(schema.Paste.time),
+    limit,
+    with: {
+      snapshots: {
+        orderBy: desc(schema.PasteSnapshot.capturedAt),
+        limit: 1,
+      },
+    },
+  });
+
+  const judgementsPromise = db
+    .select({
+      time: schema.Judgement.time,
+      userId: schema.Judgement.userId,
+      reason: schema.Judgement.reason,
+      addedPermission: schema.Judgement.addedPermission,
+      revokedPermission: schema.Judgement.revokedPermission,
+    })
+    .from(schema.Judgement)
+    .where(
+      before
+        ? and(
+            eq(schema.Judgement.userId, userId),
+            lte(schema.Judgement.time, before),
+          )
+        : eq(schema.Judgement.userId, userId),
+    )
+    .orderBy(desc(schema.Judgement.time))
+    .limit(limit);
+
   const [
     articles,
     posts,
@@ -257,78 +482,12 @@ async function getUserTimelineEntries(
     pastes,
     judgements,
   ] = await Promise.all([
-    prisma.article.findMany({
-      where: { authorId: userId },
-      orderBy: { time: "desc" },
-      take: limit,
-      include: {
-        snapshots: {
-          orderBy: { capturedAt: "desc" },
-          take: 1,
-        },
-      },
-    }),
-    prisma.post.findMany({
-      where: { snapshots: { some: { authorId: userId } } },
-      orderBy: { time: "desc" },
-      take: limit,
-      include: {
-        snapshots: {
-          orderBy: { capturedAt: "desc" },
-          take: 1,
-        },
-      },
-    }),
-    prisma.articleReply.findMany({
-      where: { authorId: userId },
-      orderBy: { time: "desc" },
-      take: limit,
-      include: {
-        article: {
-          include: {
-            snapshots: {
-              orderBy: { capturedAt: "desc" },
-              take: 1,
-            },
-          },
-        },
-      },
-    }),
-    prisma.reply.findMany({
-      where: { authorId: userId },
-      orderBy: { time: "desc" },
-      take: limit,
-      include: {
-        post: {
-          include: {
-            snapshots: {
-              orderBy: { capturedAt: "desc" },
-              take: 1,
-            },
-          },
-        },
-        snapshots: {
-          orderBy: { capturedAt: "desc" },
-          take: 1,
-        },
-      },
-    }),
-    prisma.paste.findMany({
-      where: { userId },
-      orderBy: { time: "desc" },
-      take: limit,
-      include: {
-        snapshots: {
-          orderBy: { capturedAt: "desc" },
-          take: 1,
-        },
-      },
-    }),
-    prisma.judgement.findMany({
-      where: { userId },
-      orderBy: { time: "desc" },
-      take: limit,
-    }),
+    articlePromise,
+    postsPromise,
+    articleRepliesPromise,
+    discussionRepliesPromise,
+    pastesPromise,
+    judgementsPromise,
   ]);
 
   const entries: TimelineEntry[] = [];
@@ -362,12 +521,7 @@ async function getUserTimelineEntries(
     entries.push(mapJudgementToTimeline(judgement));
   }
 
-  return entries
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    .slice(0, limit);
+  return entries.sort(compareTimelineEntriesDesc).slice(0, limit);
 }
 
 function mapArticleToTimeline(
@@ -455,10 +609,12 @@ function mapPasteToTimeline(
 
 function mapJudgementToTimeline(judgement: Judgement): TimelineEntry {
   const changes: string[] = [];
-  if (judgement.addedPermission) {
+  const hasAddedPermission = Boolean(judgement.addedPermission);
+  const hasRevokedPermission = Boolean(judgement.revokedPermission);
+  if (hasAddedPermission) {
     changes.push(`增加权限 ${judgement.addedPermission.toString()}`);
   }
-  if (judgement.revokedPermission) {
+  if (hasRevokedPermission) {
     changes.push(`撤销权限 ${judgement.revokedPermission.toString()}`);
   }
 
@@ -467,6 +623,10 @@ function mapJudgementToTimeline(judgement: Judgement): TimelineEntry {
     type: "judgement",
     action: changes.join("，") || "社区裁决",
     reason: judgement.reason,
+    hasAddedPermission,
+    hasRevokedPermission,
+    addedPermission: judgement.addedPermission,
+    revokedPermission: judgement.revokedPermission,
     createdAt: judgement.time.toISOString(),
   };
 }
@@ -525,4 +685,48 @@ function truncateContent(value: string, limit = 160) {
   if (!normalized) return "（暂无内容）";
   if (normalized.length <= limit) return normalized;
   return `${normalized.slice(0, limit).trim()}…`;
+}
+
+export function parseUserTimelineCursor(
+  cursor: string,
+): UserTimelineCursor | null {
+  if (!cursor) return null;
+  const separatorIndex = cursor.indexOf(":");
+  if (separatorIndex <= 0 || separatorIndex === cursor.length - 1) {
+    return null;
+  }
+
+  const timestampPart = cursor.slice(0, separatorIndex);
+  const idPart = cursor.slice(separatorIndex + 1);
+  const millis = Number.parseInt(timestampPart, 36);
+  if (!Number.isFinite(millis) || millis <= 0) {
+    return null;
+  }
+
+  return {
+    timestamp: new Date(millis),
+    entryId: idPart,
+  };
+}
+
+function encodeUserTimelineCursor(entry: TimelineEntry) {
+  const millis = new Date(entry.createdAt).getTime();
+  return `${millis.toString(36)}:${entry.id}`;
+}
+
+function isEntryBeforeCursor(entry: TimelineEntry, cursor: UserTimelineCursor) {
+  const entryTime = new Date(entry.createdAt).getTime();
+  const cursorTime = cursor.timestamp.getTime();
+  if (entryTime < cursorTime) return true;
+  if (entryTime > cursorTime) return false;
+  return entry.id.localeCompare(cursor.entryId) > 0;
+}
+
+function compareTimelineEntriesDesc(a: TimelineEntry, b: TimelineEntry) {
+  const timeDiff =
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  if (timeDiff !== 0) {
+    return timeDiff;
+  }
+  return a.id.localeCompare(b.id);
 }

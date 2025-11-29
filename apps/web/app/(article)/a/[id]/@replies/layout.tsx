@@ -1,6 +1,6 @@
 import { getArticleBasicInfo } from "@luogu-discussion-archive/query";
 
-import ArticleComments from "../article-comments";
+import ArticleComments from "../comments";
 
 export default async function Layout({
   params,

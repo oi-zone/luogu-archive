@@ -1,5 +1,5 @@
-import ArticleOperationPanel from "../../article-operation-panel";
 import { getArticleData } from "../../data-cache";
+import ArticleOperationPanel from "../../operation-panel";
 
 export default async function Page({
   params,

@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 import { UserInfoCard } from "@/components/user/user-info-card";
 import { UserRecommendations } from "@/components/user/user-recommendations";
-import { UserTimeline } from "@/components/user/user-timeline";
-import { UsernameHistoryCard } from "@/components/user/username-history-card";
+
+import { UserTimeline } from "./user-timeline";
+import { UsernameHistoryCard } from "./username-history-card";
 
 export default async function UserDetailPage({
   params,
@@ -18,7 +19,14 @@ export default async function UserDetailPage({
   const uid = Number.parseInt(id, 10);
   const data = await getUserProfileBundleCache(uid);
   if (!data) notFound();
-  const { profile, usernameHistory, related, timeline } = data;
+  const {
+    profile,
+    usernameHistory,
+    related,
+    timeline,
+    timelineHasMore,
+    timelineNextCursor,
+  } = data;
   const breadcrumbs = [
     { label: "首页", href: "/" },
     { label: "用户", href: "/users" },
@@ -28,32 +36,6 @@ export default async function UserDetailPage({
   return (
     <div className="mx-auto w-full px-4 pt-8 pb-16 sm:px-6 lg:px-8">
       <BreadcrumbSetter trail={breadcrumbs} />
-      <header className="mb-8 space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1
-            className={cn(
-              "text-3xl font-semibold",
-              NAME_COLOR_CLASS[profile.nameColor],
-            )}
-          >
-            {profile.name}
-          </h1>
-          <span className="text-sm text-muted-foreground">#{profile.id}</span>
-          {profile.ccfLevel ? (
-            <span className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium">
-              CCF Lv.{profile.ccfLevel}
-            </span>
-          ) : null}
-          {profile.highlightTag ? (
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              {profile.highlightTag}
-            </span>
-          ) : null}
-        </div>
-        <p className="max-w-3xl text-base text-muted-foreground">
-          {profile.slogan}
-        </p>
-      </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3.2fr)_minmax(0,8fr)] lg:items-start xl:grid-cols-[minmax(0,2.7fr)_minmax(0,8fr)] 2xl:grid-cols-[minmax(0,2.8fr)_minmax(0,8fr)_minmax(0,3.2fr)]">
         <div className="space-y-4 lg:col-start-1 lg:row-start-1">
           <UserInfoCard profile={profile} />
@@ -66,7 +48,12 @@ export default async function UserDetailPage({
           </div>
         </div>
         <div className="lg:col-start-2 lg:row-span-2 lg:self-start 2xl:col-start-2 2xl:row-start-1">
-          <UserTimeline entries={timeline} />
+          <UserTimeline
+            userId={uid}
+            initialEntries={timeline}
+            initialHasMore={timelineHasMore}
+            initialCursor={timelineNextCursor}
+          />
         </div>
         <aside className="hidden 2xl:col-start-3 2xl:row-start-1 2xl:block">
           <UserRecommendations users={related} layout="sidebar" />

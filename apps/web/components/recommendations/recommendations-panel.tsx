@@ -25,7 +25,7 @@ export function RecommendationsPanel({
 
   return (
     <div className={className}>
-      <h2 className="text-xl font-semibold text-foreground">相关推荐</h2>
+      <h2 className="hidden text-xl font-semibold text-foreground">相关推荐</h2>
       <div className="space-y-4">
         {items.map((item) => (
           <SearchResultCard key={item.id} result={item} />
@@ -90,7 +90,9 @@ function InlineRecommendations({
   return (
     <div className={className}>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-foreground">相关推荐</h2>
+        <h2 className="hidden text-base font-semibold text-foreground">
+          相关推荐
+        </h2>
         {showNav && (
           <div className="flex items-center gap-1.5">
             <Button

@@ -25,14 +25,19 @@
     "vfile": "^6.0.3"
   },
   "dependencies": {
+    "mdast-util-directive": "^3.1.0",
     "mdast-util-gfm-autolink-literal": "^2.0.1",
     "mdast-util-gfm-footnote": "^2.1.0",
     "mdast-util-gfm-strikethrough": "^2.0.0",
     "mdast-util-gfm-table": "^2.0.0",
+    "mdast-util-gfm-task-list-item": "^2.0.0",
+    "mdast-util-to-string": "^4.0.0",
+    "micromark-extension-directive": "^4.0.0",
     "micromark-extension-gfm-autolink-literal": "^2.1.0",
     "micromark-extension-gfm-footnote": "^2.1.0",
     "micromark-extension-gfm-strikethrough": "^2.1.0",
     "micromark-extension-gfm-table": "^2.1.1",
+    "micromark-extension-gfm-task-list-item": "^2.1.0",
     "unist-util-visit": "^5.0.0"
   }
 }

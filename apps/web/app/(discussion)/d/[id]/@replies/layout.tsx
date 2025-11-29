@@ -1,6 +1,6 @@
 import { getPostBasicInfo } from "@luogu-discussion-archive/query";
 
-import DiscussionReplies from "../discussion-replies";
+import DiscussionReplies from "../replies";
 
 export default async function Layout({
   params,

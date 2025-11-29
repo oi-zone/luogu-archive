@@ -9,7 +9,7 @@ import {
   useCommentTimeline,
   type TimelineMessages,
 } from "@/hooks/use-comment-timeline";
-import UserInlineLink from "@/components/user/user-inline-link";
+import { UserAvatarHoverLink } from "@/components/user/user-inline-link";
 
 import { Button } from "../ui/button";
 import { CommentCard, type CommentCardProps } from "./comment-card";
@@ -123,6 +123,11 @@ function parseCommentIdFromHash(hash: string): number | null {
   if (!match) return null;
   const value = Number.parseInt(match[1] ?? "", 10);
   return Number.isNaN(value) ? null : value;
+}
+
+function isCommentHash(hash: string | null): boolean {
+  if (!hash || !hash.startsWith("#")) return false;
+  return /^#(?:reply|comment)-\d+$/.test(hash);
 }
 
 export function CommentBoard(props: CommentBoardProps) {
@@ -463,8 +468,9 @@ export function CommentBoard(props: CommentBoardProps) {
 
     const base = `${window.location.pathname}${window.location.search}`;
     const currentHash = window.location.hash;
+    const managingCurrentHash = isCommentHash(currentHash);
     const canClearHash =
-      Boolean(currentHash) && !isInitialLoadPendingRef.current;
+      managingCurrentHash && !isInitialLoadPendingRef.current;
 
     const clearHash = () => {
       window.history.replaceState(null, "", base);
@@ -781,7 +787,7 @@ export function CommentBoard(props: CommentBoardProps) {
         ) : (
           <div className="space-y-4">
             {topButton}
-            <ul ref={listRef} className="space-y-5">
+            <ul ref={listRef} className="space-y-6">
               {renderedItems.map((item) => (
                 <li
                   key={
@@ -827,25 +833,25 @@ function DuplicatePlaceholder({ group, onExpand }: DuplicatePlaceholderProps) {
   }
 
   return (
-    <article className="-mt-3 sm:ms-4" data-stack-parent-id={group.anchorId}>
+    <article className="-mt-5" data-stack-parent-id={group.anchorId}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          {previewUsers.map((user) => (
-            <UserInlineLink key={user.id} user={user} compact />
-          ))}
+          <div className="mt-0.75 inline-flex -space-x-1.5">
+            {previewUsers.map((user) => (
+              <UserAvatarHoverLink key={user.id} user={user} className="" />
+            ))}
+          </div>
           <span className="text-sm font-medium text-muted-foreground">
             等 {repeatCount} 位用户复读了
           </span>
         </div>
-        <Button
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="rounded-xl px-3"
+          className="-my-0.5 cursor-pointer rounded-full bg-muted px-2 py-0.5 text-sm transition-colors duration-150 hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
           onClick={onExpand}
         >
           展开
-        </Button>
+        </button>
       </div>
     </article>
   );

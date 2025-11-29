@@ -1,5 +1,5 @@
 import { getDiscussionData } from "../data-cache";
-import DiscussionOperationPanel from "../discussion-operation-panel";
+import DiscussionOperationPanel from "../operation-panel";
 
 export default async function Page({
   params,

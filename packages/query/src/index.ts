@@ -4,6 +4,7 @@ export {
   getHotDiscussions,
   getPostWithSnapshot,
   getPostRepliesWithLatestSnapshot,
+  getPostUserReplyInference,
   getReplyWithLatestSnapshot,
   getPostSummaryWithLatestSnapshot,
   getPostBasicInfo,
@@ -26,6 +27,8 @@ export type { FeaturedArticleSummary } from "./article.js";
 export { getUserWithLatestSnapshot } from "./user.js";
 export {
   getUserProfileBundle,
+  getUserTimelinePage,
+  parseUserTimelineCursor,
   type RelatedUser,
   type TimelineEntry,
   type UserNameColor,
@@ -33,5 +36,22 @@ export {
   type UserProfileBundle,
   type UserSnapshotAppearance,
   type UsernameHistoryEntry,
+  type UserTimelinePage,
+  type UserTimelineCursor,
 } from "./user-profile.js";
 export { getPasteWithSnapshot, getPasteSnapshotsTimeline } from "./paste.js";
+export {
+  getGlobalOstrakonPage,
+  parseOstrakonCursor,
+  formatOstrakonAnchor,
+  type OstrakonEntry,
+  type OstrakonPage,
+  type OstrakonCursor,
+} from "./judgement.js";
+export {
+  getFeedPage,
+  parseFeedCursor,
+  type FeedEntry,
+  type FeedPage,
+  type FeedCursor,
+} from "./feed.js";

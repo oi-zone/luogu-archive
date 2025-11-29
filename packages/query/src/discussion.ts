@@ -1,9 +1,23 @@
-import { prisma } from "@luogu-discussion-archive/db";
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  db,
+  desc,
+  eq,
+  gt,
+  inArray,
+  lt,
+  or,
+  schema,
+  sql,
+} from "@luogu-discussion-archive/db/drizzle";
 
 import type { BasicUserSnapshot } from "./types.js";
 
 const DEFAULT_DISCUSSION_LIMIT = Number.parseInt(
-  process.env.NUM_DISCUSSIONS_HOME_PAGE ?? "50",
+  process.env.NUM_DISCUSSIONS_HOME_PAGE ?? "120",
   10,
 );
 
@@ -46,45 +60,50 @@ export async function getHotDiscussions({
 
   const since = new Date(Date.now() - windowMs);
 
-  const groupedReplies = await prisma.reply.groupBy({
-    by: ["postId"],
-    where: {
-      time: { gte: since },
-      post: { takedown: { is: null } },
-    },
-    _count: { id: true },
-    orderBy: { _count: { id: "desc" } },
-    take: limit,
-  });
+  const { rows: groupedReplies } = await db.execute<{
+    postId: number;
+    recentReplyCount: number;
+  }>(sql`
+    SELECT r."postId", COUNT(*)::int AS "recentReplyCount"
+    FROM "Reply" r
+    LEFT JOIN "PostTakedown" pt ON pt."postId" = r."postId"
+    WHERE r."time" >= ${since} AND pt."postId" IS NULL
+    GROUP BY r."postId"
+    ORDER BY "recentReplyCount" DESC
+    LIMIT ${limit}
+  `);
 
   if (groupedReplies.length === 0) {
     return [];
   }
 
   const postIds = groupedReplies.map((group) => group.postId);
-  const posts = await prisma.post.findMany({
-    where: { id: { in: postIds }, takedown: null },
-    include: {
+  const posts = await db.query.Post.findMany({
+    where: inArray(schema.Post.id, postIds),
+    with: {
+      takedown: true,
       snapshots: {
-        orderBy: { capturedAt: "desc" },
-        take: 1,
-        select: {
+        orderBy: desc(schema.PostSnapshot.capturedAt),
+        limit: 1,
+        columns: {
           title: true,
           capturedAt: true,
           lastSeenAt: true,
           authorId: true,
+        },
+        with: {
           forum: {
-            select: {
+            columns: {
               slug: true,
               name: true,
             },
           },
           author: {
-            select: {
+            with: {
               snapshots: {
-                orderBy: { capturedAt: "desc" },
-                take: 1,
-                select: {
+                orderBy: desc(schema.UserSnapshot.capturedAt),
+                limit: 1,
+                columns: {
                   name: true,
                   badge: true,
                   color: true,
@@ -107,6 +126,7 @@ export async function getHotDiscussions({
       if (!post) return null;
       const snapshot = post.snapshots[0];
       if (!snapshot) return null;
+      if (post.takedown.length > 0) return null;
       const authorSnapshot = snapshot.author.snapshots[0];
 
       const author: BasicUserSnapshot | null = authorSnapshot
@@ -119,7 +139,7 @@ export async function getHotDiscussions({
             xcpcLevel: authorSnapshot.xcpcLevel,
           }
         : null;
-      const recentReplyCount = group._count.id;
+      const recentReplyCount = group.recentReplyCount;
 
       return {
         id: post.id,
@@ -140,19 +160,21 @@ export async function getHotDiscussions({
 }
 
 export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
-  const postPromise = prisma.post.findUnique({
-    where: { id },
-    include: {
+  const post = await db.query.Post.findFirst({
+    where: eq(schema.Post.id, id),
+    with: {
       snapshots: {
-        ...(capturedAt ? { where: { capturedAt } } : {}),
-        orderBy: { capturedAt: "desc" },
-        take: 1,
-        include: {
+        orderBy: desc(schema.PostSnapshot.capturedAt),
+        limit: 1,
+        ...(capturedAt
+          ? { where: eq(schema.PostSnapshot.capturedAt, capturedAt) }
+          : {}),
+        with: {
           author: {
-            include: {
+            with: {
               snapshots: {
-                orderBy: { capturedAt: "desc" },
-                take: 1,
+                orderBy: desc(schema.UserSnapshot.capturedAt),
+                limit: 1,
               },
             },
           },
@@ -160,78 +182,76 @@ export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
         },
       },
       takedown: true,
-      _count: {
-        select: {
-          replies: true,
-          snapshots: true,
-        },
-      },
     },
   });
-
-  const participantCountPromise = prisma.user.count({
-    where: {
-      replies: {
-        some: { postId: id },
-      },
-    },
-  });
-
-  const post = await postPromise;
 
   if (!post) throw new Error("Post not found");
 
-  const postAuthorId = post.snapshots[0]?.authorId ?? null;
+  const [replyCountRow] = await db
+    .select({ total: count() })
+    .from(schema.Reply)
+    .where(eq(schema.Reply.postId, id));
+  const [snapshotCountRow] = await db
+    .select({ total: count() })
+    .from(schema.PostSnapshot)
+    .where(eq(schema.PostSnapshot.postId, id));
 
-  const [replyParticipantCount, authorReplyCount] = await Promise.all([
-    participantCountPromise,
-    postAuthorId
-      ? prisma.reply.count({
-          where: {
-            postId: id,
-            authorId: postAuthorId,
-          },
-        })
-      : Promise.resolve(0),
-  ]);
+  const [participantRow] = await db
+    .select({ participants: countDistinct(schema.Reply.authorId) })
+    .from(schema.Reply)
+    .where(eq(schema.Reply.postId, id));
+
+  const postAuthorId = post.snapshots[0]?.authorId;
+  const [authorReplyRow] = postAuthorId
+    ? await db
+        .select({ total: count() })
+        .from(schema.Reply)
+        .where(
+          and(
+            eq(schema.Reply.postId, id),
+            eq(schema.Reply.authorId, postAuthorId),
+          ),
+        )
+    : [{ total: 0 }];
 
   return {
     ...post,
-    _replyParticipantCount: replyParticipantCount,
-    _authorHasReplied: authorReplyCount > 0,
+    _count: {
+      replies: replyCountRow?.total ?? 0,
+      snapshots: snapshotCountRow?.total ?? 0,
+    },
+    _replyParticipantCount: participantRow?.participants ?? 0,
+    _authorHasReplied: (authorReplyRow?.total ?? 0) > 0,
   };
 }
 
 export async function getPostBasicInfo(id: number) {
-  const postPromise = prisma.post.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      _count: {
-        select: {
-          replies: true,
-        },
-      },
-    },
-  });
-
-  const authorsPromise = prisma.user.findMany({
-    where: {
-      postSnapshots: {
-        some: { postId: id },
-      },
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  const [post, authors] = await Promise.all([postPromise, authorsPromise]);
+  const [post] = await db
+    .select({
+      id: schema.Post.id,
+    })
+    .from(schema.Post)
+    .where(eq(schema.Post.id, id))
+    .limit(1);
 
   if (!post) throw new Error("Post not found");
 
+  const [replyCountRow] = await db
+    .select({ total: count() })
+    .from(schema.Reply)
+    .where(eq(schema.Reply.postId, id));
+
+  const authors = await db
+    .select({ id: schema.PostSnapshot.authorId })
+    .from(schema.PostSnapshot)
+    .where(eq(schema.PostSnapshot.postId, id))
+    .groupBy(schema.PostSnapshot.authorId);
+
   return {
-    ...post,
+    id: post.id,
+    _count: {
+      replies: replyCountRow?.total ?? 0,
+    },
     authors,
   };
 }
@@ -254,69 +274,322 @@ export async function getPostRepliesWithLatestSnapshot(
     skip: 0,
   },
 ) {
-  return await prisma.reply.findMany({
-    where: { postId },
-    orderBy:
+  const orderExpressions =
+    orderBy === "time_asc"
+      ? [asc(schema.Reply.time), asc(schema.Reply.id)]
+      : [desc(schema.Reply.time), desc(schema.Reply.id)];
+
+  let whereClause = eq(schema.Reply.postId, postId);
+
+  if (takeAfterReply !== undefined) {
+    const [cursorRow] = await db
+      .select({
+        id: schema.Reply.id,
+        time: schema.Reply.time,
+      })
+      .from(schema.Reply)
+      .where(eq(schema.Reply.id, takeAfterReply))
+      .limit(1);
+
+    if (!cursorRow) {
+      return [];
+    }
+
+    const comparator =
       orderBy === "time_asc"
-        ? [{ time: "asc" }, { id: "asc" }]
-        : [{ time: "desc" }, { id: "desc" }],
-    ...(takeAfterReply !== undefined
-      ? {
-          cursor: { id: takeAfterReply },
-          skip: skip + 1,
-        }
-      : { skip }),
-    take,
-    include: {
+        ? or(
+            gt(schema.Reply.time, cursorRow.time),
+            and(
+              eq(schema.Reply.time, cursorRow.time),
+              gt(schema.Reply.id, cursorRow.id),
+            ),
+          )
+        : or(
+            lt(schema.Reply.time, cursorRow.time),
+            and(
+              eq(schema.Reply.time, cursorRow.time),
+              lt(schema.Reply.id, cursorRow.id),
+            ),
+          );
+
+    const combined = and(whereClause, comparator);
+    if (!combined) {
+      return [];
+    }
+
+    whereClause = combined;
+  }
+
+  const replies = await db.query.Reply.findMany({
+    where: whereClause,
+    orderBy: orderExpressions,
+    offset: skip,
+    limit: take,
+    with: {
       author: {
-        include: {
+        with: {
           snapshots: {
-            orderBy: { capturedAt: "desc" },
-            take: 1,
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
           },
         },
       },
       snapshots: {
-        orderBy: { capturedAt: "desc" },
-        take: 1,
+        orderBy: desc(schema.ReplySnapshot.capturedAt),
+        limit: 1,
       },
       takedown: true,
-      _count: {
-        select: { snapshots: true },
-      },
     },
   });
+
+  const replyIds = replies.map((reply) => reply.id);
+  const snapshotCounts = replyIds.length
+    ? await db
+        .select({
+          replyId: schema.ReplySnapshot.replyId,
+          total: count(),
+        })
+        .from(schema.ReplySnapshot)
+        .where(inArray(schema.ReplySnapshot.replyId, replyIds))
+        .groupBy(schema.ReplySnapshot.replyId)
+    : [];
+  const snapshotCountMap = new Map(
+    snapshotCounts.map((row) => [row.replyId, row.total]),
+  );
+
+  return replies.map((reply) => ({
+    ...reply,
+    _count: {
+      snapshots: snapshotCountMap.get(reply.id) ?? 0,
+    },
+  }));
 }
 
 export async function getPostSummaryWithLatestSnapshot(postId: number) {
-  return prisma.post.findUnique({
-    where: { id: postId },
-    select: {
-      id: true,
-      time: true,
+  const post = await db.query.Post.findFirst({
+    where: eq(schema.Post.id, postId),
+    with: {
       snapshots: {
-        orderBy: { capturedAt: "desc" },
-        take: 1,
-        select: {
+        orderBy: desc(schema.PostSnapshot.capturedAt),
+        limit: 1,
+        columns: {
           title: true,
           capturedAt: true,
           lastSeenAt: true,
+        },
+        with: {
           forum: {
-            select: {
+            columns: {
               slug: true,
               name: true,
             },
           },
         },
       },
-      _count: {
-        select: {
-          replies: true,
-          snapshots: true,
-        },
-      },
     },
   });
+
+  if (!post) {
+    return null;
+  }
+
+  const [replyCounts, snapshotCounts] = await Promise.all([
+    db
+      .select({ total: count() })
+      .from(schema.Reply)
+      .where(eq(schema.Reply.postId, postId)),
+    db
+      .select({ total: count() })
+      .from(schema.PostSnapshot)
+      .where(eq(schema.PostSnapshot.postId, postId)),
+  ]);
+
+  return {
+    id: post.id,
+    time: post.time,
+    snapshots: post.snapshots,
+    _count: {
+      replies: replyCounts[0]?.total ?? 0,
+      snapshots: snapshotCounts[0]?.total ?? 0,
+    },
+  };
+}
+
+interface ReplyCursorCandidate {
+  id: number;
+  postId: number;
+  authorId: number;
+  time: Date;
+}
+
+function buildBeforeCursorWhere(
+  postId: number,
+  authorId: number,
+  cursor: ReplyCursorCandidate,
+) {
+  return and(
+    eq(schema.Reply.postId, postId),
+    eq(schema.Reply.authorId, authorId),
+    or(
+      lt(schema.Reply.time, cursor.time),
+      and(eq(schema.Reply.time, cursor.time), lt(schema.Reply.id, cursor.id)),
+    ),
+  );
+}
+
+function buildAfterCursorWhere(
+  postId: number,
+  authorId: number,
+  cursor: ReplyCursorCandidate,
+) {
+  return and(
+    eq(schema.Reply.postId, postId),
+    eq(schema.Reply.authorId, authorId),
+    or(
+      gt(schema.Reply.time, cursor.time),
+      and(eq(schema.Reply.time, cursor.time), gt(schema.Reply.id, cursor.id)),
+    ),
+  );
+}
+
+async function resolveReplyCursor({
+  postId,
+  authorId,
+  cursorReplyId,
+  relativeToReplyId,
+}: {
+  postId: number;
+  authorId: number;
+  cursorReplyId?: number;
+  relativeToReplyId?: number;
+}): Promise<ReplyCursorCandidate | null> {
+  const baseSelect = {
+    id: schema.Reply.id,
+    postId: schema.Reply.postId,
+    authorId: schema.Reply.authorId,
+    time: schema.Reply.time,
+  };
+
+  if (cursorReplyId) {
+    const [cursor] = await db
+      .select(baseSelect)
+      .from(schema.Reply)
+      .where(eq(schema.Reply.id, cursorReplyId))
+      .limit(1);
+
+    if (!cursor) {
+      return null;
+    }
+
+    if (cursor.postId !== postId || cursor.authorId !== authorId) {
+      return null;
+    }
+
+    return cursor;
+  }
+
+  if (relativeToReplyId) {
+    const [relative] = await db
+      .select(baseSelect)
+      .from(schema.Reply)
+      .where(eq(schema.Reply.id, relativeToReplyId))
+      .limit(1);
+
+    if (!relative) {
+      return null;
+    }
+
+    if (relative.postId !== postId) {
+      return null;
+    }
+
+    const [candidateBefore] = await db
+      .select(baseSelect)
+      .from(schema.Reply)
+      .where(buildBeforeCursorWhere(postId, authorId, relative))
+      .orderBy(desc(schema.Reply.time), desc(schema.Reply.id))
+      .limit(1);
+
+    if (candidateBefore) {
+      return candidateBefore;
+    }
+
+    const [candidateAfter] = await db
+      .select(baseSelect)
+      .from(schema.Reply)
+      .where(buildAfterCursorWhere(postId, authorId, relative))
+      .orderBy(asc(schema.Reply.time), asc(schema.Reply.id))
+      .limit(1);
+
+    if (candidateAfter) {
+      return candidateAfter;
+    }
+
+    return null;
+  }
+
+  const [latest] = await db
+    .select(baseSelect)
+    .from(schema.Reply)
+    .where(
+      and(eq(schema.Reply.postId, postId), eq(schema.Reply.authorId, authorId)),
+    )
+    .orderBy(desc(schema.Reply.time), desc(schema.Reply.id))
+    .limit(1);
+
+  return latest ?? null;
+}
+
+export async function getPostUserReplyInference({
+  postId,
+  userId,
+  cursorReplyId,
+  relativeToReplyId,
+}: {
+  postId: number;
+  userId: number;
+  cursorReplyId?: number;
+  relativeToReplyId?: number;
+}) {
+  const cursor = await resolveReplyCursor({
+    postId,
+    authorId: userId,
+    ...(cursorReplyId ? { cursorReplyId } : {}),
+    ...(relativeToReplyId ? { relativeToReplyId } : {}),
+  });
+
+  if (!cursor) {
+    return {
+      current: null,
+      previousReplyId: null,
+      nextReplyId: null,
+    } as const;
+  }
+
+  const [current, previousRows, nextRows] = await Promise.all([
+    getReplyWithLatestSnapshot(cursor.id),
+    db
+      .select({ id: schema.Reply.id })
+      .from(schema.Reply)
+      .where(buildBeforeCursorWhere(postId, userId, cursor))
+      .orderBy(desc(schema.Reply.time), desc(schema.Reply.id))
+      .limit(1),
+    db
+      .select({ id: schema.Reply.id })
+      .from(schema.Reply)
+      .where(buildAfterCursorWhere(postId, userId, cursor))
+      .orderBy(asc(schema.Reply.time), asc(schema.Reply.id))
+      .limit(1),
+  ]);
+
+  const previous = previousRows[0];
+  const next = nextRows[0];
+
+  return {
+    current,
+    previousReplyId: previous?.id ?? null,
+    nextReplyId: next?.id ?? null,
+  } as const;
 }
 
 type TimelineChangedField = "title" | "content" | "author" | "forum";
@@ -345,33 +618,7 @@ export async function getPostSnapshotByCapturedAt(
   postId: number,
   capturedAt: Date,
 ) {
-  const post = await prisma.post.findUnique({
-    where: { id: postId },
-    include: {
-      snapshots: {
-        where: { capturedAt },
-        take: 1,
-        include: {
-          author: {
-            include: {
-              snapshots: {
-                orderBy: { capturedAt: "desc" },
-                take: 1,
-              },
-            },
-          },
-          forum: true,
-        },
-      },
-      takedown: true,
-      _count: {
-        select: {
-          replies: true,
-          snapshots: true,
-        },
-      },
-    },
-  });
+  const post = await getPostWithSnapshot(postId, capturedAt).catch(() => null);
 
   if (!post) {
     return null;
@@ -402,28 +649,22 @@ export async function getPostSnapshotsTimeline(
   hasMore: boolean;
   nextCursor: Date | null;
 }> {
-  const snapshots = await prisma.postSnapshot.findMany({
-    where: { postId },
-    orderBy: { capturedAt: "desc" },
-    ...(cursorCapturedAt
-      ? {
-          cursor: {
-            postId_capturedAt: {
-              postId,
-              capturedAt: cursorCapturedAt,
-            },
-          },
-          skip: 1,
-        }
-      : {}),
-    take: take + 1,
-    include: {
+  const snapshots = await db.query.PostSnapshot.findMany({
+    where: cursorCapturedAt
+      ? and(
+          eq(schema.PostSnapshot.postId, postId),
+          lt(schema.PostSnapshot.capturedAt, cursorCapturedAt),
+        )
+      : eq(schema.PostSnapshot.postId, postId),
+    orderBy: desc(schema.PostSnapshot.capturedAt),
+    limit: take + 1,
+    with: {
       forum: true,
       author: {
-        include: {
+        with: {
           snapshots: {
-            orderBy: { capturedAt: "desc" },
-            take: 1,
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
           },
         },
       },
@@ -508,30 +749,43 @@ export async function getPostSnapshotsTimeline(
 }
 
 export async function getReplyWithLatestSnapshot(replyId: number) {
-  return prisma.reply.findUnique({
-    where: { id: replyId },
-    include: {
+  const reply = await db.query.Reply.findFirst({
+    where: eq(schema.Reply.id, replyId),
+    with: {
       author: {
-        include: {
+        with: {
           snapshots: {
-            orderBy: { capturedAt: "desc" },
-            take: 1,
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
           },
         },
       },
       snapshots: {
-        orderBy: { capturedAt: "desc" },
-        take: 1,
+        orderBy: desc(schema.ReplySnapshot.capturedAt),
+        limit: 1,
       },
       takedown: true,
       post: {
-        select: {
+        columns: {
           id: true,
         },
       },
-      _count: {
-        select: { snapshots: true },
-      },
     },
   });
+
+  if (!reply) {
+    return null;
+  }
+
+  const [snapshotCountRow] = await db
+    .select({ total: count() })
+    .from(schema.ReplySnapshot)
+    .where(eq(schema.ReplySnapshot.replyId, replyId));
+
+  return {
+    ...reply,
+    _count: {
+      snapshots: snapshotCountRow?.total ?? 0,
+    },
+  };
 }

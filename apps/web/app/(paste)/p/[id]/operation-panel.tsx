@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import {
+  ClipboardCheck,
+  ClipboardCopy,
   History,
   Reply,
   SquareArrowOutUpRight,
@@ -43,6 +45,7 @@ export default function PasteOperationPanel({
     id: string;
     time: Date;
     public: boolean;
+    content: string | null;
     capturedAt: Date;
     lastSeenAt: Date;
     snapshotsCount: number;
@@ -52,19 +55,21 @@ export default function PasteOperationPanel({
 }) {
   const { copy: copyLink, copied: copiedLink } = useClipboard();
   const { copy: copySnapshotLink, copied: copiedSnapshotLink } = useClipboard();
+  const { copy: copySourceMarkdown, copied: copiedSourceMarkdown } =
+    useClipboard();
   const openWayback = React.useCallback(() => {
     if (typeof window === "undefined") return;
     if (window.location.hash === "#wayback") return;
     window.location.hash = "wayback";
   }, []);
+  const snapshotToken = paste.capturedAt.getTime().toString(36);
+  const originalLink = `https://www.luogu.com.cn/paste/${paste.id}`;
+  const archiveLink = `https://luogu.store/p/${paste.id}`;
+  const archiveSnapshotLink = `https://luogu.store/p/${paste.id}@${snapshotToken}`;
+  const sourceMarkdown = paste.content ?? "";
 
   return (
-    <div
-      className={cn(
-        "rounded-3xl border border-border bg-background px-5 py-4 shadow-sm",
-        className,
-      )}
-    >
+    <div className={className}>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-foreground">云剪贴板操作</h2>
         <p className="text-sm text-muted-foreground">
@@ -97,12 +102,8 @@ export default function PasteOperationPanel({
 
       <div className="mt-6 grid gap-2">
         <Button asChild className="justify-start gap-2 rounded-2xl py-2">
-          <Link
-            href={`https://www.luogu.com.cn/paste/${paste.id}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Reply className="size-4" aria-hidden="true" /> 查看原帖
+          <Link href={originalLink} target="_blank" rel="noreferrer">
+            <Reply className="size-4" aria-hidden="true" /> 查看原剪贴板
           </Link>
         </Button>
         <Button
@@ -117,7 +118,7 @@ export default function PasteOperationPanel({
           variant="outline"
           className="cursor-pointer justify-start gap-2 rounded-2xl py-2"
           type="button"
-          onClick={() => copyLink(`https://luogu.store/p/${paste.id}`)}
+          onClick={() => copyLink(archiveLink)}
           aria-live="polite"
         >
           {copiedLink ? (
@@ -131,11 +132,7 @@ export default function PasteOperationPanel({
           variant="outline"
           className="cursor-pointer justify-start gap-2 rounded-2xl py-2"
           type="button"
-          onClick={() =>
-            copySnapshotLink(
-              `https://luogu.store/p/${paste.id}@${paste.capturedAt.getTime().toString(36)}`,
-            )
-          }
+          onClick={() => copySnapshotLink(archiveSnapshotLink)}
           aria-live="polite"
         >
           {copiedSnapshotLink ? (
@@ -144,6 +141,20 @@ export default function PasteOperationPanel({
             <SquareArrowOutUpRight className="size-4" aria-hidden="true" />
           )}
           复制快照链接
+        </Button>
+        <Button
+          variant="outline"
+          className="cursor-pointer justify-start gap-2 rounded-2xl py-2"
+          type="button"
+          onClick={() => copySourceMarkdown(sourceMarkdown)}
+          aria-live="polite"
+        >
+          {copiedSourceMarkdown ? (
+            <ClipboardCheck className="size-4" aria-hidden="true" />
+          ) : (
+            <ClipboardCopy className="size-4" aria-hidden="true" />
+          )}
+          复制 Markdown 源代码
         </Button>
       </div>
     </div>

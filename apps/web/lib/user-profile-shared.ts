@@ -6,6 +6,7 @@ import type {
   UserProfile,
   UserProfileBundle,
   UserSnapshotAppearance,
+  UserTimelinePage,
 } from "@luogu-discussion-archive/query";
 
 export const NAME_COLOR_CLASS: Record<UserNameColor, string> = {
@@ -25,5 +26,6 @@ export type {
   UserProfile,
   UserProfileBundle,
   UserSnapshotAppearance,
+  UserTimelinePage,
   UsernameHistoryEntry,
 };

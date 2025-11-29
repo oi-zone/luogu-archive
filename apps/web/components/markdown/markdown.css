@@ -1,0 +1,522 @@
+@import "../../app/globals.css";
+
+@layer base {
+  .markdown-body {
+    @apply text-muted-foreground;
+    font-size: 1rem;
+    line-height: 1.75;
+    letter-spacing: -0.003em;
+    word-break: break-word;
+    white-space: normal;
+    --md-top-level-block-mt: 1.5rem;
+    --md-block-mt: 0.75rem;
+  }
+
+  .markdown-body.markdown-body-compact {
+    --md-top-level-block-mt: 0.75rem;
+  }
+
+  .markdown-body
+    :is(
+      div.fake-p,
+      blockquote:not(.ls-epigraph-blockquote),
+      details,
+      pre,
+      table,
+      ul,
+      ol,
+      dl,
+      figure,
+      .markdown-code-block
+    )
+    + :is(
+      div.fake-p,
+      blockquote:not(.ls-epigraph-blockquote),
+      details,
+      pre,
+      table,
+      ul,
+      ol,
+      dl,
+      figure,
+      .markdown-code-block
+    ) {
+    margin-top: var(--md-block-mt);
+  }
+
+  .markdown-body
+    > :is(
+      div.fake-p,
+      blockquote:not(.ls-epigraph-blockquote),
+      details,
+      pre,
+      table,
+      ul,
+      ol,
+      dl,
+      figure,
+      .markdown-code-block
+    )
+    + :is(
+      div.fake-p,
+      blockquote:not(.ls-epigraph-blockquote),
+      details,
+      pre,
+      table,
+      ul,
+      ol,
+      dl,
+      figure,
+      .markdown-code-block
+    ) {
+    margin-top: var(--md-top-level-block-mt);
+  }
+
+  .markdown-body :is(h1, h2, h3, h4, h5, h6) {
+    @apply font-semibold text-foreground;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    scroll-margin-top: 7rem;
+  }
+
+  .markdown-body h6 {
+    @apply text-muted-foreground;
+  }
+
+  .markdown-body h1 {
+    @apply mt-[32] mb-[24] text-4xl leading-tight;
+  }
+  .markdown-body h2 {
+    @apply mt-[28] mb-[20] text-3xl leading-tight;
+  }
+  .markdown-body h3 {
+    @apply mt-[24] mb-[16] text-2xl leading-snug;
+  }
+  .markdown-body h4 {
+    @apply mt-[20] mb-[13] text-xl leading-snug;
+  }
+  .markdown-body h5,
+  .markdown-body h6 {
+    @apply mt-[16] mb-[10] text-base tracking-[0.025em] text-foreground uppercase;
+  }
+
+  .markdown-body div.fake-p {
+    @apply text-muted-foreground;
+  }
+
+  .markdown-body a:not(.clear-markdown-style) {
+    @apply text-indigo-500 underline decoration-1 underline-offset-[3px] transition-colors hover:text-indigo-700 dark:hover:text-indigo-400;
+  }
+
+  .markdown-body a.ls-link-preview {
+    @apply text-orange-500 no-underline transition-colors hover:text-orange-600 dark:hover:text-orange-400;
+  }
+
+  .markdown-body strong {
+    @apply font-semibold;
+  }
+  .markdown-body em {
+    @apply italic;
+  }
+
+  .markdown-body :is(strong, em):not(:is(.clear-markdown-style *)) {
+    @apply text-foreground;
+  }
+
+  .markdown-body :is(ul, ol) {
+    --md-top-level-block-mt: 1.1rem;
+    padding-inline-start: 1.65rem;
+  }
+
+  .markdown-body ul {
+    @apply list-disc;
+  }
+  .markdown-body ol {
+    @apply list-decimal;
+  }
+  .markdown-body :is(ul, ol) :is(ul, ol) {
+    @apply mt-3;
+  }
+  .markdown-body li + li {
+    @apply mt-3;
+  }
+  .markdown-body li {
+    @apply text-muted-foreground;
+  }
+  .markdown-body li::marker {
+    color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
+  }
+
+  .markdown-body :is(blockquote:not(.ls-epigraph-blockquote), details) {
+    position: relative;
+    margin-inline: 0;
+    padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+    color: var(--muted-foreground);
+  }
+
+  @media (min-width: 40rem) {
+    .markdown-body :is(blockquote:not(.ls-epigraph-blockquote), details) {
+      padding: 0.5rem 1rem 0.5rem 1.75rem;
+    }
+  }
+
+  .markdown-body figure.ls-epigraph {
+    @apply relative text-right;
+    --before-bar-color: var(--color-gray-500);
+    --summary-color: var(--primary);
+    margin-inline: 0;
+    padding: 0.5rem 1.25rem 0.5rem 0.5rem;
+    color: var(--muted-foreground);
+  }
+
+  @media (min-width: 40rem) {
+    .markdown-body figure.ls-epigraph {
+      padding: 0.5rem 1.75rem 0.5rem 1rem;
+    }
+  }
+
+  .markdown-body details > summary {
+    @apply font-semibold;
+    position: relative;
+    list-style: none;
+    color: var(--summary-color);
+    cursor: pointer;
+  }
+
+  .markdown-body details[open] > summary {
+    margin-bottom: 0.5rem;
+  }
+
+  .markdown-body details > summary::after {
+    content: "";
+    display: block;
+    width: 0;
+    height: 0;
+    border-top: 0.4rem solid transparent;
+    border-bottom: 0.4rem solid transparent;
+    border-left: 0.5rem solid currentColor;
+    position: absolute;
+    inset-block: 0.5rem;
+    inset-inline-end: 0;
+    transform: rotate(0deg);
+    transition: transform 100ms ease-out;
+  }
+
+  .markdown-body details[open] > summary::after {
+    transform: rotate(90deg);
+  }
+
+  .markdown-body
+    :is(
+      blockquote:not(.ls-epigraph-blockquote),
+      details,
+      figure.ls-epigraph
+    )::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: 5px;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--before-bar-color) 68%, transparent),
+      color-mix(in srgb, var(--before-bar-color) 36%, transparent)
+    );
+  }
+
+  .markdown-body :is(blockquote:not(.ls-epigraph-blockquote), details)::before {
+    inset-inline-start: 0.25rem;
+  }
+
+  .markdown-body figure.ls-epigraph::before {
+    inset-inline-end: 0.25rem;
+  }
+
+  .markdown-body blockquote:not(.ls-epigraph-blockquote) {
+    --before-bar-color: var(--color-gray-500);
+    --summary-color: var(--primary);
+  }
+
+  .markdown-body details.info {
+    --before-bar-color: var(--color-sky-500);
+    --summary-color: var(--color-sky-500);
+  }
+
+  .markdown-body details.success {
+    --before-bar-color: var(--color-lime-500);
+    --summary-color: var(--color-lime-500);
+  }
+
+  .markdown-body details.warning {
+    --before-bar-color: var(--color-amber-400);
+    --summary-color: var(--color-amber-400);
+  }
+
+  .markdown-body details.error {
+    --before-bar-color: var(--color-rose-500);
+    --summary-color: var(--color-rose-500);
+  }
+
+  .markdown-body hr {
+    @apply my-8 h-px border-none bg-border;
+  }
+
+  .markdown-body code:not(.ls-code-block):not(.ls-code-block-line-numbers) {
+    @apply relative rounded-lg px-1 py-0.5 font-mono text-sm text-pink-600 dark:text-pink-400;
+    @apply bg-[#f5f7f9] dark:bg-[#0d1117];
+  }
+
+  .markdown-body pre {
+    box-shadow: none;
+    @apply border border-border bg-[#f5f7f9] p-0 dark:bg-[#0d1117];
+  }
+
+  .markdown-body pre code {
+    @apply bg-transparent px-2 py-1 font-mono text-sm text-foreground;
+    box-shadow: none;
+    color: inherit;
+  }
+
+  .markdown-body pre code:first-child {
+    @apply rounded-s-xl text-foreground;
+  }
+
+  .markdown-body pre code:last-child {
+    @apply flex-1 rounded-e-xl text-foreground;
+  }
+
+  .markdown-body pre code:not(:last-child) {
+    @apply pr-1;
+  }
+
+  .markdown-body pre code:not(:first-child) {
+    @apply pl-3!;
+  }
+
+  .markdown-body pre code.ls-code-block-line-numbers {
+    @apply bg-[#f5f7f9] text-sm leading-none dark:bg-[#0d1117];
+  }
+
+  .markdown-body kbd {
+    @apply inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground;
+  }
+
+  .markdown-body mark {
+    background: var(--accent);
+    color: var(--foreground);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.2rem;
+  }
+
+  .markdown-body table:not(.hljs-ln):not(.ls-cute-table) {
+    @apply border border-border;
+  }
+
+  .markdown-body table:not(.hljs-ln):not(.ls-cute-table) thead {
+    background: var(--muted);
+    color: var(--foreground);
+  }
+
+  .markdown-body table:not(.hljs-ln) th {
+    @apply text-left font-semibold;
+  }
+
+  .markdown-body table:not(.hljs-ln):not(.ls-cute-table) th,
+  .markdown-body table:not(.hljs-ln):not(.ls-cute-table) td {
+    @apply px-4 py-2;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .markdown-body
+    table:not(.hljs-ln):not(.ls-cute-table)
+    tbody
+    tr:nth-child(even) {
+    background: var(--muted);
+  }
+
+  .markdown-body table:not(.hljs-ln) tbody td,
+  .markdown-body table:not(.hljs-ln) tbody th {
+    vertical-align: middle;
+  }
+
+  .markdown-body table:not(.hljs-ln) .ls-merged-cell-placeholder {
+    @apply hidden;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table {
+    @apply text-foreground;
+    margin: 0.5em auto;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table th,
+  .markdown-body table:not(.hljs-ln).ls-cute-table td {
+    @apply px-[13] py-[6];
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    line-height: 24px;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-three td,
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-three th {
+    border: none;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-three th {
+    font-weight: 400;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-three {
+    border-top: 5px solid currentcolor;
+    border-bottom: 5px solid currentcolor;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-three thead {
+    border-bottom: 3px solid currentcolor;
+  }
+
+  .markdown-body
+    table:not(.hljs-ln).ls-cute-table.ls-cute-table-three
+    td.ls-cute-table-bold-col,
+  .markdown-body
+    table:not(.hljs-ln).ls-cute-table.ls-cute-table-three
+    th.ls-cute-table-bold-col {
+    border-left: 3px solid currentcolor;
+  }
+
+  .markdown-body
+    table:not(.hljs-ln).ls-cute-table.ls-cute-table-tuack
+    td:not(:first-child),
+  .markdown-body
+    table:not(.hljs-ln).ls-cute-table.ls-cute-table-tuack
+    th:not(:first-child) {
+    border-left: 1px solid currentcolor;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-tuack td,
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-tuack th {
+    border: none;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-tuack th {
+    font-weight: 400;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-tuack {
+    border-top: 5px solid currentcolor;
+    border-bottom: 5px solid currentcolor;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table.ls-cute-table-tuack thead {
+    border-bottom: 3px solid currentcolor;
+  }
+
+  .markdown-body
+    table:not(.hljs-ln).ls-cute-table.ls-cute-table-tuack
+    tr:not(:last-child) {
+    border-bottom: 1px solid currentcolor;
+  }
+
+  .markdown-body table:not(.hljs-ln).ls-cute-table > caption {
+    display: block;
+  }
+
+  .markdown-body figure {
+    @apply my-9 text-center;
+  }
+  .markdown-body figure > * + * {
+    @apply mt-3;
+  }
+  .markdown-body figcaption {
+    @apply text-[0.8rem] text-muted-foreground;
+  }
+
+  .markdown-body iframe,
+  .markdown-body video {
+    @apply w-full rounded-2xl border border-border;
+  }
+
+  .markdown-body sup,
+  .markdown-body sub {
+    @apply relative text-[0.75em] leading-none;
+  }
+
+  .markdown-body sup {
+    top: -0.4em;
+  }
+  .markdown-body sub {
+    bottom: -0.2em;
+  }
+  .markdown-body > *:first-child {
+    @apply mt-0;
+  }
+  .markdown-body > *:last-child {
+    @apply mb-0;
+  }
+
+  .markdown-body img {
+    @apply inline-block;
+  }
+
+  .markdown-body .task-list-item {
+    list-style: none;
+    padding-inline-start: 0;
+    margin-inline-start: -0.4rem;
+  }
+
+  .markdown-body .task-list-item input[type="checkbox"] {
+    margin-inline-end: 0.6rem;
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 0.35rem;
+    border: 1px solid var(--border);
+    accent-color: var(--primary);
+  }
+
+  .markdown-body .ls-align-left {
+    @apply text-left;
+  }
+
+  .markdown-body .ls-align-center {
+    @apply text-center;
+  }
+
+  .markdown-body .ls-align-right {
+    @apply text-right;
+  }
+
+  .markdown-heading-anchor-wrapper {
+    @apply relative flex items-baseline gap-1;
+    scroll-margin-top: 96px;
+  }
+
+  @media (max-width: 1023px) {
+    .markdown-heading-anchor-wrapper {
+      scroll-margin-top: 72px;
+    }
+  }
+
+  .markdown-heading-text {
+    @apply flex-1;
+  }
+
+  .markdown-heading-anchor {
+    opacity: 0;
+    @apply text-muted;
+    transition: opacity 120ms ease-in-out;
+    display: inline-block;
+  }
+  .markdown-heading-anchor-icon {
+    opacity: 0;
+    transition: opacity 120ms ease-in-out;
+  }
+
+  .markdown-heading-anchor-wrapper:hover .markdown-heading-anchor {
+    opacity: 1;
+    @apply text-indigo-500;
+  }
+  .markdown-heading-anchor-wrapper:hover .markdown-heading-anchor-icon {
+    opacity: 1;
+  }
+}

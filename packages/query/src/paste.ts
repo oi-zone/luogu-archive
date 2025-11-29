@@ -1,35 +1,49 @@
-import { prisma } from "@luogu-discussion-archive/db";
+import {
+  and,
+  count,
+  db,
+  desc,
+  eq,
+  lt,
+  schema,
+} from "@luogu-discussion-archive/db/drizzle";
 
 export async function getPasteWithSnapshot(id: string, capturedAt?: Date) {
-  const pastePromise = prisma.paste.findUnique({
-    where: { id },
-    include: {
+  const paste = await db.query.Paste.findFirst({
+    where: eq(schema.Paste.id, id),
+    with: {
       snapshots: {
-        ...(capturedAt ? { where: { capturedAt } } : {}),
-        orderBy: { capturedAt: "desc" },
-        take: 1,
+        orderBy: desc(schema.PasteSnapshot.capturedAt),
+        limit: 1,
+        ...(capturedAt
+          ? { where: eq(schema.PasteSnapshot.capturedAt, capturedAt) }
+          : {}),
       },
       user: {
-        include: {
+        with: {
           snapshots: {
-            orderBy: { capturedAt: "desc" },
-            take: 1,
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
           },
-        },
-      },
-      _count: {
-        select: {
-          snapshots: true,
         },
       },
     },
   });
 
-  const paste = await pastePromise;
-
   if (!paste) throw new Error("Paste not found");
 
-  return paste;
+  const [snapshotCountRow] = await db
+    .select({ snapshotCount: count() })
+    .from(schema.PasteSnapshot)
+    .where(eq(schema.PasteSnapshot.pasteId, id));
+  const snapshotCount = snapshotCountRow?.snapshotCount ?? 0;
+
+  return {
+    ...paste,
+    _count: {
+      snapshots: snapshotCount,
+    },
+  };
 }
 
 type PasteSnapshotChangedField = "content" | "visibility";
@@ -56,21 +70,15 @@ export async function getPasteSnapshotsTimeline(
   hasMore: boolean;
   nextCursor: Date | null;
 }> {
-  const snapshots = await prisma.pasteSnapshot.findMany({
-    where: { pasteId },
-    orderBy: { capturedAt: "desc" },
-    ...(cursorCapturedAt
-      ? {
-          cursor: {
-            pasteId_capturedAt: {
-              pasteId,
-              capturedAt: cursorCapturedAt,
-            },
-          },
-          skip: 1,
-        }
-      : {}),
-    take: take + 1,
+  const snapshots = await db.query.PasteSnapshot.findMany({
+    where: cursorCapturedAt
+      ? and(
+          eq(schema.PasteSnapshot.pasteId, pasteId),
+          lt(schema.PasteSnapshot.capturedAt, cursorCapturedAt),
+        )
+      : eq(schema.PasteSnapshot.pasteId, pasteId),
+    orderBy: desc(schema.PasteSnapshot.capturedAt),
+    limit: take + 1,
   });
 
   if (snapshots.length === 0) {
