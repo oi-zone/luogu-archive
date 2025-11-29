@@ -7,7 +7,7 @@ export default {
   trailingComma: "all",
   overrides: [
     {
-      files: ["tsconfig.json", "tsconfig.*.json"],
+      files: ["tsconfig.json", "tsconfig.*.json", ".vscode/*.json"],
       options: { parser: "jsonc" },
     },
   ],
