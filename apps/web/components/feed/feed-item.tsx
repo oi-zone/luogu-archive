@@ -8,6 +8,7 @@ import {
 
 import type { FeedEntry } from "@luogu-discussion-archive/query";
 
+import { getCategoryInfo } from "@/lib/category-info";
 import { getPermissionNames } from "@/lib/judgement";
 import { cn } from "@/lib/utils";
 
@@ -17,12 +18,17 @@ export function FeedCard({ item }: { item: FeedEntry }) {
   const timestamp = getEntryTimestamp(item);
 
   switch (item.kind) {
-    case "article":
+    case "article": {
+      const categoryName =
+        typeof item.category === "number"
+          ? getCategoryInfo(item.category).name
+          : null;
       return (
         <FeedCardTemplate
           href={resolveLink(item)}
           kind={item.kind}
           time={timestamp}
+          metaTags={categoryName ? [categoryName] : undefined}
           title={item.title}
           content={
             "我是一段 AI 总结，啦啦啦啦啦。嘻嘻嘻嘻，我好高兴！野火烧不尽，春风吹又生。海内存知己，天涯若比邻。"
@@ -40,6 +46,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
           user={item.author}
         />
       );
+    }
     case "discussion":
       return (
         <FeedCardTemplate

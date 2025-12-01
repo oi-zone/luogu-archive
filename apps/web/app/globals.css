@@ -123,26 +123,38 @@
     @apply bg-[var(--background)] text-[var(--foreground)];
   }
 
-  .text-luogu-purple {
+  .text-luogu-purple,
+  .text-luogu-problem-6 {
     @apply text-violet-600 dark:text-violet-500;
   }
-  .text-luogu-red {
+  .text-luogu-red,
+  .text-luogu-problem-1 {
     @apply text-rose-600 dark:text-rose-500;
   }
-  .text-luogu-orange {
+  .text-luogu-orange,
+  .text-luogu-problem-3 {
     @apply text-amber-500 dark:text-amber-400;
   }
-  .text-luogu-green {
+  .text-luogu-green,
+  .text-luogu-problem-4 {
     @apply text-lime-500 dark:text-lime-400;
   }
-  .text-luogu-blue {
+  .text-luogu-blue,
+  .text-luogu-problem-5 {
     @apply text-sky-500 dark:text-sky-400;
   }
-  .text-luogu-gray {
+  .text-luogu-gray,
+  .text-luogu-problem-0 {
     @apply text-gray-400 dark:text-gray-500;
   }
   .text-luogu-cheater {
     @apply text-yellow-900 dark:text-yellow-800;
+  }
+  .text-luogu-problem-2 {
+    @apply text-orange-500 dark:text-orange-400;
+  }
+  .text-luogu-problem-7 {
+    @apply text-blue-950 dark:text-blue-900;
   }
 
   .bg-luogu-purple {

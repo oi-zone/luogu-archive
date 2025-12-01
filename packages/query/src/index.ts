@@ -55,3 +55,4 @@ export {
   type FeedPage,
   type FeedCursor,
 } from "./feed.js";
+export { getProblemBasicInfo, type ProblemBasicInfo } from "./problem.js";

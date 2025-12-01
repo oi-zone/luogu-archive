@@ -13,6 +13,7 @@ import {
   captureFromFirstMatch,
   discussionRegexes,
   pasteRegexes,
+  problemRegexes,
   userRegexes,
 } from "./link";
 import ArticleMagicLinkDirect, {
@@ -25,6 +26,10 @@ import DiscussionMagicLinkDirect, {
 import DiscussionMagicLinkWithOriginal from "./magic-link/discussion/with-original";
 import PasteMagicLinkDirect, { PasteLinkInfo } from "./magic-link/paste/direct";
 import PasteMagicLinkWithOriginal from "./magic-link/paste/with-original";
+import ProblemMagicLinkDirect, {
+  ProblemLinkInfo,
+} from "./magic-link/problem/direct";
+import ProblemMagicLinkWithOriginal from "./magic-link/problem/with-original";
 import UserMagicLinkDirect from "./magic-link/user/direct";
 import UserMagicLinkWithOriginal from "./magic-link/user/with-original";
 import type { MarkdownMentionContext } from "./markdown";
@@ -97,7 +102,7 @@ type UsefulnessContext = {
   href: string;
   text?: string;
   rawSource?: string;
-  kind: "discussion" | "article" | "paste" | "user";
+  kind: "discussion" | "article" | "paste" | "user" | "problem";
   referenceId?: string;
   referenceName?: string;
   referenceTitle?: string;
@@ -169,7 +174,10 @@ function isLinkTextUseful({
     }
   }
 
-  if ((kind === "discussion" || kind === "article") && referenceTitle) {
+  if (
+    (kind === "discussion" || kind === "article" || kind === "problem") &&
+    referenceTitle
+  ) {
     const normalizedLabel = normalizePlainText(label);
     const normalizedTitle = normalizePlainText(referenceTitle);
     if (
@@ -205,6 +213,15 @@ function isLinkTextUseful({
     }
   }
 
+  if (kind === "problem" && referenceId) {
+    if (
+      captureFromFirstMatch(problemRegexes, label)?.[1] ??
+      "" === referenceId
+    ) {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -229,6 +246,7 @@ type MarkdownLinkProps = React.ComponentProps<"a"> & {
   "data-ls-article"?: string;
   "data-ls-user"?: string;
   "data-ls-paste"?: string;
+  "data-ls-problem"?: string;
   "data-ls-link-text"?: string;
   "data-ls-link-source"?: string;
   mentionContext?: MarkdownMentionContext;
@@ -274,6 +292,20 @@ async function fetchPasteSummary(pasteId: string): Promise<PasteLinkInfo> {
     throw new Error("Failed to load paste");
   }
   return response.json();
+}
+
+async function fetchProblemInfo(pid: string): Promise<ProblemLinkInfo> {
+  const response = await fetch(`/api/problems/${pid}`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("Failed to load problem");
+  }
+  const data = await response.json();
+  return {
+    pid: data.pid,
+    title: data.title,
+    difficulty: data.difficulty ?? null,
+    solutionsCount: data.solutionsCount ?? 0,
+  } satisfies ProblemLinkInfo;
 }
 
 export default function MarkdownLink(props: MarkdownLinkProps) {
@@ -324,6 +356,7 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
 
   const articleId = props["data-ls-article"];
   const pasteId = props["data-ls-paste"];
+  const problemId = props["data-ls-problem"];
 
   const { data: userInfo } = useQuery<MentionUser>({
     queryKey: ["user", uid],
@@ -347,6 +380,12 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
     queryKey: ["paste", pasteId],
     queryFn: () => fetchPasteSummary(pasteId!),
     enabled: Boolean(pasteId),
+  });
+
+  const { data: problemInfo } = useQuery<ProblemLinkInfo>({
+    queryKey: ["problem", problemId],
+    queryFn: () => fetchProblemInfo(problemId!),
+    enabled: Boolean(problemId),
   });
 
   if (uidMentionParam) {
@@ -476,6 +515,35 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
     return (
       <Link href={`/p/${pasteId}`} className={className} {...rest}>
         {hasCustomChildren ? children : linkLabel || `云剪贴板\u2009${pasteId}`}
+      </Link>
+    );
+  }
+
+  if (problemId) {
+    if (problemInfo) {
+      return !isLinkTextUseful({
+        href: trueUrl,
+        text: linkLabel,
+        rawSource: linkTextSource,
+        kind: "problem",
+        referenceTitle: problemInfo.title,
+        referenceId: problemId,
+      }) ? (
+        <ProblemMagicLinkDirect problemInfo={problemInfo} />
+      ) : (
+        <ProblemMagicLinkWithOriginal problemInfo={problemInfo}>
+          {hasCustomChildren ? children : linkLabel || `题目\u2009${problemId}`}
+        </ProblemMagicLinkWithOriginal>
+      );
+    }
+
+    return (
+      <Link
+        href={`https://www.luogu.com.cn/problem/${problemId}`}
+        className={className}
+        {...rest}
+      >
+        {hasCustomChildren ? children : linkLabel || `题目\u2009${problemId}`}
       </Link>
     );
   }

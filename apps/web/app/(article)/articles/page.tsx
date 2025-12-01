@@ -85,6 +85,7 @@ function articleToFeedEntry(article: FeaturedArticleSummary): FeedEntry {
     author: article.author,
     articleId: article.lid,
     title: article.snapshot.title,
+    category: article.category,
     replyCount: article.replyCount,
     recentReplyCount: article.recentReplyCount,
     favorCount: article.favorCount,

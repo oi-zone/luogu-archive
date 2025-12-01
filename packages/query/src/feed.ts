@@ -40,6 +40,7 @@ export interface ArticleFeedEntry extends FeedEntryBase {
   kind: "article";
   articleId: string;
   title: string;
+  category: number | null;
   replyCount: number;
   recentReplyCount: number;
   favorCount: number;
@@ -111,6 +112,7 @@ interface ArticleRow extends Record<string, unknown> {
   upvote: number;
   recentReplyCount: number;
   title: string | null;
+  category: number | null;
   authorId: number | null;
   authorName: string | null;
   authorBadge: string | null;
@@ -275,6 +277,7 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
       author,
       articleId: row.articleId,
       title,
+      category: typeof row.category === "number" ? row.category : null,
       replyCount: row.replyCount,
       recentReplyCount,
       favorCount: row.favorCount,
@@ -592,7 +595,8 @@ async function fetchArticleRows() {
     latest_article_snapshot AS (
       SELECT DISTINCT ON ("articleId")
         "articleId",
-        "title"
+        "title",
+        "category"
       FROM "ArticleSnapshot"
       ORDER BY "articleId", "capturedAt" DESC
     ),
@@ -611,6 +615,7 @@ async function fetchArticleRows() {
       a."upvote",
       COALESCE(rar."recentReplyCount", 0) AS "recentReplyCount",
       las."title" AS "title",
+      las."category" AS "category",
       au."userId" AS "authorId",
       au."name" AS "authorName",
       au."badge" AS "authorBadge",

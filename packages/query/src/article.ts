@@ -47,6 +47,7 @@ export interface FeaturedArticleSummary {
   recentReplyCount: number;
   favorCount: number;
   upvote: number;
+  category: number;
   score: number;
   snapshot: {
     title: string;
@@ -114,6 +115,7 @@ export async function getFeaturedArticles({
         limit: 1,
         columns: {
           title: true,
+          category: true,
           capturedAt: true,
           lastSeenAt: true,
         },
@@ -169,6 +171,7 @@ export async function getFeaturedArticles({
         recentReplyCount,
         favorCount: article.favorCount,
         upvote: article.upvote,
+        category: snapshot.category,
         score,
         snapshot: {
           title: snapshot.title,
