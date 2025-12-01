@@ -8,15 +8,18 @@ import { PasteLinkInfo, PasteMagicLinkContent } from "./direct";
 export default function PasteMagicLinkWithOriginal({
   pasteSummary,
   children,
+  iconCorner = false,
 }: {
   pasteSummary: PasteLinkInfo;
   children: React.ReactNode;
+  iconCorner?: boolean;
 }) {
   return (
     <LinkWithOriginal
       href={`/a/${pasteSummary.id}`}
       Icon={ClipboardList}
       original={children}
+      iconCorner={iconCorner}
       preview={
         <span
           className={cn(

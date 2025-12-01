@@ -8,15 +8,18 @@ import { ArticleLinkInfo, ArticleMagicLinkContent } from "./direct";
 export default function ArticleMagicLinkWithOriginal({
   articleSummary,
   children,
+  iconCorner = false,
 }: {
   articleSummary: ArticleLinkInfo;
   children: React.ReactNode;
+  iconCorner?: boolean;
 }) {
   return (
     <LinkWithOriginal
       href={`/a/${articleSummary.id}`}
       Icon={FileText}
       original={children}
+      iconCorner={iconCorner}
       preview={
         <span
           className={cn(

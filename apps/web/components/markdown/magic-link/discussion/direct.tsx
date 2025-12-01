@@ -40,22 +40,24 @@ export function DiscussionMagicLinkContent({
 }) {
   return (
     <>
-      <MessagesSquare
-        className="size-4 text-muted-foreground"
-        aria-hidden="true"
-      />
       <span>
-        {discussionSummary.title}
+        <span className="text-magic relative top-0.5 inline-flex items-center gap-1">
+          <MessagesSquare
+            className="icon inline-block size-3.5"
+            aria-hidden="true"
+          />
+          {discussionSummary.title}
+        </span>
         <span className="align-bottom text-xs text-muted-foreground">
           #{discussionSummary.id}
         </span>
       </span>
-      <span className="relative top-0.25 inline-block">
+      <span className="relative top-0.5 inline-block">
         <MetaItem icon={MessageCircle} compact>
           {discussionSummary.allRepliesCount.toLocaleString("zh-CN")}
         </MetaItem>
       </span>
-      <span className="relative top-0.25 inline-block">
+      <span className="relative top-0.5 inline-block">
         <MetaItem icon={Camera} compact>
           {discussionSummary.snapshotsCount.toLocaleString("zh-CN")}
         </MetaItem>

@@ -36,11 +36,13 @@ export function UserInlineLink({
   user,
   compact = false,
   avatar = true,
+  nameColorOverride,
 }: {
   className?: string;
   user: UserBasicInfo;
   compact?: boolean;
   avatar?: boolean;
+  nameColorOverride?: string;
 }) {
   return (
     <Link
@@ -52,7 +54,12 @@ export function UserInlineLink({
       )}
       prefetch={false}
     >
-      <UserInlineContent user={user} compact={compact} avatar={avatar} />
+      <UserInlineContent
+        user={user}
+        compact={compact}
+        avatar={avatar}
+        nameColorOverride={nameColorOverride}
+      />
     </Link>
   );
 }
@@ -99,11 +106,13 @@ export function UserInlineDisplay({
   compact = false,
   avatar = true,
   className,
+  nameColorOverride,
 }: {
   user: UserBasicInfo;
   compact?: boolean;
   avatar?: boolean;
   className?: string;
+  nameColorOverride?: string;
 }) {
   return (
     <span
@@ -117,6 +126,7 @@ export function UserInlineDisplay({
         compact={compact}
         avatar={avatar}
         noStartSpace={!avatar}
+        nameColorOverride={nameColorOverride}
       />
     </span>
   );
@@ -127,11 +137,13 @@ function UserInlineContent({
   compact,
   avatar,
   noStartSpace = false,
+  nameColorOverride,
 }: {
   user: UserBasicInfo;
   compact: boolean;
   avatar: boolean;
   noStartSpace?: boolean;
+  nameColorOverride?: string;
 }) {
   const displayBadge =
     user.badge ?? (user.color === "purple" ? "管理员" : null);
@@ -170,7 +182,7 @@ function UserInlineContent({
                 : compact
                   ? "me-1"
                   : "me-1.5",
-          `text-luogu-${user.color.toLowerCase()}`,
+          nameColorOverride ?? `text-luogu-${user.color.toLowerCase()}`,
         )}
       >
         {user.name}

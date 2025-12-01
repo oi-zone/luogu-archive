@@ -39,17 +39,21 @@ export function PasteMagicLinkContent({
 }) {
   return (
     <>
-      <ClipboardList
-        className="size-4 text-muted-foreground"
-        aria-hidden="true"
-      />
-      <span>云剪贴板&thinsp;{pasteSummary.id}</span>
-      <span className="relative top-0.25 inline-block">
+      <span>
+        <span className="text-magic relative top-0.5 inline-flex items-center gap-1">
+          <ClipboardList
+            className="icon inline-block size-3.5"
+            aria-hidden="true"
+          />
+          云剪贴板&thinsp;{pasteSummary.id}
+        </span>
+      </span>
+      <span className="relative top-0.5 inline-block">
         <MetaItem icon={Camera} compact>
           {pasteSummary.snapshotsCount.toLocaleString("zh-CN")}
         </MetaItem>
       </span>
-      <span className="relative top-0.25 inline-block">
+      <span className="relative top-0.5 inline-block">
         <MetaItem icon={pasteSummary.isPublic ? Globe : Lock} compact>
           {pasteSummary.isPublic ? "公开" : "私密"}
         </MetaItem>

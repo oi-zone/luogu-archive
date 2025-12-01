@@ -77,27 +77,56 @@
     line-height: 1.2;
     letter-spacing: -0.025em;
     scroll-margin-top: 7rem;
+    margin-top: var(--md-hn-mt);
+    margin-bottom: var(--md-hn-mb);
   }
-
   .markdown-body h6 {
     @apply text-muted-foreground;
   }
 
+  .markdown-body
+    :is(
+      div.fake-p,
+      blockquote:not(.ls-epigraph-blockquote),
+      details,
+      pre,
+      table,
+      ul,
+      ol,
+      dl,
+      figure,
+      .markdown-code-block
+    )
+    :is(h1, h2, h3, h4, h5, h6) {
+    margin-top: calc(var(--md-hn-mt) * 0.5);
+    margin-bottom: calc(var(--md-hn-mb) * 0.625);
+  }
+
   .markdown-body h1 {
-    @apply mt-[32] mb-[24] text-4xl leading-tight;
+    @apply text-4xl leading-tight;
+    --md-hn-mt: 32px;
+    --md-hn-mb: 24px;
   }
   .markdown-body h2 {
-    @apply mt-[28] mb-[20] text-3xl leading-tight;
+    @apply text-3xl leading-tight;
+    --md-hn-mt: 28px;
+    --md-hn-mb: 20px;
   }
   .markdown-body h3 {
-    @apply mt-[24] mb-[16] text-2xl leading-snug;
+    @apply text-2xl leading-snug;
+    --md-hn-mt: 24px;
+    --md-hn-mb: 16px;
   }
   .markdown-body h4 {
-    @apply mt-[20] mb-[13] text-xl leading-snug;
+    @apply text-xl leading-snug;
+    --md-hn-mt: 20px;
+    --md-hn-mb: 13px;
   }
   .markdown-body h5,
   .markdown-body h6 {
-    @apply mt-[16] mb-[10] text-base tracking-[0.025em] text-foreground uppercase;
+    @apply text-base tracking-[0.025em] text-foreground uppercase;
+    --md-hn-mt: 16px;
+    --md-hn-mb: 10px;
   }
 
   .markdown-body div.fake-p {
@@ -105,20 +134,7 @@
   }
 
   .markdown-body a:not(.clear-markdown-style) {
-    @apply text-indigo-500 underline decoration-1 underline-offset-[3px] transition-colors hover:text-indigo-700 dark:hover:text-indigo-400;
-  }
-
-  .markdown-body a.ls-link-preview {
-    @apply bg-linear-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 dark:hover:from-pink-400 dark:hover:to-violet-400;
-    @apply bg-clip-text text-transparent no-underline transition-colors duration-200;
-  }
-
-  .markdown-body a.ls-link-preview > .icon {
-    @apply text-pink-500;
-    @apply transition-colors duration-200;
-  }
-  .markdown-body a.ls-link-preview:hover > .icon {
-    @apply text-pink-600 dark:text-pink-400;
+    @apply text-indigo-500 transition-colors hover:text-indigo-700 dark:hover:text-indigo-400;
   }
 
   .markdown-body strong {

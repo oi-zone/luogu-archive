@@ -680,7 +680,10 @@ function TocNavigation({ items, activeId, onNavigate }: TocNavigationProps) {
               )}
               onClick={() => onNavigate(item.id)}
             >
-              <span className="line-clamp-1 truncate text-left">
+              <span
+                className="line-clamp-1 truncate text-left"
+                title={item.text}
+              >
                 {item.text}
               </span>
             </button>

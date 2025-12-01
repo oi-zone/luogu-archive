@@ -2,7 +2,14 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AtSign, MessageSquareReply } from "lucide-react";
+import {
+  AtSign,
+  ClipboardList,
+  FileText,
+  MessageSquareReply,
+  MessagesSquare,
+  Swords,
+} from "lucide-react";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
@@ -55,6 +62,22 @@ function extractTextFromChildren(children: React.ReactNode): string {
     })
     .join("")
     .trim();
+}
+
+function onlyHasImageChildren(children: React.ReactNode): boolean {
+  return React.Children.toArray(children).every((child) => {
+    if (React.isValidElement(child)) {
+      const element = child as ElementWithChildren;
+      if (element.type === "img") {
+        return true;
+      }
+      if (element.props.children) {
+        return onlyHasImageChildren(element.props.children);
+      }
+      return false;
+    }
+    return false;
+  });
 }
 
 function extractLabelFromSource(source?: string) {
@@ -225,20 +248,6 @@ function isLinkTextUseful({
   return true;
 }
 
-function hasRenderableChildren(children: React.ReactNode): boolean {
-  return React.Children.toArray(children).some((child) => {
-    if (child === null || child === undefined) return false;
-    if (typeof child === "string") return child.trim().length > 0;
-    if (typeof child === "number") return true;
-    if (React.isValidElement(child)) {
-      return hasRenderableChildren(
-        (child as ElementWithChildren).props.children,
-      );
-    }
-    return false;
-  });
-}
-
 type MarkdownLinkProps = React.ComponentProps<"a"> & {
   originalUrl?: string;
   "data-ls-user-mention"?: string;
@@ -333,8 +342,6 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
     return extractTextFromChildren(children);
   }, [children, markdownLabel]);
 
-  const hasCustomChildren = hasRenderableChildren(children);
-
   const trueUrl = new URL(
     href ?? "",
     originalUrl ?? "https://www.luogu.com.cn/",
@@ -388,6 +395,8 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
     enabled: Boolean(problemId),
   });
 
+  const onlyImagesInChildren = onlyHasImageChildren(children);
+
   if (uidMentionParam) {
     if (userInfo) {
       const shouldEnableInference =
@@ -426,12 +435,10 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
     return (
       <span className="ls-user-mention inline-flex items-center gap-0.25">
         <AtSign
-          className={cn(
-            "relative top-0.5 inline-block size-4 stroke-2 text-primary",
-          )}
+          className={cn("relative top-0.5 inline-block size-4 stroke-[1.75]")}
         />
         <span className="relative top-1 ms-0.25 -mt-1 inline-flex items-center gap-0 text-primary">
-          {hasCustomChildren ? children : linkLabel}
+          {children ?? linkLabel}
         </span>
       </span>
     );
@@ -449,19 +456,22 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
       }) ? (
         <DiscussionMagicLinkDirect discussionSummary={discussionSummary} />
       ) : (
-        <DiscussionMagicLinkWithOriginal discussionSummary={discussionSummary}>
-          {hasCustomChildren
-            ? children
-            : linkLabel || `讨论\u2009${discussionId}`}
+        <DiscussionMagicLinkWithOriginal
+          discussionSummary={discussionSummary}
+          iconCorner={onlyImagesInChildren}
+        >
+          {children ?? (linkLabel || `讨论\u2009${discussionId}`)}
         </DiscussionMagicLinkWithOriginal>
       );
     }
 
     return (
       <Link href={`/d/${discussionId}`} className={className} {...rest}>
-        {hasCustomChildren
-          ? children
-          : linkLabel || `讨论\u2009${discussionId}`}
+        <MessagesSquare
+          className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
+          aria-hidden="true"
+        />
+        {children ?? (linkLabel || `讨论\u2009${discussionId}`)}
       </Link>
     );
   }
@@ -478,17 +488,22 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
       }) ? (
         <ArticleMagicLinkDirect articleSummary={articleSummary} />
       ) : (
-        <ArticleMagicLinkWithOriginal articleSummary={articleSummary}>
-          {hasCustomChildren
-            ? children
-            : linkLabel || `文章\u2009;${articleId}`}
+        <ArticleMagicLinkWithOriginal
+          articleSummary={articleSummary}
+          iconCorner={onlyImagesInChildren}
+        >
+          {children ?? (linkLabel || `文章\u2009${articleId}`)}
         </ArticleMagicLinkWithOriginal>
       );
     }
 
     return (
       <Link href={`/a/${articleId}`} className={className} {...rest}>
-        {hasCustomChildren ? children : linkLabel || `文章\u2009;${articleId}`}
+        <FileText
+          className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
+          aria-hidden="true"
+        />
+        {children ?? (linkLabel || `文章\u2009${articleId}`)}
       </Link>
     );
   }
@@ -504,17 +519,22 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
       }) ? (
         <PasteMagicLinkDirect pasteSummary={pasteSummary} />
       ) : (
-        <PasteMagicLinkWithOriginal pasteSummary={pasteSummary}>
-          {hasCustomChildren
-            ? children
-            : linkLabel || `云剪贴板\u2009${pasteId}`}
+        <PasteMagicLinkWithOriginal
+          pasteSummary={pasteSummary}
+          iconCorner={onlyImagesInChildren}
+        >
+          {children ?? (linkLabel || `云剪贴板\u2009${pasteId}`)}
         </PasteMagicLinkWithOriginal>
       );
     }
 
     return (
       <Link href={`/p/${pasteId}`} className={className} {...rest}>
-        {hasCustomChildren ? children : linkLabel || `云剪贴板\u2009${pasteId}`}
+        <ClipboardList
+          className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
+          aria-hidden="true"
+        />
+        {children ?? (linkLabel || `云剪贴板\u2009${pasteId}`)}
       </Link>
     );
   }
@@ -531,8 +551,11 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
       }) ? (
         <ProblemMagicLinkDirect problemInfo={problemInfo} />
       ) : (
-        <ProblemMagicLinkWithOriginal problemInfo={problemInfo}>
-          {hasCustomChildren ? children : linkLabel || `题目\u2009${problemId}`}
+        <ProblemMagicLinkWithOriginal
+          problemInfo={problemInfo}
+          iconCorner={onlyImagesInChildren}
+        >
+          {children ?? (linkLabel || `题目\u2009${problemId}`)}
         </ProblemMagicLinkWithOriginal>
       );
     }
@@ -543,13 +566,18 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
         className={className}
         {...rest}
       >
-        {hasCustomChildren ? children : linkLabel || `题目\u2009${problemId}`}
+        <Swords
+          className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
+          aria-hidden="true"
+        />
+        {children ?? (linkLabel || `题目\u2009${problemId}`)}
       </Link>
     );
   }
 
   if (uidLinkParam) {
     if (userInfo) {
+      // TODO: improve styles when both images and non-images are in children
       return !isLinkTextUseful({
         href: trueUrl,
         text: markdownLabel,
@@ -561,14 +589,14 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
         <UserMagicLinkDirect userInfo={userInfo} />
       ) : (
         <UserMagicLinkWithOriginal userInfo={userInfo}>
-          {hasCustomChildren ? children : linkLabel || trueUrl}
+          {children ?? (linkLabel || trueUrl)}
         </UserMagicLinkWithOriginal>
       );
     }
 
     return (
       <Link href={trueUrl ?? "#"} className={className} {...rest}>
-        {hasCustomChildren ? children : linkLabel || trueUrl}
+        {children ?? (linkLabel || trueUrl)}
       </Link>
     );
   }

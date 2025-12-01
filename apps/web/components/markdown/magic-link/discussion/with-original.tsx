@@ -8,15 +8,18 @@ import { DiscussionLinkInfo, DiscussionMagicLinkContent } from "./direct";
 export default function DiscussionMagicLinkWithOriginal({
   discussionSummary,
   children,
+  iconCorner = false,
 }: {
   discussionSummary: DiscussionLinkInfo;
   children: React.ReactNode;
+  iconCorner?: boolean;
 }) {
   return (
     <LinkWithOriginal
       href={`/d/${discussionSummary.id}`}
       Icon={MessagesSquare}
       original={children}
+      iconCorner={iconCorner}
       preview={
         <span
           className={cn(

@@ -39,6 +39,25 @@ type HeadingProps = {
 
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 
+function shouldSkipHeadingNode(element: React.ReactElement) {
+  if (typeof element.type !== "string") {
+    return false;
+  }
+
+  if (element.type === "annotation") {
+    return true;
+  }
+
+  const props = element.props as { className?: string };
+  const className = typeof props.className === "string" ? props.className : "";
+  if (!className) {
+    return false;
+  }
+
+  const classList = className.split(/\s+/);
+  return classList.includes("katex-mathml");
+}
+
 function flattenHeadingText(children: React.ReactNode): string {
   return React.Children.toArray(children)
     .map((child) => {
@@ -49,13 +68,19 @@ function flattenHeadingText(children: React.ReactNode): string {
         return String(child);
       }
       if (React.isValidElement(child)) {
-        const elementChildren = (child.props as { children?: React.ReactNode })
-          ?.children;
+        const element = child as React.ReactElement;
+        if (shouldSkipHeadingNode(element)) {
+          return "";
+        }
+        const elementChildren = (
+          element.props as { children?: React.ReactNode }
+        )?.children;
         return flattenHeadingText(elementChildren);
       }
       return "";
     })
     .join(" ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 

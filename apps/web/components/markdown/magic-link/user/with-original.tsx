@@ -1,11 +1,9 @@
-import { UserRound } from "lucide-react";
-
-import {
+import UserInlineLink, {
   UserBasicInfo,
   UserInlineDisplay,
 } from "@/components/user/user-inline-link";
 
-import LinkWithOriginal from "../link-with-original";
+import { LinkWithOriginalRaw } from "../link-with-original";
 
 export default function UserMagicLinkWithOriginal({
   userInfo,
@@ -15,11 +13,21 @@ export default function UserMagicLinkWithOriginal({
   children: React.ReactNode;
 }) {
   return (
-    <LinkWithOriginal
-      href={`/u/${userInfo.id}`}
-      Icon={UserRound}
-      original={<span className="font-medium">{children}</span>}
+    <LinkWithOriginalRaw
+      originalRaw={
+        <UserInlineLink
+          user={{
+            ...userInfo,
+            name: children as string,
+          }}
+          compact
+          nameColorOverride="text-magic"
+          className="rounded-full transition-colors duration-200 hover:bg-primary/7"
+        />
+      }
       preview={<UserInlineDisplay user={userInfo} compact />}
+      className="relative top-1.5 mx-0 -mt-1 inline-block overflow-hidden rounded-full leading-0"
+      outerClassName="rounded-full"
     />
   );
 }
