@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import type { FeedEntry } from "@luogu-discussion-archive/query";
 
-import { formatRelativeTime } from "@/lib/time";
+import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import UserInlineLink, {
   type UserBasicInfo,
@@ -79,6 +79,12 @@ export default function FeedCardTemplate({
             >
               {TYPE_META[kind].label}
             </span>
+            <time
+              className="text-xs text-muted-foreground/80"
+              dateTime={time.toISOString()}
+            >
+              {ABSOLUTE_DATE_FORMATTER.format(time)}
+            </time>
           </header>
           <div className="mt-4 space-y-3">
             {metaTags?.length || metaText ? (
