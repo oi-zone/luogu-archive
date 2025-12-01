@@ -43,7 +43,7 @@ export default async function ArticlesPage() {
             href="/search?category=article"
             scroll={false}
             prefetch={false}
-            className="relative flex h-12 w-full items-center rounded-2xl border border-border bg-muted/40 px-4 text-sm text-foreground/80 transition hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none sm:w-72"
+            className="relative !hidden flex h-12 w-full items-center rounded-2xl border border-border bg-muted/40 px-4 text-sm text-foreground/80 transition hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none sm:w-72"
           >
             <Search className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
             <span className="pl-8">搜索文章、作者或话题…</span>
@@ -86,6 +86,8 @@ function articleToFeedEntry(article: FeaturedArticleSummary): FeedEntry {
     articleId: article.lid,
     title: article.snapshot.title,
     category: article.category,
+    summary: article.summary,
+    tags: article.tags,
     replyCount: article.replyCount,
     recentReplyCount: article.recentReplyCount,
     favorCount: article.favorCount,

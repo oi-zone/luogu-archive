@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { db, sql } from "@luogu-discussion-archive/db/drizzle";
 
+import { normalizeCopraTags } from "./copra.js";
 import type { BasicUserSnapshot } from "./types.js";
 
 const FEED_DEFAULT_LIMIT = 60;
@@ -41,6 +42,8 @@ export interface ArticleFeedEntry extends FeedEntryBase {
   articleId: string;
   title: string;
   category: number | null;
+  summary: string | null;
+  tags: string[] | null;
   replyCount: number;
   recentReplyCount: number;
   favorCount: number;
@@ -113,6 +116,8 @@ interface ArticleRow extends Record<string, unknown> {
   recentReplyCount: number;
   title: string | null;
   category: number | null;
+  summary: string | null;
+  tags: unknown;
   authorId: number | null;
   authorName: string | null;
   authorBadge: string | null;
@@ -278,6 +283,8 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
       articleId: row.articleId,
       title,
       category: typeof row.category === "number" ? row.category : null,
+      summary: typeof row.summary === "string" ? row.summary : null,
+      tags: normalizeCopraTags(row.tags),
       replyCount: row.replyCount,
       recentReplyCount,
       favorCount: row.favorCount,
@@ -616,6 +623,8 @@ async function fetchArticleRows() {
       COALESCE(rar."recentReplyCount", 0) AS "recentReplyCount",
       las."title" AS "title",
       las."category" AS "category",
+      ac."summary" AS "summary",
+      ac."tags" AS "tags",
       au."userId" AS "authorId",
       au."name" AS "authorName",
       au."badge" AS "authorBadge",
@@ -626,6 +635,7 @@ async function fetchArticleRows() {
     JOIN latest_article_snapshot las ON las."articleId" = a."lid"
     LEFT JOIN recent_article_replies rar ON rar."articleId" = a."lid"
     LEFT JOIN latest_user au ON au."userId" = a."authorId"
+    LEFT JOIN "ArticleCopra" ac ON ac."articleId" = a."lid"
     WHERE a."updatedAt" >= ${since}
     ORDER BY a."updatedAt" DESC
     LIMIT ${ARTICLE_CANDIDATE_LIMIT}

@@ -136,12 +136,9 @@ export type TimelineEntry =
   | {
       id: string;
       type: "judgement";
-      action: string;
       reason: string;
       addedPermission: number;
       revokedPermission: number;
-      hasAddedPermission: boolean;
-      hasRevokedPermission: boolean;
       createdAt: string;
     };
 
@@ -608,23 +605,10 @@ function mapPasteToTimeline(
 }
 
 function mapJudgementToTimeline(judgement: Judgement): TimelineEntry {
-  const changes: string[] = [];
-  const hasAddedPermission = Boolean(judgement.addedPermission);
-  const hasRevokedPermission = Boolean(judgement.revokedPermission);
-  if (hasAddedPermission) {
-    changes.push(`增加权限 ${judgement.addedPermission.toString()}`);
-  }
-  if (hasRevokedPermission) {
-    changes.push(`撤销权限 ${judgement.revokedPermission.toString()}`);
-  }
-
   return {
     id: `judgement-${judgement.userId.toString()}-${judgement.time.getTime().toString()}`,
     type: "judgement",
-    action: changes.join("，") || "社区裁决",
     reason: judgement.reason,
-    hasAddedPermission,
-    hasRevokedPermission,
     addedPermission: judgement.addedPermission,
     revokedPermission: judgement.revokedPermission,
     createdAt: judgement.time.toISOString(),
@@ -644,13 +628,9 @@ function mapSnapshotAppearance(snapshot: UserSnapshot): UserSnapshotAppearance {
 
 function buildProfileTags(snapshot: UserSnapshot) {
   const tags = new Set<string>();
-  if (snapshot.isAdmin) tags.add("社区管理员");
-  if (snapshot.isRoot) tags.add("核心团队");
+  if (snapshot.isRoot) tags.add("超级管理员");
+  if (snapshot.isAdmin) tags.add("管理员");
   if (snapshot.isBanned) tags.add("已封禁");
-  if (snapshot.badge) {
-    const sanitized = sanitizeBadge(snapshot.badge);
-    if (sanitized) tags.add(sanitized);
-  }
   return Array.from(tags);
 }
 

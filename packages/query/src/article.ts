@@ -14,6 +14,7 @@ import {
   sql,
 } from "@luogu-discussion-archive/db/drizzle";
 
+import { normalizeCopraTags } from "./copra.js";
 import type { BasicUserSnapshot } from "./types.js";
 
 const DEFAULT_ARTICLE_LIMIT = Number.parseInt(
@@ -48,6 +49,8 @@ export interface FeaturedArticleSummary {
   favorCount: number;
   upvote: number;
   category: number;
+  summary: string | null;
+  tags: string[] | null;
   score: number;
   snapshot: {
     title: string;
@@ -136,6 +139,12 @@ export async function getFeaturedArticles({
           },
         },
       },
+      copra: {
+        columns: {
+          summary: true,
+          tags: true,
+        },
+      },
     },
   });
 
@@ -148,6 +157,7 @@ export async function getFeaturedArticles({
       const snapshot = article.snapshots[0];
       if (!snapshot) return null;
       const authorSnapshot = article.author.snapshots[0];
+      const copra = article.copra;
 
       const author: BasicUserSnapshot | null = authorSnapshot
         ? {
@@ -172,6 +182,8 @@ export async function getFeaturedArticles({
         favorCount: article.favorCount,
         upvote: article.upvote,
         category: snapshot.category,
+        summary: copra[0]?.summary ?? null,
+        tags: normalizeCopraTags(copra[0]?.tags ?? null),
         score,
         snapshot: {
           title: snapshot.title,

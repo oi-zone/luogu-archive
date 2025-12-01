@@ -133,6 +133,8 @@ function UserInlineContent({
   avatar: boolean;
   noStartSpace?: boolean;
 }) {
+  const displayBadge =
+    user.badge ?? (user.color === "purple" ? "管理员" : null);
   return (
     <>
       {avatar ? (
@@ -159,7 +161,7 @@ function UserInlineContent({
                 ? "ms-1"
                 : "ms-1.25"
               : "ms-0.75",
-          user.badge
+          displayBadge
             ? "me-1.25"
             : user.ccfLevel !== 0
               ? "me-0.75"
@@ -174,7 +176,7 @@ function UserInlineContent({
         {user.name}
       </span>
 
-      {user.badge && (
+      {displayBadge && (
         <Badge
           className={cn(
             "text-inverse",
@@ -183,7 +185,7 @@ function UserInlineContent({
             `bg-luogu-${user.color.toLowerCase()}`,
           )}
         >
-          {user.badge}
+          {displayBadge}
         </Badge>
       )}
 

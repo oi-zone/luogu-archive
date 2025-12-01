@@ -10,9 +10,13 @@ import type { FeedEntry } from "@luogu-discussion-archive/query";
 
 import { getCategoryInfo } from "@/lib/category-info";
 import { getPermissionNames } from "@/lib/judgement";
-import { cn } from "@/lib/utils";
 
 import FeedCardTemplate from "./feed-card-template";
+
+const FALLBACK_ARTICLE_SUMMARY =
+  "海内存知己，天涯若比邻。该文章的摘要暂时不可用，请点击查看全文。";
+const FALLBACK_DISCUSSION_SUMMARY =
+  "野火烧不尽，春风吹又生。该讨论的摘要暂时不可用，请点击查看全文。";
 
 export function FeedCard({ item }: { item: FeedEntry }) {
   const timestamp = getEntryTimestamp(item);
@@ -30,10 +34,8 @@ export function FeedCard({ item }: { item: FeedEntry }) {
           time={timestamp}
           metaTags={categoryName ? [categoryName] : undefined}
           title={item.title}
-          content={
-            "我是一段 AI 总结，啦啦啦啦啦。嘻嘻嘻嘻，我好高兴！野火烧不尽，春风吹又生。海内存知己，天涯若比邻。"
-          }
-          tags={["DP", "图论", "树", "数据结构", "洛谷日报"]}
+          content={item.summary?.trim() || FALLBACK_ARTICLE_SUMMARY}
+          tags={item.tags?.length ? item.tags : undefined}
           metrics={[
             { icon: MessageCircle, children: `${item.replyCount}\u2009评论` },
             {
@@ -55,9 +57,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
           time={timestamp}
           metaTags={[item.forumName]}
           title={item.title}
-          content={
-            "我是一段 AI 总结，啦啦啦啦啦。嘻嘻嘻嘻，我好高兴！野火烧不尽，春风吹又生。海内存知己，天涯若比邻。"
-          }
+          content={FALLBACK_DISCUSSION_SUMMARY}
           metrics={[
             { icon: MessageSquare, children: `${item.replyCount}\u2009回复` },
             {

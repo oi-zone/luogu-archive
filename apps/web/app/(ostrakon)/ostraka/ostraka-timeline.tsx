@@ -191,7 +191,7 @@ function OstrakonCard({ entry }: { entry: OstrakonEntry }) {
               陶片放逐
             </span>
             {entry.user ? (
-              <UserInlineLink user={entry.user} avatar />
+              <UserInlineLink user={entry.user} avatar compact />
             ) : (
               <span className="text-sm text-muted-foreground">未知用户</span>
             )}

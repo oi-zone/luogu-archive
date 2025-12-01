@@ -41,11 +41,6 @@ export function UserInfoCard({ profile }: { profile: UserProfile }) {
                   CCF Lv.{profile.ccfLevel}
                 </span>
               ) : null}
-              {profile.highlightTag ? (
-                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-                  {profile.highlightTag}
-                </span>
-              ) : null}
             </div>
           </div>
         </div>
@@ -55,13 +50,13 @@ export function UserInfoCard({ profile }: { profile: UserProfile }) {
       </p>
       <dl className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-muted/40 p-4 text-sm sm:grid-cols-3">
         {[
-          { label: "发帖数", value: profile.stats.posts },
-          { label: "文章数", value: profile.stats.articles },
-          { label: "互动数", value: profile.stats.interactions },
-          { label: "陶片数", value: profile.stats.judgements },
-          { label: "犇犇数", value: profile.stats.bens },
-          { label: "文章获赞数", value: profile.stats.articleUpvotes },
-          { label: "文章被收藏数", value: profile.stats.articleFavorites },
+          { label: "发帖", value: profile.stats.posts },
+          { label: "文章", value: profile.stats.articles },
+          { label: "互动", value: profile.stats.interactions },
+          { label: "陶片", value: profile.stats.judgements },
+          // { label: "犇犇数", value: profile.stats.bens },
+          { label: "获赞", value: profile.stats.articleUpvotes },
+          { label: "收藏", value: profile.stats.articleFavorites },
         ].map((item) => (
           <div key={item.label}>
             <dt className="text-muted-foreground">{item.label}</dt>

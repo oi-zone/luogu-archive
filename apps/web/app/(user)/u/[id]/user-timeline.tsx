@@ -4,12 +4,12 @@ import * as React from "react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import {
   ClipboardList,
-  FileText,
   Gavel,
-  Layers,
   Loader2,
   MessageCircle,
   MessageSquare,
+  MessagesSquare,
+  Newspaper,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,25 +31,25 @@ const TIMELINE_META: Record<
 > = {
   article: {
     label: "发布文章",
-    icon: FileText,
+    icon: Newspaper,
     badgeClass: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
     dotClass: "bg-sky-500",
   },
   discussion: {
     label: "发起讨论",
-    icon: Layers,
+    icon: MessagesSquare,
     badgeClass: "bg-violet-500/10 text-violet-600 dark:text-violet-300",
     dotClass: "bg-violet-500",
   },
   articleComment: {
     label: "评论文章",
-    icon: MessageSquare,
+    icon: MessageCircle,
     badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
     dotClass: "bg-emerald-500",
   },
   discussionReply: {
     label: "回复讨论",
-    icon: MessageCircle,
+    icon: MessageSquare,
     badgeClass: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
     dotClass: "bg-orange-500",
   },
@@ -60,7 +60,7 @@ const TIMELINE_META: Record<
     dotClass: "bg-amber-500",
   },
   judgement: {
-    label: "社区裁决",
+    label: "陶片放逐",
     icon: Gavel,
     badgeClass: "bg-red-500/10 text-red-600 dark:text-red-300",
     dotClass: "bg-red-500",
@@ -104,10 +104,10 @@ const JUDGEMENT_STYLES: Record<JudgementTone, JudgementStyle> = {
 function resolveJudgementTone(
   entry: Extract<TimelineEntry, { type: "judgement" }>,
 ): JudgementTone {
-  if (entry.hasAddedPermission && entry.hasRevokedPermission) {
+  if (entry.addedPermission && entry.revokedPermission) {
     return "yellow";
   }
-  if (entry.hasAddedPermission) {
+  if (entry.addedPermission) {
     return "green";
   }
   return "red";
