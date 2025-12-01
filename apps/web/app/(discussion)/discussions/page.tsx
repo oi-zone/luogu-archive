@@ -5,13 +5,12 @@ import {
   getHotDiscussions,
   HOT_DISCUSSION_DEFAULT_LIMIT,
   HOT_DISCUSSION_DEFAULT_WINDOW_MS,
+  type FeedEntry,
   type HotDiscussionSummary,
 } from "@luogu-discussion-archive/query";
 
-import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
-import { Badge } from "@/components/ui/badge";
-import { MasonryColumns } from "@/components/layout/masonry-columns";
-import UserInlineLink from "@/components/user/user-inline-link";
+import { FeedCardMasonry } from "@/components/feed/feed-card-masonry";
+import { FeedCard } from "@/components/feed/feed-item";
 
 const WINDOW_LABEL = formatWindowLabel(HOT_DISCUSSION_DEFAULT_WINDOW_MS);
 
@@ -26,6 +25,8 @@ export default async function DiscussionsPage() {
     loadError = true;
     console.error("Failed to load hot discussions", error);
   }
+
+  const entries = discussions.map(discussionToFeedEntry);
 
   return (
     <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
@@ -61,11 +62,11 @@ export default async function DiscussionsPage() {
 
       <section className="flex flex-col gap-4">
         {discussions.length > 0 ? (
-          <MasonryColumns>
-            {discussions.map((discussion) => (
-              <DiscussionCard key={discussion.id} discussion={discussion} />
+          <FeedCardMasonry>
+            {entries.map((entry) => (
+              <FeedCard key={entry.key} item={entry} />
             ))}
-          </MasonryColumns>
+          </FeedCardMasonry>
         ) : (
           <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">
             {loadError
@@ -78,57 +79,19 @@ export default async function DiscussionsPage() {
   );
 }
 
-function DiscussionCard({ discussion }: { discussion: HotDiscussionSummary }) {
-  const href = `/d/${discussion.id}`;
-  const hasAuthor = Boolean(discussion.author);
-
-  return (
-    <article className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge className="bg-violet-500/10 text-violet-600 dark:text-violet-200">
-            {discussion.snapshot.forum.name}
-          </Badge>
-          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-200">
-            近 {WINDOW_LABEL} +{discussion.recentReplyCount} 回复
-          </Badge>
-        </div>
-        <time
-          className="text-xs text-muted-foreground"
-          dateTime={discussion.updatedAt.toISOString()}
-        >
-          {formatRelativeTime(discussion.updatedAt)} 更新
-        </time>
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <h3 className="text-xl leading-tight font-semibold text-foreground">
-          <Link href={href} scroll={false} prefetch={false}>
-            {discussion.snapshot.title}
-            <div className="absolute inset-0" />
-          </Link>
-        </h3>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          累计 {discussion.replyCount.toLocaleString("zh-CN")} 条回复 · 最近回帖
-          +{discussion.recentReplyCount}。
-        </p>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-        {hasAuthor ? (
-          <UserInlineLink
-            className="z-10"
-            user={discussion.author!}
-            compact
-            avatar
-          />
-        ) : (
-          <span className="text-muted-foreground">作者未知</span>
-        )}
-        <span>发布于 {ABSOLUTE_DATE_FORMATTER.format(discussion.time)}</span>
-      </div>
-    </article>
-  );
+function discussionToFeedEntry(discussion: HotDiscussionSummary): FeedEntry {
+  return {
+    kind: "discussion",
+    key: `hot-discussion:${discussion.id}`,
+    timestamp: discussion.updatedAt.toISOString(),
+    author: discussion.author,
+    postId: discussion.id,
+    title: discussion.snapshot.title,
+    forumSlug: discussion.snapshot.forum.slug,
+    forumName: discussion.snapshot.forum.name,
+    replyCount: discussion.replyCount,
+    recentReplyCount: discussion.recentReplyCount,
+  } satisfies FeedEntry;
 }
 
 function formatWindowLabel(ms: number) {

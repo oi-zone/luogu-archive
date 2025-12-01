@@ -1,24 +1,15 @@
-import { Award, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
 
 import {
   FEATURED_ARTICLE_DEFAULT_LIMIT,
-  FEATURED_ARTICLE_DEFAULT_WINDOW_MS,
   getFeaturedArticles,
   type FeaturedArticleSummary,
+  type FeedEntry,
 } from "@luogu-discussion-archive/query";
 
-import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
-import { Badge } from "@/components/ui/badge";
-import { MasonryColumns } from "@/components/layout/masonry-columns";
-import UserInlineLink from "@/components/user/user-inline-link";
-
-const SCORE_FORMATTER = new Intl.NumberFormat("zh-CN", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
-
-const WINDOW_LABEL = formatWindowLabel(FEATURED_ARTICLE_DEFAULT_WINDOW_MS);
+import { FeedCardMasonry } from "@/components/feed/feed-card-masonry";
+import { FeedCard } from "@/components/feed/feed-item";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +22,8 @@ export default async function ArticlesPage() {
     loadError = true;
     console.error("Failed to load featured articles", error);
   }
+
+  const entries = articles.map(articleToFeedEntry);
 
   return (
     <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
@@ -67,15 +60,11 @@ export default async function ArticlesPage() {
 
       <section className="flex flex-col gap-4">
         {articles.length > 0 ? (
-          <MasonryColumns>
-            {articles.map((article, index) => (
-              <ArticleCard
-                key={article.lid}
-                article={article}
-                rank={index + 1}
-              />
+          <FeedCardMasonry>
+            {entries.map((entry) => (
+              <FeedCard key={entry.key} item={entry} />
             ))}
-          </MasonryColumns>
+          </FeedCardMasonry>
         ) : (
           <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">
             {loadError
@@ -88,71 +77,17 @@ export default async function ArticlesPage() {
   );
 }
 
-function ArticleCard({
-  article,
-  rank,
-}: {
-  article: FeaturedArticleSummary;
-  rank: number;
-}) {
-  const href = `/a/${article.lid}`;
-  const hasAuthor = Boolean(article.author);
-  const formattedScore = SCORE_FORMATTER.format(article.score);
-
-  return (
-    <article className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Badge className="bg-sky-500/10 text-sky-600 dark:text-sky-200">
-          TOP {rank}
-        </Badge>
-        <div className="flex items-center gap-2">
-          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-200">
-            综合得分 {formattedScore}
-          </Badge>
-          <Award className="size-5 text-muted-foreground" aria-hidden="true" />
-        </div>
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <h3 className="text-xl leading-tight font-semibold text-foreground">
-          <Link href={href} scroll={false} prefetch={false}>
-            {article.snapshot.title}
-            <div className="absolute inset-0" />
-          </Link>
-        </h3>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          收藏 {article.favorCount.toLocaleString("zh-CN")} · 回复{" "}
-          {article.replyCount.toLocaleString("zh-CN")} · 赞同{" "}
-          {article.upvote.toLocaleString("zh-CN")}。
-          {article.recentReplyCount > 0 && (
-            <span className="ms-1 inline-flex items-center text-foreground/80">
-              近 {WINDOW_LABEL} +{article.recentReplyCount} 条评论
-            </span>
-          )}
-        </p>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-        {hasAuthor ? (
-          <UserInlineLink user={article.author!} compact avatar />
-        ) : (
-          <span className="text-muted-foreground">作者未知</span>
-        )}
-        <span>发布于 {ABSOLUTE_DATE_FORMATTER.format(article.time)}</span>
-        <span>最近更新 {formatRelativeTime(article.updatedAt)}</span>
-      </div>
-    </article>
-  );
-}
-
-function formatWindowLabel(ms: number) {
-  if (ms % 86400000 === 0) {
-    return `${ms / 86400000} 天`;
-  }
-
-  if (ms % 3600000 === 0) {
-    return `${ms / 3600000} 小时`;
-  }
-
-  return `${Math.round(ms / 3600000)} 小时`;
+function articleToFeedEntry(article: FeaturedArticleSummary): FeedEntry {
+  return {
+    kind: "article",
+    key: `featured-article:${article.lid}`,
+    timestamp: article.updatedAt.toISOString(),
+    author: article.author,
+    articleId: article.lid,
+    title: article.snapshot.title,
+    replyCount: article.replyCount,
+    recentReplyCount: article.recentReplyCount,
+    favorCount: article.favorCount,
+    upvote: article.upvote,
+  } satisfies FeedEntry;
 }

@@ -10,6 +10,7 @@ import { fetchFeedPage } from "@/lib/feed-client";
 import { Button } from "@/components/ui/button";
 
 import { FeedCard } from "./feed-item";
+import { useResponsiveColumnCount } from "./use-responsive-column-count";
 
 const FEED_QUERY_KEY = ["feed" as const];
 const FETCH_MORE_LIMIT = 20;
@@ -177,28 +178,4 @@ export function FeedGrid({ initialPage }: FeedGridProps) {
       </div>
     </div>
   );
-}
-
-function useResponsiveColumnCount() {
-  const [count, setCount] = React.useState(DEFAULT_COLUMN_COUNT);
-
-  React.useEffect(() => {
-    function resolveCount(width: number) {
-      if (width >= 2000) return 5;
-      if (width >= 1600) return 4;
-      if (width >= 1200) return 3;
-      if (width >= 800) return 2;
-      return DEFAULT_COLUMN_COUNT;
-    }
-
-    function update() {
-      setCount(resolveCount(window.innerWidth));
-    }
-
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  return count;
 }
