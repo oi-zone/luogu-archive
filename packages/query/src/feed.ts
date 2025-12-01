@@ -2,6 +2,10 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { db, sql } from "@luogu-discussion-archive/db/drizzle";
 
+import {
+  handleArticleCopraSchemaError,
+  shouldIncludeArticleCopra,
+} from "./copra-guard.js";
 import { normalizeCopraTags } from "./copra.js";
 import type { BasicUserSnapshot } from "./types.js";
 
@@ -582,15 +586,12 @@ function buildJudgementCursor(time: Date, userId: number) {
   return `${time.getTime().toString(36)}-${userId.toString(36)}`;
 }
 
-const ARTICLE_COPRA_SCHEMA_ERROR_CODES = new Set(["42P01", "42703"]);
-let skipArticleCopraJoin = false;
-
 // Pulls recent文章候选，连同最新快照/作者信息/近期回复数。
 async function fetchArticleRows() {
   const since = new Date(Date.now() - ARTICLE_LOOKBACK_MS);
   const recentSince = new Date(Date.now() - ARTICLE_RECENT_REPLY_WINDOW_MS);
 
-  if (skipArticleCopraJoin) {
+  if (!shouldIncludeArticleCopra()) {
     return executeArticleRowsQuery({ since, recentSince, includeCopra: false });
   }
 
@@ -601,39 +602,11 @@ async function fetchArticleRows() {
       includeCopra: true,
     });
   } catch (error) {
-    if (!isArticleCopraSchemaError(error)) {
+    if (!handleArticleCopraSchemaError(error, "feed")) {
       throw error;
     }
-
-    skipArticleCopraJoin = true;
-    console.warn(
-      "[feed] ArticleCopra join disabled after schema error",
-      error instanceof Error ? error.message : error,
-    );
-
     return executeArticleRowsQuery({ since, recentSince, includeCopra: false });
   }
-}
-
-function isArticleCopraSchemaError(error: unknown) {
-  const code = extractPostgresErrorCode(error);
-  return Boolean(code && ARTICLE_COPRA_SCHEMA_ERROR_CODES.has(code));
-}
-
-function extractPostgresErrorCode(error: unknown): string | null {
-  if (!error || typeof error !== "object") return null;
-  const candidate = error as { code?: unknown; cause?: unknown };
-  if (typeof candidate.code === "string") {
-    return candidate.code;
-  }
-  const { cause } = candidate;
-  if (cause && typeof cause === "object") {
-    const causeWithCode = cause as { code?: unknown };
-    if (typeof causeWithCode.code === "string") {
-      return causeWithCode.code;
-    }
-  }
-  return null;
 }
 
 async function executeArticleRowsQuery({
