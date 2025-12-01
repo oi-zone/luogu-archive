@@ -26,13 +26,16 @@ export async function execute(job: Job, stream: Stream) {
       );
       await Promise.all(
         discussions.map(({ id, replyCount }) =>
-          queueJob({
-            type: "discuss",
-            id: String(id),
-            page: replyCount
-              ? String(Math.ceil(replyCount / REPLIES_PER_PAGE))
-              : "1",
-          }),
+          queueJob(
+            {
+              type: "discuss",
+              id: String(id),
+              page: replyCount
+                ? String(Math.ceil(replyCount / REPLIES_PER_PAGE))
+                : "1",
+            },
+            stream,
+          ),
         ),
       );
       break;
@@ -44,7 +47,7 @@ export async function execute(job: Job, stream: Stream) {
         job.page ? parseInt(job.page) : undefined,
       );
       await Promise.all(
-        articles.map((lid) => queueJob({ type: "article", lid })),
+        articles.map((lid) => queueJob({ type: "article", lid }, stream)),
       );
       break;
     }
@@ -90,7 +93,7 @@ export async function execute(job: Job, stream: Stream) {
 
     case "article":
       await fetchArticle(job.lid);
-      await queueJob({ type: "articleReplies", lid: job.lid });
+      await queueJob({ type: "articleReplies", lid: job.lid }, stream);
       break;
 
     case "articleReplies": {
@@ -102,7 +105,7 @@ export async function execute(job: Job, stream: Stream) {
       if (lastReplyId)
         await queueJob(
           { type: "articleReplies", lid: job.lid, after: String(lastReplyId) },
-          lastReplySaved ? Stream.Routine : Stream.Immediate,
+          lastReplySaved ? Stream.Routine : stream,
         );
 
       break;
