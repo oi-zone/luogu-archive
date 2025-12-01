@@ -79,12 +79,6 @@ export default function FeedCardTemplate({
             >
               {TYPE_META[kind].label}
             </span>
-            <time
-              className="text-xs text-muted-foreground"
-              dateTime={time.toISOString()}
-            >
-              {formatRelativeTime(time)}
-            </time>
           </header>
           <div className="mt-4 space-y-3">
             {metaTags?.length || metaText ? (
@@ -130,7 +124,7 @@ export default function FeedCardTemplate({
               </div>
             ) : null}
             {metrics?.length ? (
-              <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 {metrics.map((metric, index) => (
                   <MetaItem key={index} compact {...metric} />
                 ))}
@@ -143,6 +137,12 @@ export default function FeedCardTemplate({
             ) : (
               <span className="text-foreground">匿名用户</span>
             )}
+            <time
+              className="text-xs text-muted-foreground"
+              dateTime={time.toISOString()}
+            >
+              {formatRelativeTime(time)}
+            </time>
           </footer>
         </div>
       </div>

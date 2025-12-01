@@ -32,7 +32,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
             { icon: MessageCircle, children: `${item.replyCount}\u2009评论` },
             {
               icon: CalendarClock,
-              children: `近期\u2009${item.recentReplyCount}\u2009评论`,
+              children: `最近\u2009${item.recentReplyCount}\u2009评论`,
             },
             { icon: Star, children: `${item.favorCount}\u2009收藏` },
             { icon: ThumbsUp, children: `${item.upvote}\u2009赞同` },
@@ -55,7 +55,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
             { icon: MessageSquare, children: `${item.replyCount}\u2009回复` },
             {
               icon: CalendarClock,
-              children: `近期\u2009${item.recentReplyCount}\u2009回复`,
+              children: `最近\u2009${item.recentReplyCount}\u2009回复`,
             },
           ]}
           user={item.author}

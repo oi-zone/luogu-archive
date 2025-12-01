@@ -751,7 +751,7 @@ export function CommentBoard(props: CommentBoardProps) {
       type="button"
       variant="ghost"
       size="sm"
-      className="gap-1.5 rounded-xl"
+      className="hidden gap-1.5 rounded-xl"
       onClick={searchAction.onClick}
     >
       <Search className="size-4" aria-hidden="true" />

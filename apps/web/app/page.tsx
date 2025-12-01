@@ -10,13 +10,13 @@ export default async function Page() {
   const initialPage = await getFeedPage({ limit: INITIAL_FEED_LIMIT });
 
   return (
-    <div className="flex flex-1 flex-col gap-8 px-6 pt-8 pb-12">
+    <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-12 sm:px-6">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">社区精选</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              实时汇总讨论区文章、帖子、云剪贴与社区裁决。
+              实时汇总高热度的文章、帖子、云剪贴板与陶片。
             </p>
           </div>
         </div>

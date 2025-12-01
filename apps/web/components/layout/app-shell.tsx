@@ -25,7 +25,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   BreadcrumbProvider,
   useBreadcrumbContext,
@@ -173,6 +178,9 @@ function MobileSidebar({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-72 border-r p-0">
+        <SheetHeader className="sr-only">
+          <SheetTitle>导航菜单</SheetTitle>
+        </SheetHeader>
         <div className="flex h-full flex-col overflow-y-auto px-4 py-6">
           <SidebarBrand variant="mobile" />
           <nav className="mt-6 space-y-1.5">
@@ -256,7 +264,7 @@ function TopBar({
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
-      <div className="flex h-16 items-center gap-3 px-4">
+      <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
         {isMobile && (
           <Button
             variant="ghost"
