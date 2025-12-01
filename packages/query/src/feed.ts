@@ -582,10 +582,74 @@ function buildJudgementCursor(time: Date, userId: number) {
   return `${time.getTime().toString(36)}-${userId.toString(36)}`;
 }
 
+const ARTICLE_COPRA_SCHEMA_ERROR_CODES = new Set(["42P01", "42703"]);
+let skipArticleCopraJoin = false;
+
 // Pulls recent文章候选，连同最新快照/作者信息/近期回复数。
 async function fetchArticleRows() {
   const since = new Date(Date.now() - ARTICLE_LOOKBACK_MS);
   const recentSince = new Date(Date.now() - ARTICLE_RECENT_REPLY_WINDOW_MS);
+
+  if (skipArticleCopraJoin) {
+    return executeArticleRowsQuery({ since, recentSince, includeCopra: false });
+  }
+
+  try {
+    return await executeArticleRowsQuery({
+      since,
+      recentSince,
+      includeCopra: true,
+    });
+  } catch (error) {
+    if (!isArticleCopraSchemaError(error)) {
+      throw error;
+    }
+
+    skipArticleCopraJoin = true;
+    console.warn(
+      "[feed] ArticleCopra join disabled after schema error",
+      error instanceof Error ? error.message : error,
+    );
+
+    return executeArticleRowsQuery({ since, recentSince, includeCopra: false });
+  }
+}
+
+function isArticleCopraSchemaError(error: unknown) {
+  const code = extractPostgresErrorCode(error);
+  return Boolean(code && ARTICLE_COPRA_SCHEMA_ERROR_CODES.has(code));
+}
+
+function extractPostgresErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const candidate = error as { code?: unknown; cause?: unknown };
+  if (typeof candidate.code === "string") {
+    return candidate.code;
+  }
+  const { cause } = candidate;
+  if (cause && typeof cause === "object") {
+    const causeWithCode = cause as { code?: unknown };
+    if (typeof causeWithCode.code === "string") {
+      return causeWithCode.code;
+    }
+  }
+  return null;
+}
+
+async function executeArticleRowsQuery({
+  since,
+  recentSince,
+  includeCopra,
+}: {
+  since: Date;
+  recentSince: Date;
+  includeCopra: boolean;
+}) {
+  const summarySelection = includeCopra ? sql`ac."summary"` : sql`NULL::text`;
+  const tagsSelection = includeCopra ? sql`ac."tags"` : sql`NULL::text`;
+  const copraJoin = includeCopra
+    ? sql`LEFT JOIN "ArticleCopra" ac ON ac."articleId" = a."lid"`
+    : sql``;
 
   const { rows } = await db.execute<ArticleRow>(sql`
     WITH latest_user AS (
@@ -623,8 +687,8 @@ async function fetchArticleRows() {
       COALESCE(rar."recentReplyCount", 0) AS "recentReplyCount",
       las."title" AS "title",
       las."category" AS "category",
-      ac."summary" AS "summary",
-      ac."tags" AS "tags",
+      ${summarySelection} AS "summary",
+      ${tagsSelection} AS "tags",
       au."userId" AS "authorId",
       au."name" AS "authorName",
       au."badge" AS "authorBadge",
@@ -635,7 +699,7 @@ async function fetchArticleRows() {
     JOIN latest_article_snapshot las ON las."articleId" = a."lid"
     LEFT JOIN recent_article_replies rar ON rar."articleId" = a."lid"
     LEFT JOIN latest_user au ON au."userId" = a."authorId"
-    LEFT JOIN "ArticleCopra" ac ON ac."articleId" = a."lid"
+    ${copraJoin}
     WHERE a."updatedAt" >= ${since}
     ORDER BY a."updatedAt" DESC
     LIMIT ${ARTICLE_CANDIDATE_LIMIT}
