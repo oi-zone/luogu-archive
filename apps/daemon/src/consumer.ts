@@ -62,7 +62,7 @@ export async function consume(consumerName: string) {
 
     for (const { id, message } of messages) {
       const job = message as unknown as Job;
-      const jobLog = log.child({ id, job });
+      const jobLog = log.child({ stream, id, job });
       jobLog.info("Job processing started");
       for (let attempt = 1; ; ++attempt) {
         try {
