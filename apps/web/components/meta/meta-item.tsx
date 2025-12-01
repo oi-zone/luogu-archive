@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type MetaItemProps = {
+export type MetaItemProps = {
   icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   children: React.ReactNode;
   compact?: boolean;
@@ -19,7 +19,7 @@ export default function MetaItem({
       )}
     >
       {Icon && <Icon className="size-3.5" aria-hidden="true" />}
-      <span>{children}</span>
+      <span className={cn(compact && "text-sm")}>{children}</span>
     </span>
   );
 }

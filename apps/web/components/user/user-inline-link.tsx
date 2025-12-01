@@ -46,7 +46,7 @@ export function UserInlineLink({
     <Link
       href={`/u/${user.id}`}
       className={cn(
-        "clear-markdown-style inline-flex items-center rounded-full transition-colors duration-200 hover:bg-primary/7",
+        "clear-markdown-style pointer-events-auto inline-flex items-center rounded-full transition-colors duration-200 hover:bg-primary/7",
         className,
         { "ps-0.25": !avatar },
       )}

@@ -4,7 +4,7 @@ import { db, sql } from "@luogu-discussion-archive/db/drizzle";
 
 import type { BasicUserSnapshot } from "./types.js";
 
-const FEED_DEFAULT_LIMIT = 40;
+const FEED_DEFAULT_LIMIT = 60;
 const FEED_MAX_LIMIT = 80;
 const RANDOM_MIN = 0.4;
 const RANDOM_MAX = 1.0;
