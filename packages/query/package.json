@@ -12,7 +12,8 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@luogu-discussion-archive/db": "workspace:*"
+    "@luogu-discussion-archive/db": "workspace:*",
+    "drizzle-orm": "^0.44.7"
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
