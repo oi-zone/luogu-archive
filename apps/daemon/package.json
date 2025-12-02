@@ -10,7 +10,7 @@
     "@luogu-discussion-archive/crawler": "workspace:*",
     "@luogu-discussion-archive/logging": "workspace:*",
     "@luogu-discussion-archive/redis": "workspace:*",
-    "@sentry/node": "^10.27.0",
+    "@sentry/node": "^10.28.0",
     "dotenv": "^17.2.3"
   },
   "devDependencies": {
