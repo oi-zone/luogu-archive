@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import luoguSvg from "@/app/luogu.svg";
 import { useQuery } from "@tanstack/react-query";
 import {
   AtSign,
@@ -10,6 +11,7 @@ import {
   MessagesSquare,
   Swords,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
@@ -601,8 +603,18 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
     );
   }
 
+  const luoguRe =
+    /^https?:\/\/(?:[a-zA-Z0-9\-\.]*\.)?luogu\.(?:com\.cn|com|org)(?:\/\S*)?/;
   return (
     <Link href={trueUrl ?? "#"} className={className} {...rest}>
+      {luoguRe.test(trueUrl) && !onlyImagesInChildren ? (
+        <Image
+          className="relative -top-0.5 inline-block h-[1.5em] w-[1.05em]"
+          src={luoguSvg}
+          alt="洛谷"
+          aria-hidden="true"
+        />
+      ) : null}
       {children}
     </Link>
   );

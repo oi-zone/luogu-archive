@@ -14,7 +14,7 @@ import {
   sql,
 } from "@luogu-discussion-archive/db/drizzle";
 
-import type { BasicUserSnapshot } from "./types.js";
+import type { BasicUserSnapshot, ForumBasicInfo } from "./types.js";
 
 const DEFAULT_DISCUSSION_LIMIT = Number.parseInt(
   process.env.NUM_DISCUSSIONS_HOME_PAGE ?? "120",
@@ -36,10 +36,7 @@ export interface HotDiscussionSummary {
     title: string;
     capturedAt: Date;
     lastSeenAt: Date;
-    forum: {
-      slug: string;
-      name: string;
-    };
+    forum: ForumBasicInfo;
   };
   author: BasicUserSnapshot | null;
 }
@@ -96,6 +93,16 @@ export async function getHotDiscussions({
             columns: {
               slug: true,
               name: true,
+              problemId: true,
+            },
+            with: {
+              problem: {
+                columns: {
+                  pid: true,
+                  title: true,
+                  difficulty: true,
+                },
+              },
             },
           },
           author: {
@@ -151,7 +158,7 @@ export async function getHotDiscussions({
           title: snapshot.title,
           capturedAt: snapshot.capturedAt,
           lastSeenAt: snapshot.lastSeenAt,
-          forum: snapshot.forum,
+          forum: mapForumBasicInfo(snapshot.forum),
         },
         author,
       } satisfies HotDiscussionSummary;
@@ -178,7 +185,22 @@ export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
               },
             },
           },
-          forum: true,
+          forum: {
+            columns: {
+              slug: true,
+              name: true,
+              problemId: true,
+            },
+            with: {
+              problem: {
+                columns: {
+                  pid: true,
+                  title: true,
+                  difficulty: true,
+                },
+              },
+            },
+          },
         },
       },
       takedown: true,
@@ -382,6 +404,16 @@ export async function getPostSummaryWithLatestSnapshot(postId: number) {
             columns: {
               slug: true,
               name: true,
+              problemId: true,
+            },
+            with: {
+              problem: {
+                columns: {
+                  pid: true,
+                  title: true,
+                  difficulty: true,
+                },
+              },
             },
           },
         },
@@ -606,10 +638,7 @@ interface PostSnapshotTimelineResult {
     ccfLevel: number;
     xcpcLevel: number;
   } | null;
-  forum: {
-    slug: string;
-    name: string;
-  };
+  forum: ForumBasicInfo;
   changedFields: TimelineChangedField[];
   hasPrevious: boolean;
 }
@@ -659,7 +688,22 @@ export async function getPostSnapshotsTimeline(
     orderBy: desc(schema.PostSnapshot.capturedAt),
     limit: take + 1,
     with: {
-      forum: true,
+      forum: {
+        columns: {
+          slug: true,
+          name: true,
+          problemId: true,
+        },
+        with: {
+          problem: {
+            columns: {
+              pid: true,
+              title: true,
+              difficulty: true,
+            },
+          },
+        },
+      },
       author: {
         with: {
           snapshots: {
@@ -731,10 +775,7 @@ export async function getPostSnapshotsTimeline(
             xcpcLevel: authorSnapshot.xcpcLevel,
           }
         : null,
-      forum: {
-        slug: snapshot.forum.slug,
-        name: snapshot.forum.name,
-      },
+      forum: mapForumBasicInfo(snapshot.forum),
       changedFields,
     };
   });
@@ -787,5 +828,31 @@ export async function getReplyWithLatestSnapshot(replyId: number) {
     _count: {
       snapshots: snapshotCountRow?.total ?? 0,
     },
+  };
+}
+
+function mapForumBasicInfo(forum: {
+  slug: string;
+  name: string;
+  problemId: string | null;
+  problem?: { pid: string; title: string; difficulty: number | null } | null;
+}): ForumBasicInfo {
+  return {
+    slug: forum.slug,
+    name: forum.name,
+    problemId: forum.problemId ?? null,
+    problem: forum.problem
+      ? {
+          pid: forum.problem.pid,
+          title: forum.problem.title,
+          difficulty: forum.problem.difficulty ?? null,
+        }
+      : forum.problemId
+        ? {
+            pid: forum.problemId,
+            title: forum.problemId,
+            difficulty: null,
+          }
+        : null,
   };
 }

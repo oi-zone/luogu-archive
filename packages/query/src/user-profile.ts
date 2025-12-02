@@ -14,7 +14,6 @@ import {
 } from "@luogu-discussion-archive/db";
 import {
   and,
-  asc,
   count,
   countDistinct,
   db,
@@ -41,7 +40,7 @@ export interface UserProfile {
   name: string;
   avatarUrl: string;
   nameColor: UserNameColor;
-  highlightTag?: string | undefined;
+  badge?: string | undefined;
   ccfLevel?: number | undefined;
   xcpcLevel?: number | undefined;
   slogan: string;
@@ -54,8 +53,6 @@ export interface UserProfile {
     articleUpvotes: number;
     articleFavorites: number;
   };
-  joinDate: string;
-  location: string;
   tags: string[];
 }
 
@@ -191,13 +188,8 @@ export async function getUserProfileBundle(
     return null;
   }
 
-  const [stats, joinRecord, snapshotHistory, timelinePage] = await Promise.all([
+  const [stats, snapshotHistory, timelinePage] = await Promise.all([
     getUserStats(userId),
-    db.query.UserSnapshot.findFirst({
-      where: eq(schema.UserSnapshot.userId, userId),
-      orderBy: asc(schema.UserSnapshot.capturedAt),
-      columns: { capturedAt: true },
-    }),
     db.query.UserSnapshot.findMany({
       where: eq(schema.UserSnapshot.userId, userId),
       orderBy: desc(schema.UserSnapshot.capturedAt),
@@ -213,15 +205,11 @@ export async function getUserProfileBundle(
     name: latestSnapshot.name,
     avatarUrl: getLuoguAvatar(userId),
     nameColor: mapColorEnumToToken(latestSnapshot.color),
-    highlightTag: sanitizeBadge(latestSnapshot.badge) ?? undefined,
+    badge: sanitizeBadge(latestSnapshot.badge) ?? undefined,
     ccfLevel: latestSnapshot.ccfLevel || undefined,
     xcpcLevel: latestSnapshot.xcpcLevel || undefined,
     slogan: latestSnapshot.slogan || "这名用户暂未设置签名。",
     stats,
-    joinDate: (
-      joinRecord?.capturedAt ?? latestSnapshot.capturedAt
-    ).toISOString(),
-    location: latestSnapshot.isBanned ? "账号受限" : "洛谷社区",
     tags: buildProfileTags(latestSnapshot),
   };
 

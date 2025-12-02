@@ -7,7 +7,7 @@ import {
   shouldIncludeArticleCopra,
 } from "./copra-guard.js";
 import { normalizeCopraTags } from "./copra.js";
-import type { BasicUserSnapshot } from "./types.js";
+import type { BasicUserSnapshot, ForumBasicInfo } from "./types.js";
 
 const FEED_DEFAULT_LIMIT = 60;
 const FEED_MAX_LIMIT = 80;
@@ -58,8 +58,7 @@ export interface DiscussionFeedEntry extends FeedEntryBase {
   kind: "discussion";
   postId: number;
   title: string;
-  forumSlug: string;
-  forumName: string;
+  forum: ForumBasicInfo;
   replyCount: number;
   recentReplyCount: number;
 }
@@ -139,6 +138,9 @@ interface DiscussionRow extends Record<string, unknown> {
   title: string | null;
   forumSlug: string | null;
   forumName: string | null;
+  forumProblemId: string | null;
+  forumProblemTitle: string | null;
+  forumProblemDifficulty: number | null;
   authorId: number | null;
   authorName: string | null;
   authorBadge: string | null;
@@ -309,6 +311,23 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
     });
     if (baseline <= 0) continue;
 
+    const forum: ForumBasicInfo = {
+      slug: row.forumSlug,
+      name: row.forumName,
+      problemId: row.forumProblemId ?? null,
+      problem:
+        row.forumProblemId && row.forumProblemTitle
+          ? {
+              pid: row.forumProblemId,
+              title: row.forumProblemTitle,
+              difficulty:
+                typeof row.forumProblemDifficulty === "number"
+                  ? row.forumProblemDifficulty
+                  : null,
+            }
+          : null,
+    };
+
     const key = `discussion:${row.postId.toString()}`;
     const entry: DiscussionFeedEntry = {
       kind: "discussion",
@@ -317,8 +336,7 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
       author,
       postId: row.postId,
       title: row.title,
-      forumSlug: row.forumSlug,
-      forumName: row.forumName,
+      forum,
       replyCount: row.replyCount,
       recentReplyCount: row.recentReplyCount,
     };
@@ -704,9 +722,13 @@ async function fetchDiscussionRows() {
         ps."title",
         ps."authorId",
         ps."forumSlug",
-        f."name" AS "forumName"
+        f."name" AS "forumName",
+        f."problemId" AS "forumProblemId",
+        pr."title" AS "forumProblemTitle",
+        pr."difficulty" AS "forumProblemDifficulty"
       FROM "PostSnapshot" ps
       JOIN "Forum" f ON f."slug" = ps."forumSlug"
+      LEFT JOIN "Problem" pr ON pr."pid" = f."problemId"
       ORDER BY ps."postId", ps."capturedAt" DESC
     ),
     recent_reply_counts AS (
@@ -724,6 +746,9 @@ async function fetchDiscussionRows() {
       lps."title",
       lps."forumSlug",
       lps."forumName",
+      lps."forumProblemId",
+      lps."forumProblemTitle",
+      lps."forumProblemDifficulty",
       au."userId" AS "authorId",
       au."name" AS "authorName",
       au."badge" AS "authorBadge",

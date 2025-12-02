@@ -16,6 +16,29 @@
     --md-top-level-block-mt: 0.75rem;
   }
 
+  .markdown-body .katex-mathml {
+    @apply hidden;
+    /* Fuck KaTeX MathML!!! Not hiding this will make body width expand unexpectedly!!! */
+  }
+
+  .markdown-body
+    :is(
+      div.fake-p,
+      blockquote:not(.ls-epigraph-blockquote),
+      details,
+      pre,
+      table,
+      ul,
+      ol,
+      dl,
+      figure,
+      .markdown-code-block
+    ) {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
   .markdown-body
     :is(
       div.fake-p,
@@ -335,7 +358,8 @@
   }
 
   .markdown-body table:not(.hljs-ln):not(.ls-cute-table) {
-    @apply border border-border;
+    @apply table-auto border-collapse overflow-hidden border border-border;
+    min-width: max-content;
   }
 
   .markdown-body table:not(.hljs-ln):not(.ls-cute-table) thead {

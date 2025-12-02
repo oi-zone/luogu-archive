@@ -3,7 +3,7 @@ import UserInlineLink, {
   UserInlineDisplay,
 } from "@/components/user/user-inline-link";
 
-import { LinkWithOriginalRaw } from "../link-with-original";
+import LinkWithOriginalRaw from "../link-with-original-raw";
 
 export default function UserMagicLinkWithOriginal({
   userInfo,

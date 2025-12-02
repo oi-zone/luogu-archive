@@ -56,3 +56,4 @@ export {
   type FeedCursor,
 } from "./feed.js";
 export { getProblemBasicInfo, type ProblemBasicInfo } from "./problem.js";
+export type { ForumBasicInfo, ForumProblemInfo } from "./types.js";

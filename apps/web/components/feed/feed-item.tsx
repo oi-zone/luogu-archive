@@ -9,8 +9,10 @@ import {
 import type { FeedEntry } from "@luogu-discussion-archive/query";
 
 import { getCategoryInfo } from "@/lib/category-info";
+import { getForumNameShort } from "@/lib/forum-name";
 import { getPermissionNames } from "@/lib/judgement";
 
+import ForumDisplay from "../forum/forum-display";
 import FeedCardTemplate from "./feed-card-template";
 
 const FALLBACK_ARTICLE_SUMMARY =
@@ -55,7 +57,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
           href={resolveLink(item)}
           kind={item.kind}
           time={timestamp}
-          metaTags={[item.forumName]}
+          metaTags={[<ForumDisplay forum={item.forum} key={item.forum.slug} />]}
           title={item.title}
           content={FALLBACK_DISCUSSION_SUMMARY}
           metrics={[

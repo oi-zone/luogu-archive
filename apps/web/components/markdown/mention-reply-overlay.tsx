@@ -293,7 +293,7 @@ export function MentionReplyOverlayTrigger({
         ? createPortal(
             <div
               ref={overlayRef}
-              className="mention-reply-overlay fixed z-50 rounded-2xl border border-border bg-popover/50 p-3 text-sm shadow-lg backdrop-blur"
+              className="mention-reply-overlay fixed z-50 rounded-2xl border border-border bg-popover/50 p-3 text-sm shadow-lg backdrop-blur-xs"
               style={positionStyles}
             >
               <div className="flex items-center justify-between gap-2">

@@ -48,12 +48,12 @@ export default function FeedCardTemplate({
 }: {
   kind: FeedEntry["kind"];
   time: Date;
-  metaTags?: string[] | null;
+  metaTags?: React.ReactNode[] | null;
   metaText?: string | null;
   title?: string | null;
   content?: React.ReactNode | null;
   contentMaxLines?: number;
-  tags?: string[] | null;
+  tags?: React.ReactNode[] | null;
   metrics?: Omit<MetaItemProps, "compact">[] | null;
   user?: UserBasicInfo | null;
   href?: string | null;

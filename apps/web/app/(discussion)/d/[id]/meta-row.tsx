@@ -7,6 +7,9 @@ import {
   type ForumBasicInfo,
 } from "@/lib/forum-name";
 import { ABSOLUTE_DATE_FORMATTER } from "@/lib/time";
+import ForumDisplay, {
+  ForumDisplayShort,
+} from "@/components/forum/forum-display";
 import MetaItem from "@/components/meta/meta-item";
 import UserInlineLink, {
   UserBasicInfo,
@@ -37,7 +40,11 @@ const DiscussionMetaRow = React.forwardRef<
         <time dateTime={discussion.time.toISOString()}>{publishedAt}</time>
       </MetaItem>
       <MetaItem icon={Tag} compact={compact}>
-        {(compact ? getForumNameShort : getForumNameFull)(discussion.forum)}
+        {compact ? (
+          <ForumDisplayShort forum={discussion.forum} />
+        ) : (
+          <ForumDisplay forum={discussion.forum} />
+        )}
       </MetaItem>
       <MetaItem icon={Users} compact={compact}>
         参与者&thinsp;{discussion.allParticipantsCount.toLocaleString("zh-CN")}

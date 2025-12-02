@@ -2,19 +2,11 @@ import { NAME_COLOR_CLASS, type UserProfile } from "@/lib/user-profile-shared";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const DATE_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
-
 export function UserInfoCard({ profile }: { profile: UserProfile }) {
-  const joinLabel = DATE_FORMATTER.format(new Date(profile.joinDate));
-
   return (
     <section className="relative overflow-hidden rounded-3xl border border-border p-6 text-card-foreground shadow-sm">
       <div className="flex flex-col items-start gap-4 sm:flex-row">
-        <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border">
+        <div className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border">
           <Avatar className="size-full">
             <AvatarImage src={profile.avatarUrl} alt={profile.name} />
             <AvatarFallback className="text-xs font-semibold">
@@ -26,7 +18,7 @@ export function UserInfoCard({ profile }: { profile: UserProfile }) {
           <div className="space-y-1">
             <h2
               className={cn(
-                "text-xl leading-tight font-semibold",
+                "text-2xl leading-tight font-semibold",
                 NAME_COLOR_CLASS[profile.nameColor],
               )}
             >
@@ -37,8 +29,13 @@ export function UserInfoCard({ profile }: { profile: UserProfile }) {
                 #{profile.id}
               </span>
               {profile.ccfLevel ? (
-                <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium">
-                  CCF Lv.{profile.ccfLevel}
+                <span className="rounded-full border border-border/60 px-1.5 py-0.5 text-[11px] font-medium">
+                  CCF&thinsp;{profile.ccfLevel}&thinsp;级
+                </span>
+              ) : null}
+              {profile.xcpcLevel ? (
+                <span className="rounded-full border border-border/60 px-1.5 py-0.5 text-[11px] font-medium">
+                  XCPC&thinsp;{profile.xcpcLevel}&thinsp;级
                 </span>
               ) : null}
             </div>
@@ -48,7 +45,7 @@ export function UserInfoCard({ profile }: { profile: UserProfile }) {
       <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
         {profile.slogan}
       </p>
-      <dl className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-muted/40 p-4 text-sm sm:grid-cols-3">
+      <dl className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-muted/75 p-4 text-sm sm:grid-cols-3">
         {[
           { label: "发帖", value: profile.stats.posts },
           { label: "文章", value: profile.stats.articles },
@@ -66,24 +63,18 @@ export function UserInfoCard({ profile }: { profile: UserProfile }) {
           </div>
         ))}
       </dl>
-      <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
-        <span className="rounded-full border border-border/60 px-3 py-1">
-          {profile.location}
-        </span>
-        <span className="rounded-full border border-border/60 px-3 py-1">
-          首次捕获于 {joinLabel}
-        </span>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {profile.tags.map((tag) => (
-          <span
-            key={tag}
-            className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
+      {profile.tags.length > 0 ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {profile.tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

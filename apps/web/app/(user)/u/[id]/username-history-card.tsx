@@ -94,11 +94,11 @@ export function UsernameHistoryCard({
                       current ? "font-medium text-foreground" : "",
                     )}
                   >
-                    <span title={latestChange?.toISOString()}>
-                      最后捕获于 {formatDate(latestChange)}
-                    </span>
                     <span title={earliestDate?.toISOString()}>
                       最早追溯到 {formatDate(earliestDate)}
+                    </span>
+                    <span title={latestChange?.toISOString()}>
+                      最后捕获于 {formatDate(latestChange)}
                     </span>
                   </div>
                 </li>

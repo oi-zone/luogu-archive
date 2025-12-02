@@ -22,9 +22,10 @@ export default function PasteMagicLinkDirect({
     <Link
       href={`/p/${pasteSummary.id}`}
       className={cn(
-        "clear-markdown-style relative top-0.5 -my-0.5",
-        "ls-discussion-link inline-flex items-center gap-2 rounded-full px-2.75 py-1 text-sm font-medium text-foreground no-underline",
+        "clear-markdown-style relative -top-0.25 -mt-0.5",
+        "ls-paste-link inline-flex items-center gap-2 rounded-full px-2.5 py-0.75 text-sm font-medium text-foreground no-underline",
         "bg-gray-100 transition duration-200 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800",
+        "max-w-full overflow-hidden text-ellipsis whitespace-nowrap",
       )}
     >
       <PasteMagicLinkContent pasteSummary={pasteSummary} />
@@ -49,12 +50,16 @@ export function PasteMagicLinkContent({
         </span>
       </span>
       <span className="relative top-0.5 inline-block">
-        <MetaItem icon={Camera} compact>
+        <MetaItem icon={Camera} compact className="gap-0.5">
           {pasteSummary.snapshotsCount.toLocaleString("zh-CN")}
         </MetaItem>
       </span>
       <span className="relative top-0.5 inline-block">
-        <MetaItem icon={pasteSummary.isPublic ? Globe : Lock} compact>
+        <MetaItem
+          icon={pasteSummary.isPublic ? Globe : Lock}
+          compact
+          className="gap-0.5"
+        >
           {pasteSummary.isPublic ? "公开" : "私密"}
         </MetaItem>
       </span>

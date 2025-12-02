@@ -540,7 +540,7 @@ export default function Layout({
               </aside>
             ) : null}
 
-            <main className="order-1 flex flex-col gap-8 2xl:order-3">
+            <main className="order-1 flex min-w-0 flex-1 flex-col gap-8 2xl:order-3">
               <section className="flex flex-col gap-6">
                 <header className="space-y-4" ref={headerContainerRef}>
                   <div className="flex flex-col gap-4">
@@ -623,7 +623,7 @@ export default function Layout({
       {hasToc ? (
         <div
           className={cn(
-            "article-mobile-toc fixed inset-0 z-50 bg-background/70 px-4 py-6 backdrop-blur lg:hidden",
+            "article-mobile-toc fixed inset-0 z-50 bg-background/60 px-4 py-6 backdrop-blur lg:hidden",
             isMobileTocOpen
               ? "pointer-events-auto opacity-100"
               : "pointer-events-none opacity-0",

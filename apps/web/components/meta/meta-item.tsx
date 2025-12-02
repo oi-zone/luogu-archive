@@ -4,18 +4,21 @@ export type MetaItemProps = {
   icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   children: React.ReactNode;
   compact?: boolean;
+  className?: string;
 };
 
 export default function MetaItem({
   icon: Icon,
   children,
   compact = false,
+  className,
 }: MetaItemProps) {
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 text-muted-foreground",
         compact && "gap-1",
+        className,
       )}
     >
       {Icon && <Icon className="size-3.5" aria-hidden="true" />}

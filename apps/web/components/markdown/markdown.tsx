@@ -276,6 +276,15 @@ export default function Markdown({
             return <MarkdownSummary {...rest}>{children}</MarkdownSummary>;
           },
           ...headingComponents,
+          table(props) {
+            const { node, children, ...rest } = props;
+            void node;
+            return (
+              <div className="fake-p max-w-full overflow-x-auto">
+                <table {...rest}>{children}</table>
+              </div>
+            );
+          },
         }}
       >
         {children}

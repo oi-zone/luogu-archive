@@ -6,3 +6,16 @@ export interface BasicUserSnapshot {
   ccfLevel: number;
   xcpcLevel: number;
 }
+
+export interface ForumProblemInfo {
+  pid: string;
+  title: string;
+  difficulty: number | null;
+}
+
+export interface ForumBasicInfo {
+  slug: string;
+  name: string;
+  problemId: string | null;
+  problem: ForumProblemInfo | null;
+}

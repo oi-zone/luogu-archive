@@ -87,8 +87,7 @@ function discussionToFeedEntry(discussion: HotDiscussionSummary): FeedEntry {
     author: discussion.author,
     postId: discussion.id,
     title: discussion.snapshot.title,
-    forumSlug: discussion.snapshot.forum.slug,
-    forumName: discussion.snapshot.forum.name,
+    forum: discussion.snapshot.forum,
     replyCount: discussion.replyCount,
     recentReplyCount: discussion.recentReplyCount,
   } satisfies FeedEntry;

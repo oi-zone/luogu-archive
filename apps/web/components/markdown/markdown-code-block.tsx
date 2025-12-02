@@ -95,7 +95,7 @@ export default function MarkdownCodeBlock({
   const languageLabel = formatLanguageLabel(language);
   const mergedClassName = cn(
     className?.includes("hljs") ? className : cn("hljs", className),
-    "ls-code-block",
+    "ls-code-block !pe-10",
   );
 
   const lineNumbersMemo = React.useMemo(() => {
@@ -109,7 +109,7 @@ export default function MarkdownCodeBlock({
   return (
     <span className="markdown-code-block group relative block">
       {languageLabel && (
-        <Badge className="pointer-events-none absolute -top-2 left-3 z-10 bg-background text-xs uppercase opacity-0 transition duration-120 group-focus-within:opacity-100 group-hover:opacity-100">
+        <Badge className="pointer-events-none absolute right-3 bottom-3 z-10 bg-background/50 text-xs uppercase opacity-0 shadow ring-1 ring-border backdrop-blur-xs transition duration-120 group-focus-within:opacity-100 group-hover:opacity-100">
           {languageLabel}
         </Badge>
       )}
@@ -117,7 +117,7 @@ export default function MarkdownCodeBlock({
         type="button"
         size="icon"
         variant="secondary"
-        className="absolute top-3 right-3 z-10 h-6 w-6 cursor-pointer rounded-full bg-gray-500/10 opacity-80 transition-opacity duration-120 hover:bg-gray-500/10 hover:opacity-100"
+        className="absolute top-3 right-3 z-10 h-6 w-6 cursor-pointer rounded-full bg-background/50 text-primary/50 shadow ring-1 ring-border backdrop-blur-xs transition-all duration-200 hover:bg-background/70 hover:text-primary"
         onClick={handleCopy}
         aria-label={copied ? "已复制代码" : "复制代码"}
         title={copied ? "已复制" : "复制代码"}

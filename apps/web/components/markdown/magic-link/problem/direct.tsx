@@ -19,9 +19,10 @@ export default function ProblemMagicLinkDirect({
     <Link
       href={`https://www.luogu.com.cn/problem/${problemInfo.pid}`}
       className={cn(
-        "clear-markdown-style relative top-0.5 -my-0.5",
-        "ls-discussion-link inline-flex items-center gap-1 rounded-full px-2.75 py-1 text-sm font-medium text-foreground no-underline",
+        "clear-markdown-style relative -top-0.25 -mt-0.5",
+        "ls-problem-link inline-flex items-center gap-1 rounded-full px-2.5 py-0.75 text-sm font-medium text-foreground no-underline",
         "bg-gray-100 transition duration-200 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800",
+        "max-w-full overflow-hidden text-ellipsis whitespace-nowrap",
       )}
     >
       <ProblemMagicLinkContent problemInfo={problemInfo} />

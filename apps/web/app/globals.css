@@ -120,7 +120,7 @@
   }
 
   body {
-    @apply overflow-x-hidden bg-[var(--background)] text-[var(--foreground)];
+    @apply bg-[var(--background)] text-[var(--foreground)];
   }
 
   .text-luogu-purple,
@@ -301,7 +301,7 @@
   }
 
   .article-floating-toc-panel {
-    @apply rounded-2xl border border-border bg-background p-4;
+    @apply rounded-2xl border border-border bg-background/90 p-4 backdrop-blur;
     position: fixed;
     inset-inline-start: calc(100% - 0.5rem);
     top: 5rem;
