@@ -1,7 +1,9 @@
-import { desc, sql } from "drizzle-orm";
+import { desc, eq, gt, sql, sum } from "drizzle-orm";
 import { unionAll } from "drizzle-orm/pg-core";
 
 import { db, schema } from "@luogu-discussion-archive/db/drizzle";
+
+const DEFAULT_LIMIT = 30;
 
 const GRAVITY = 1.8;
 
@@ -19,7 +21,7 @@ const calculateRankSql = (
     .mapWith(Number)
     .as("rank");
 
-const postsQuery = db
+const hotPostsQuery = db
   .select({
     type: sql<string>`'post'`,
     id: sql<string>`cast(${schema.Post.id} as text)`,
@@ -27,7 +29,10 @@ const postsQuery = db
   })
   .from(schema.Post);
 
-const articlesQuery = db
+export const getHotPosts = async (limit = DEFAULT_LIMIT) =>
+  hotPostsQuery.orderBy(desc(sql`rank`)).limit(limit);
+
+const hotArticlesQuery = db
   .select({
     type: sql<string>`'article'`,
     id: schema.Article.lid,
@@ -38,7 +43,56 @@ const articlesQuery = db
   })
   .from(schema.Article);
 
-export const getTrendingEntries = async (limit = 30) =>
-  unionAll(postsQuery, articlesQuery)
+export const getHotArticles = async (limit = DEFAULT_LIMIT) =>
+  hotArticlesQuery.orderBy(desc(sql`rank`)).limit(limit);
+
+export const getHotEntries = async (limit = DEFAULT_LIMIT) =>
+  unionAll(hotPostsQuery, hotArticlesQuery)
     .orderBy(desc(sql`rank`))
+    .limit(limit);
+
+const calculateRepliesScoreSql = (
+  table: typeof schema.Reply | typeof schema.ArticleReply,
+  days = 3,
+) =>
+  sum(
+    sql`1 / (1 + exp(extract(epoch from age(now(), ${table.time})) / 86400 - ${days}))`,
+  )
+    .mapWith(Number)
+    .as("score");
+
+const activePostsQuery = db
+  .select({
+    type: sql<string>`'post'`,
+    id: sql<string>`cast(${schema.Post.id} as text)`,
+    score: calculateRepliesScoreSql(schema.Reply),
+  })
+  .from(schema.Post)
+  .innerJoin(schema.Reply, eq(schema.Post.id, schema.Reply.postId))
+  .where(gt(schema.Reply.time, sql`now() - interval '15 days'`))
+  .groupBy(schema.Post.id);
+
+export const getActivePosts = async (limit = DEFAULT_LIMIT) =>
+  activePostsQuery.orderBy(desc(sql`score`)).limit(limit);
+
+const activeArticlesQuery = db
+  .select({
+    type: sql<string>`'article'`,
+    id: schema.Article.lid,
+    score: calculateRepliesScoreSql(schema.ArticleReply),
+  })
+  .from(schema.Article)
+  .innerJoin(
+    schema.ArticleReply,
+    eq(schema.Article.lid, schema.ArticleReply.articleId),
+  )
+  .where(gt(schema.ArticleReply.time, sql`now() - interval '15 days'`))
+  .groupBy(schema.Article.lid);
+
+export const getActiveArticles = async (limit = DEFAULT_LIMIT) =>
+  activeArticlesQuery.orderBy(desc(sql`score`)).limit(limit);
+
+export const getActiveEntries = async (limit = DEFAULT_LIMIT) =>
+  unionAll(activePostsQuery, activeArticlesQuery)
+    .orderBy(desc(sql`score`))
     .limit(limit);
