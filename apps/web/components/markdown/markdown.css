@@ -8,7 +8,7 @@
     letter-spacing: -0.003em;
     word-break: break-word;
     white-space: normal;
-    --md-top-level-block-mt: 1.5rem;
+    --md-top-level-block-mt: 1rem;
     --md-block-mt: 0.75rem;
   }
 
@@ -127,29 +127,29 @@
 
   .markdown-body h1 {
     @apply text-4xl leading-tight;
-    --md-hn-mt: 32px;
-    --md-hn-mb: 24px;
+    --md-hn-mt: 30px;
+    --md-hn-mb: 26px;
   }
   .markdown-body h2 {
     @apply text-3xl leading-tight;
-    --md-hn-mt: 28px;
-    --md-hn-mb: 20px;
+    --md-hn-mt: 26px;
+    --md-hn-mb: 22px;
   }
   .markdown-body h3 {
     @apply text-2xl leading-snug;
-    --md-hn-mt: 24px;
-    --md-hn-mb: 16px;
+    --md-hn-mt: 22px;
+    --md-hn-mb: 18px;
   }
   .markdown-body h4 {
     @apply text-xl leading-snug;
-    --md-hn-mt: 20px;
-    --md-hn-mb: 13px;
+    --md-hn-mt: 18px;
+    --md-hn-mb: 15px;
   }
   .markdown-body h5,
   .markdown-body h6 {
     @apply text-base tracking-[0.025em] text-foreground uppercase;
-    --md-hn-mt: 16px;
-    --md-hn-mb: 10px;
+    --md-hn-mt: 14px;
+    --md-hn-mb: 12px;
   }
 
   .markdown-body div.fake-p {

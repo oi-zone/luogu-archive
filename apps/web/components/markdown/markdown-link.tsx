@@ -344,10 +344,16 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
     return extractTextFromChildren(children);
   }, [children, markdownLabel]);
 
-  const trueUrl = new URL(
-    href ?? "",
-    originalUrl ?? "https://www.luogu.com.cn/",
-  ).toString();
+  const isBlankLink = href === null || href === undefined || href.trim() === "";
+
+  console.log("MarkdownLink href:", href, isBlankLink);
+
+  const trueUrl = isBlankLink
+    ? "#"
+    : new URL(
+        href ?? "",
+        originalUrl ?? "https://www.luogu.com.cn/",
+      ).toString();
   const uidMentionParam = props["data-ls-user-mention"];
   const uidLinkParam = props["data-ls-user"];
   const uidParam = uidMentionParam ?? uidLinkParam;
@@ -399,208 +405,210 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
 
   const onlyImagesInChildren = onlyHasImageChildren(children);
 
-  if (uidMentionParam) {
-    if (userInfo) {
-      const shouldEnableInference =
-        mentionContext?.kind === "discussion" &&
-        mentionContext.discussionId !== undefined &&
-        mentionContext.relativeReplyId !== undefined;
+  if (!isBlankLink) {
+    if (uidMentionParam) {
+      if (userInfo) {
+        const shouldEnableInference =
+          mentionContext?.kind === "discussion" &&
+          mentionContext.discussionId !== undefined &&
+          mentionContext.relativeReplyId !== undefined;
+
+        return (
+          <span className="ls-user-mention inline-flex items-center gap-0.25">
+            <AtSign
+              className={cn(
+                "relative top-0.5 inline-block size-4 stroke-[1.75]",
+                // `text-luogu-${userInfo.color.toLowerCase()}`,
+              )}
+            />
+            <span className="relative top-1 -ms-0.75 -mt-1 inline-flex items-center gap-0">
+              <UserInlineLink user={userInfo} compact avatar={false} />
+              {shouldEnableInference && (
+                <MentionReplyOverlayTrigger
+                  discussionId={mentionContext.discussionId}
+                  mentionUserId={userInfo.id}
+                  relativeReplyId={mentionContext.relativeReplyId}
+                  className="user-select-none me-0.75 inline-flex h-6 cursor-pointer items-center gap-0.75 rounded-full bg-muted px-1.5 py-1"
+                >
+                  <MessageSquareReply className="inline-block size-4 stroke-2" />
+                  <span className="inline-block text-sm leading-none">
+                    回复推断
+                  </span>
+                </MentionReplyOverlayTrigger>
+              )}
+            </span>
+          </span>
+        );
+      }
 
       return (
         <span className="ls-user-mention inline-flex items-center gap-0.25">
           <AtSign
-            className={cn(
-              "relative top-0.5 inline-block size-4 stroke-[1.75]",
-              // `text-luogu-${userInfo.color.toLowerCase()}`,
-            )}
+            className={cn("relative top-0.5 inline-block size-4 stroke-[1.75]")}
           />
-          <span className="relative top-1 -ms-0.75 -mt-1 inline-flex items-center gap-0">
-            <UserInlineLink user={userInfo} compact avatar={false} />
-            {shouldEnableInference && (
-              <MentionReplyOverlayTrigger
-                discussionId={mentionContext.discussionId}
-                mentionUserId={userInfo.id}
-                relativeReplyId={mentionContext.relativeReplyId}
-                className="user-select-none me-0.75 inline-flex h-6 cursor-pointer items-center gap-0.75 rounded-full bg-muted px-1.5 py-1"
-              >
-                <MessageSquareReply className="inline-block size-4 stroke-2" />
-                <span className="inline-block text-sm leading-none">
-                  回复推断
-                </span>
-              </MentionReplyOverlayTrigger>
-            )}
+          <span className="relative top-1 ms-0.25 -mt-1 inline-flex items-center gap-0 text-primary">
+            {children ?? linkLabel}
           </span>
         </span>
       );
     }
 
-    return (
-      <span className="ls-user-mention inline-flex items-center gap-0.25">
-        <AtSign
-          className={cn("relative top-0.5 inline-block size-4 stroke-[1.75]")}
-        />
-        <span className="relative top-1 ms-0.25 -mt-1 inline-flex items-center gap-0 text-primary">
-          {children ?? linkLabel}
-        </span>
-      </span>
-    );
-  }
+    if (discussionIdParam) {
+      if (discussionSummary) {
+        return !isLinkTextUseful({
+          href: trueUrl,
+          text: linkLabel,
+          rawSource: linkTextSource,
+          kind: "discussion",
+          referenceTitle: discussionSummary.title,
+          referenceId: discussionId?.toString(),
+        }) ? (
+          <DiscussionMagicLinkDirect discussionSummary={discussionSummary} />
+        ) : (
+          <DiscussionMagicLinkWithOriginal
+            discussionSummary={discussionSummary}
+            iconCorner={onlyImagesInChildren}
+          >
+            {children ?? (linkLabel || `讨论\u2009${discussionId}`)}
+          </DiscussionMagicLinkWithOriginal>
+        );
+      }
 
-  if (discussionIdParam) {
-    if (discussionSummary) {
-      return !isLinkTextUseful({
-        href: trueUrl,
-        text: linkLabel,
-        rawSource: linkTextSource,
-        kind: "discussion",
-        referenceTitle: discussionSummary.title,
-        referenceId: discussionId?.toString(),
-      }) ? (
-        <DiscussionMagicLinkDirect discussionSummary={discussionSummary} />
-      ) : (
-        <DiscussionMagicLinkWithOriginal
-          discussionSummary={discussionSummary}
-          iconCorner={onlyImagesInChildren}
-        >
+      return (
+        <Link href={`/d/${discussionId}`} className={className} {...rest}>
+          <MessagesSquare
+            className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
+            aria-hidden="true"
+          />
           {children ?? (linkLabel || `讨论\u2009${discussionId}`)}
-        </DiscussionMagicLinkWithOriginal>
+        </Link>
       );
     }
 
-    return (
-      <Link href={`/d/${discussionId}`} className={className} {...rest}>
-        <MessagesSquare
-          className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
-          aria-hidden="true"
-        />
-        {children ?? (linkLabel || `讨论\u2009${discussionId}`)}
-      </Link>
-    );
-  }
+    if (articleId) {
+      if (articleSummary) {
+        return !isLinkTextUseful({
+          href: trueUrl,
+          text: linkLabel,
+          rawSource: linkTextSource,
+          kind: "article",
+          referenceTitle: articleSummary.title,
+          referenceId: articleId,
+        }) ? (
+          <ArticleMagicLinkDirect articleSummary={articleSummary} />
+        ) : (
+          <ArticleMagicLinkWithOriginal
+            articleSummary={articleSummary}
+            iconCorner={onlyImagesInChildren}
+          >
+            {children ?? (linkLabel || `文章\u2009${articleId}`)}
+          </ArticleMagicLinkWithOriginal>
+        );
+      }
 
-  if (articleId) {
-    if (articleSummary) {
-      return !isLinkTextUseful({
-        href: trueUrl,
-        text: linkLabel,
-        rawSource: linkTextSource,
-        kind: "article",
-        referenceTitle: articleSummary.title,
-        referenceId: articleId,
-      }) ? (
-        <ArticleMagicLinkDirect articleSummary={articleSummary} />
-      ) : (
-        <ArticleMagicLinkWithOriginal
-          articleSummary={articleSummary}
-          iconCorner={onlyImagesInChildren}
-        >
+      return (
+        <Link href={`/a/${articleId}`} className={className} {...rest}>
+          <FileText
+            className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
+            aria-hidden="true"
+          />
           {children ?? (linkLabel || `文章\u2009${articleId}`)}
-        </ArticleMagicLinkWithOriginal>
+        </Link>
       );
     }
 
-    return (
-      <Link href={`/a/${articleId}`} className={className} {...rest}>
-        <FileText
-          className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
-          aria-hidden="true"
-        />
-        {children ?? (linkLabel || `文章\u2009${articleId}`)}
-      </Link>
-    );
-  }
+    if (pasteId) {
+      if (pasteSummary) {
+        return !isLinkTextUseful({
+          href: trueUrl,
+          text: linkLabel,
+          rawSource: linkTextSource,
+          kind: "paste",
+          referenceId: pasteId,
+        }) ? (
+          <PasteMagicLinkDirect pasteSummary={pasteSummary} />
+        ) : (
+          <PasteMagicLinkWithOriginal
+            pasteSummary={pasteSummary}
+            iconCorner={onlyImagesInChildren}
+          >
+            {children ?? (linkLabel || `云剪贴板\u2009${pasteId}`)}
+          </PasteMagicLinkWithOriginal>
+        );
+      }
 
-  if (pasteId) {
-    if (pasteSummary) {
-      return !isLinkTextUseful({
-        href: trueUrl,
-        text: linkLabel,
-        rawSource: linkTextSource,
-        kind: "paste",
-        referenceId: pasteId,
-      }) ? (
-        <PasteMagicLinkDirect pasteSummary={pasteSummary} />
-      ) : (
-        <PasteMagicLinkWithOriginal
-          pasteSummary={pasteSummary}
-          iconCorner={onlyImagesInChildren}
-        >
+      return (
+        <Link href={`/p/${pasteId}`} className={className} {...rest}>
+          <ClipboardList
+            className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
+            aria-hidden="true"
+          />
           {children ?? (linkLabel || `云剪贴板\u2009${pasteId}`)}
-        </PasteMagicLinkWithOriginal>
+        </Link>
       );
     }
 
-    return (
-      <Link href={`/p/${pasteId}`} className={className} {...rest}>
-        <ClipboardList
-          className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
-          aria-hidden="true"
-        />
-        {children ?? (linkLabel || `云剪贴板\u2009${pasteId}`)}
-      </Link>
-    );
-  }
+    if (problemId) {
+      if (problemInfo) {
+        return !isLinkTextUseful({
+          href: trueUrl,
+          text: linkLabel,
+          rawSource: linkTextSource,
+          kind: "problem",
+          referenceTitle: problemInfo.title,
+          referenceId: problemId,
+        }) ? (
+          <ProblemMagicLinkDirect problemInfo={problemInfo} />
+        ) : (
+          <ProblemMagicLinkWithOriginal
+            problemInfo={problemInfo}
+            iconCorner={onlyImagesInChildren}
+          >
+            {children ?? (linkLabel || `题目\u2009${problemId}`)}
+          </ProblemMagicLinkWithOriginal>
+        );
+      }
 
-  if (problemId) {
-    if (problemInfo) {
-      return !isLinkTextUseful({
-        href: trueUrl,
-        text: linkLabel,
-        rawSource: linkTextSource,
-        kind: "problem",
-        referenceTitle: problemInfo.title,
-        referenceId: problemId,
-      }) ? (
-        <ProblemMagicLinkDirect problemInfo={problemInfo} />
-      ) : (
-        <ProblemMagicLinkWithOriginal
-          problemInfo={problemInfo}
-          iconCorner={onlyImagesInChildren}
+      return (
+        <Link
+          href={`https://www.luogu.com.cn/problem/${problemId}`}
+          className={className}
+          {...rest}
         >
+          <Swords
+            className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
+            aria-hidden="true"
+          />
           {children ?? (linkLabel || `题目\u2009${problemId}`)}
-        </ProblemMagicLinkWithOriginal>
+        </Link>
       );
     }
 
-    return (
-      <Link
-        href={`https://www.luogu.com.cn/problem/${problemId}`}
-        className={className}
-        {...rest}
-      >
-        <Swords
-          className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
-          aria-hidden="true"
-        />
-        {children ?? (linkLabel || `题目\u2009${problemId}`)}
-      </Link>
-    );
-  }
+    if (uidLinkParam) {
+      if (userInfo) {
+        // TODO: improve styles when both images and non-images are in children
+        return !isLinkTextUseful({
+          href: trueUrl,
+          text: markdownLabel,
+          rawSource: linkTextSource,
+          kind: "user",
+          referenceName: userInfo.name,
+          referenceId: userInfo.id.toString(),
+        }) ? (
+          <UserMagicLinkDirect userInfo={userInfo} />
+        ) : (
+          <UserMagicLinkWithOriginal userInfo={userInfo}>
+            {children ?? (linkLabel || trueUrl)}
+          </UserMagicLinkWithOriginal>
+        );
+      }
 
-  if (uidLinkParam) {
-    if (userInfo) {
-      // TODO: improve styles when both images and non-images are in children
-      return !isLinkTextUseful({
-        href: trueUrl,
-        text: markdownLabel,
-        rawSource: linkTextSource,
-        kind: "user",
-        referenceName: userInfo.name,
-        referenceId: userInfo.id.toString(),
-      }) ? (
-        <UserMagicLinkDirect userInfo={userInfo} />
-      ) : (
-        <UserMagicLinkWithOriginal userInfo={userInfo}>
+      return (
+        <Link href={trueUrl ?? "#"} className={className} {...rest}>
           {children ?? (linkLabel || trueUrl)}
-        </UserMagicLinkWithOriginal>
+        </Link>
       );
     }
-
-    return (
-      <Link href={trueUrl ?? "#"} className={className} {...rest}>
-        {children ?? (linkLabel || trueUrl)}
-      </Link>
-    );
   }
 
   const luoguRe =
