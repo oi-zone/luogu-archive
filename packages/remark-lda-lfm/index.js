@@ -123,6 +123,49 @@ function captureFromFirstMatch(regexes, url) {
   return null;
 }
 
+/**
+ * Replace stray text directives with their original source text so regular
+ * strings such as "08:00" are left untouched.
+ */
+function restoreTextDirectiveNode(node, index, parent, file) {
+  if (!parent || typeof index !== "number" || !Array.isArray(parent.children)) {
+    return;
+  }
+  if (node?.data && typeof node.data.hName === "string") {
+    return;
+  }
+
+  const rawValue = extractRawDirectiveValue(node, file);
+  parent.children[index] = {
+    type: "text",
+    value: rawValue,
+  };
+}
+
+/**
+ * Recover the literal substring that produced the directive; fall back to
+ * ":<name>" if positional metadata is unavailable.
+ */
+function extractRawDirectiveValue(node, file) {
+  const fallback = `:${node.name || ""}`;
+  if (
+    !node?.position ||
+    typeof node.position.start?.offset !== "number" ||
+    typeof node.position.end?.offset !== "number"
+  ) {
+    return fallback;
+  }
+  if (typeof file?.value !== "string") {
+    return fallback;
+  }
+
+  const { start, end } = node.position;
+  if (start.offset >= 0 && end.offset > start.offset) {
+    return file.value.slice(start.offset, end.offset);
+  }
+  return fallback;
+}
+
 /** @type {Options} */
 const emptyOptions = {};
 
@@ -305,6 +348,10 @@ export default function remarkLuoguFlavor(options) {
       } catch (_) {
         // ignore
       }
+    });
+
+    visit(tree, "textDirective", (node, index, parent) => {
+      restoreTextDirectiveNode(node, index, parent, file);
     });
   };
 }
