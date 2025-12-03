@@ -11,7 +11,7 @@ import {
   lt,
   or,
   schema,
-} from "@luogu-discussion-archive/db/drizzle";
+} from "@luogu-discussion-archive/db";
 
 import type { ForumBasicInfo } from "./types.js";
 

@@ -1,7 +1,7 @@
 import { desc, eq, gt, sql, sum } from "drizzle-orm";
 import { unionAll } from "drizzle-orm/pg-core";
 
-import { db, schema } from "@luogu-discussion-archive/db/drizzle";
+import { db, schema } from "@luogu-discussion-archive/db";
 
 const DEFAULT_LIMIT = 30;
 

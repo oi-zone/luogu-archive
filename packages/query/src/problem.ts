@@ -1,9 +1,4 @@
-import {
-  countDistinct,
-  db,
-  eq,
-  schema,
-} from "@luogu-discussion-archive/db/drizzle";
+import { countDistinct, db, eq, schema } from "@luogu-discussion-archive/db";
 
 export interface ProblemBasicInfo {
   pid: string;

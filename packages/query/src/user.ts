@@ -1,4 +1,4 @@
-import { db, desc, eq, schema } from "@luogu-discussion-archive/db/drizzle";
+import { db, desc, eq, schema } from "@luogu-discussion-archive/db";
 
 export async function getUserWithLatestSnapshot(id: number) {
   return db.query.User.findFirst({

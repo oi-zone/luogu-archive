@@ -10,7 +10,7 @@ import {
   lt,
   or,
   schema,
-} from "@luogu-discussion-archive/db/drizzle";
+} from "@luogu-discussion-archive/db";
 
 export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
   const article = await db.query.Article.findFirst({

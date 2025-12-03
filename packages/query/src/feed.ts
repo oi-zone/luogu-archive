@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { db, sql } from "@luogu-discussion-archive/db/drizzle";
+import { db, sql } from "@luogu-discussion-archive/db";
 
 import { normalizeCopraTags } from "./copra.js";
 import type { BasicUserSnapshot, ForumBasicInfo } from "./types.js";

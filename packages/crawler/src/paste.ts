@@ -8,7 +8,7 @@ import {
   max,
   schema,
   sql,
-} from "@luogu-discussion-archive/db/drizzle";
+} from "@luogu-discussion-archive/db";
 
 import { client } from "./client.js";
 import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";

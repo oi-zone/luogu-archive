@@ -6,7 +6,7 @@ import {
   eq,
   lt,
   schema,
-} from "@luogu-discussion-archive/db/drizzle";
+} from "@luogu-discussion-archive/db";
 
 export async function getPasteWithSnapshot(id: string, capturedAt?: Date) {
   const paste = await db.query.Paste.findFirst({

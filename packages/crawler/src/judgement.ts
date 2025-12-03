@@ -1,4 +1,4 @@
-import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
+import { db, schema, sql } from "@luogu-discussion-archive/db";
 
 import { cn } from "./client.js";
 import { HttpError } from "./error.js";

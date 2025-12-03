@@ -8,7 +8,7 @@ import {
   max,
   schema,
   sql,
-} from "@luogu-discussion-archive/db/drizzle";
+} from "@luogu-discussion-archive/db";
 
 import { PgAdvisoryLock } from "./locks.js";
 import { deduplicate } from "./utils.js";

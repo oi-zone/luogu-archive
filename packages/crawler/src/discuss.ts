@@ -15,7 +15,7 @@ import {
   max,
   schema,
   sql,
-} from "@luogu-discussion-archive/db/drizzle";
+} from "@luogu-discussion-archive/db";
 
 import { clientLentille } from "./client.js";
 import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";

@@ -1,18 +1,4 @@
 import {
-  Color,
-  type Article,
-  type ArticleReply,
-  type ArticleSnapshot,
-  type Judgement,
-  type Paste,
-  type PasteSnapshot,
-  type Post,
-  type PostSnapshot,
-  type Reply,
-  type ReplySnapshot,
-  type UserSnapshot,
-} from "@luogu-discussion-archive/db";
-import {
   and,
   count,
   countDistinct,
@@ -24,7 +10,8 @@ import {
   schema,
   sql,
   sum,
-} from "@luogu-discussion-archive/db/drizzle";
+  type InferEnum,
+} from "@luogu-discussion-archive/db";
 
 export type UserNameColor =
   | "purple"
@@ -510,8 +497,8 @@ async function getUserTimelineEntries(
 }
 
 function mapArticleToTimeline(
-  article: Article,
-  snapshot: ArticleSnapshot,
+  article: typeof schema.Article.$inferInsert,
+  snapshot: typeof schema.ArticleSnapshot.$inferInsert,
 ): TimelineEntry {
   return {
     id: `article-${article.lid}-${article.time.getTime().toString()}`,
@@ -526,8 +513,8 @@ function mapArticleToTimeline(
 }
 
 function mapDiscussionToTimeline(
-  post: Post,
-  snapshot: PostSnapshot,
+  post: typeof schema.Post.$inferInsert,
+  snapshot: typeof schema.PostSnapshot.$inferInsert,
 ): TimelineEntry {
   return {
     id: `discussion-${post.id.toString()}-${post.time.getTime().toString()}`,
@@ -542,7 +529,11 @@ function mapDiscussionToTimeline(
 }
 
 function mapArticleReplyToTimeline(
-  reply: ArticleReply & { article: Article & { snapshots: ArticleSnapshot[] } },
+  reply: typeof schema.ArticleReply.$inferInsert & {
+    article: typeof schema.Article.$inferInsert & {
+      snapshots: (typeof schema.ArticleSnapshot.$inferInsert)[];
+    };
+  },
 ): TimelineEntry {
   const articleTitle = reply.article.snapshots[0]?.title ?? reply.articleId;
   return {
@@ -556,9 +547,11 @@ function mapArticleReplyToTimeline(
 }
 
 function mapDiscussionReplyToTimeline(
-  reply: Reply & {
-    snapshots: ReplySnapshot[];
-    post: Post & { snapshots: PostSnapshot[] };
+  reply: typeof schema.Reply.$inferInsert & {
+    snapshots: (typeof schema.ReplySnapshot.$inferInsert)[];
+    post: typeof schema.Post.$inferInsert & {
+      snapshots: (typeof schema.PostSnapshot.$inferInsert)[];
+    };
   },
 ): TimelineEntry {
   const discussionTitle =
@@ -575,7 +568,9 @@ function mapDiscussionReplyToTimeline(
 }
 
 function mapPasteToTimeline(
-  paste: Paste & { snapshots: PasteSnapshot[] },
+  paste: typeof schema.Paste.$inferInsert & {
+    snapshots: (typeof schema.PasteSnapshot.$inferInsert)[];
+  },
 ): TimelineEntry {
   const snapshot = paste.snapshots[0];
   const description = snapshot?.data
@@ -592,7 +587,9 @@ function mapPasteToTimeline(
   };
 }
 
-function mapJudgementToTimeline(judgement: Judgement): TimelineEntry {
+function mapJudgementToTimeline(
+  judgement: typeof schema.Judgement.$inferInsert,
+): TimelineEntry {
   return {
     id: `judgement-${judgement.userId.toString()}-${judgement.time.getTime().toString()}`,
     type: "judgement",
@@ -603,18 +600,20 @@ function mapJudgementToTimeline(judgement: Judgement): TimelineEntry {
   };
 }
 
-function mapSnapshotAppearance(snapshot: UserSnapshot): UserSnapshotAppearance {
+function mapSnapshotAppearance(
+  snapshot: typeof schema.UserSnapshot.$inferInsert,
+): UserSnapshotAppearance {
   return {
     id: snapshot.userId,
     name: snapshot.name,
-    color: mapColorEnumToToken(snapshot.color),
+    color: snapshot.color,
     badge: sanitizeBadge(snapshot.badge),
     ccfLevel: snapshot.ccfLevel,
     xcpcLevel: snapshot.xcpcLevel,
   };
 }
 
-function buildProfileTags(snapshot: UserSnapshot) {
+function buildProfileTags(snapshot: typeof schema.UserSnapshot.$inferInsert) {
   const tags = new Set<string>();
   if (snapshot.isRoot) tags.add("超级管理员");
   if (snapshot.isAdmin) tags.add("管理员");
@@ -626,18 +625,9 @@ function getLuoguAvatar(userId: number) {
   return `https://cdn.luogu.com.cn/upload/usericon/${userId.toString()}.png`;
 }
 
-function mapColorEnumToToken(color: Color): UserNameColor {
-  const mapping: Record<Color, UserNameColor> = {
-    [Color.Purple]: "purple",
-    [Color.Red]: "red",
-    [Color.Orange]: "orange",
-    [Color.Green]: "green",
-    [Color.Blue]: "blue",
-    [Color.Gray]: "gray",
-    [Color.Cheater]: "cheater",
-  };
-  return mapping[color];
-}
+const mapColorEnumToToken = (
+  color: InferEnum<typeof schema.Color>,
+): UserNameColor => color.toLowerCase() as UserNameColor;
 
 function sanitizeBadge(badge?: string | null) {
   if (!badge) return null;

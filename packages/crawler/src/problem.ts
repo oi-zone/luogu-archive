@@ -1,6 +1,6 @@
 import type { ProblemSummary } from "@lgjs/types";
 
-import { db, schema, sql } from "@luogu-discussion-archive/db/drizzle";
+import { db, schema, sql } from "@luogu-discussion-archive/db";
 
 import { deduplicate } from "./utils.js";
 

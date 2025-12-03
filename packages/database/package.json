@@ -4,10 +4,6 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./dist/index.js"
-    },
-    "./drizzle": {
       "types": "./src/drizzle.ts",
       "default": "./dist/drizzle.js"
     }
