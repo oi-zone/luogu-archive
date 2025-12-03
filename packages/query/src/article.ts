@@ -14,10 +14,6 @@ import {
   sql,
 } from "@luogu-discussion-archive/db/drizzle";
 
-import {
-  handleArticleCopraSchemaError,
-  shouldIncludeArticleCopra,
-} from "./copra-guard.js";
 import { normalizeCopraTags } from "./copra.js";
 import type { BasicUserSnapshot } from "./types.js";
 
@@ -114,73 +110,7 @@ export async function getFeaturedArticles({
   }
 
   const lids = scoreRows.map((row) => row.lid);
-  const articles = await findArticlesWithOptionalCopra(lids);
-
-  const articleMap = new Map(articles.map((article) => [article.lid, article]));
-
-  return scoreRows
-    .map((row) => {
-      const article = articleMap.get(row.lid);
-      if (!article) return null;
-      const snapshot = article.snapshots[0];
-      if (!snapshot) return null;
-      const authorSnapshot = article.author.snapshots[0];
-      const copraEntries = Array.isArray(article.copra) ? article.copra : [];
-
-      const author: BasicUserSnapshot | null = authorSnapshot
-        ? {
-            id: article.author.id,
-            name: authorSnapshot.name,
-            badge: authorSnapshot.badge ?? null,
-            color: authorSnapshot.color,
-            ccfLevel: authorSnapshot.ccfLevel,
-            xcpcLevel: authorSnapshot.xcpcLevel,
-          }
-        : null;
-
-      const score = Number(row.score);
-      const recentReplyCount = Number(row.recentReplyCount ?? 0);
-
-      return {
-        lid: article.lid,
-        time: article.time,
-        updatedAt: article.updatedAt,
-        replyCount: article.replyCount,
-        recentReplyCount,
-        favorCount: article.favorCount,
-        upvote: article.upvote,
-        category: snapshot.category,
-        summary: copraEntries[0]?.summary ?? null,
-        tags: normalizeCopraTags(copraEntries[0]?.tags ?? null),
-        score,
-        snapshot: {
-          title: snapshot.title,
-          capturedAt: snapshot.capturedAt,
-          lastSeenAt: snapshot.lastSeenAt,
-        },
-        author,
-      } satisfies FeaturedArticleSummary;
-    })
-    .filter((item): item is FeaturedArticleSummary => item !== null);
-}
-
-async function findArticlesWithOptionalCopra(lids: string[]) {
-  if (!shouldIncludeArticleCopra()) {
-    return executeFeaturedArticlesQuery(lids, false);
-  }
-
-  try {
-    return await executeFeaturedArticlesQuery(lids, true);
-  } catch (error) {
-    if (!handleArticleCopraSchemaError(error, "article")) {
-      throw error;
-    }
-    return executeFeaturedArticlesQuery(lids, false);
-  }
-}
-
-function executeFeaturedArticlesQuery(lids: string[], includeCopra: boolean) {
-  return db.query.Article.findMany({
+  const articles = await db.query.Article.findMany({
     where: inArray(schema.Article.lid, lids),
     with: {
       snapshots: {
@@ -209,18 +139,61 @@ function executeFeaturedArticlesQuery(lids: string[], includeCopra: boolean) {
           },
         },
       },
-      ...(includeCopra
-        ? {
-            copra: {
-              columns: {
-                summary: true,
-                tags: true,
-              },
-            },
-          }
-        : {}),
+      copra: {
+        columns: {
+          summary: true,
+          tags: true,
+        },
+      },
     },
   });
+
+  const articleMap = new Map(articles.map((article) => [article.lid, article]));
+
+  return scoreRows
+    .map((row) => {
+      const article = articleMap.get(row.lid);
+      if (!article) return null;
+      const snapshot = article.snapshots[0];
+      if (!snapshot) return null;
+      const authorSnapshot = article.author.snapshots[0];
+      const copra = article.copra;
+
+      const author: BasicUserSnapshot | null = authorSnapshot
+        ? {
+            id: article.author.id,
+            name: authorSnapshot.name,
+            badge: authorSnapshot.badge ?? null,
+            color: authorSnapshot.color,
+            ccfLevel: authorSnapshot.ccfLevel,
+            xcpcLevel: authorSnapshot.xcpcLevel,
+          }
+        : null;
+
+      const score = Number(row.score);
+      const recentReplyCount = Number(row.recentReplyCount ?? 0);
+
+      return {
+        lid: article.lid,
+        time: article.time,
+        updatedAt: article.updatedAt,
+        replyCount: article.replyCount,
+        recentReplyCount,
+        favorCount: article.favorCount,
+        upvote: article.upvote,
+        category: snapshot.category,
+        summary: copra[0]?.summary ?? null,
+        tags: normalizeCopraTags(copra[0]?.tags ?? null),
+        score,
+        snapshot: {
+          title: snapshot.title,
+          capturedAt: snapshot.capturedAt,
+          lastSeenAt: snapshot.lastSeenAt,
+        },
+        author,
+      } satisfies FeaturedArticleSummary;
+    })
+    .filter((item): item is FeaturedArticleSummary => item !== null);
 }
 
 export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
