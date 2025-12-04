@@ -427,10 +427,10 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
                 discussionId={mentionContext.discussionId}
                 mentionUserId={userInfo.id}
                 relativeReplyId={mentionContext.relativeReplyId}
-                className="user-select-none me-0.75 inline-flex h-6 cursor-pointer items-center gap-0.75 rounded-full bg-muted px-1.5 py-1"
+                className="user-select-none me-0.75 inline-flex cursor-pointer items-center gap-0.75 rounded-full bg-background/50 px-1.75 py-1.25 shadow-sm ring-1 ring-border backdrop-blur-xs transition duration-200 hover:-translate-y-0.25 hover:shadow"
               >
-                <MessageSquareReply className="inline-block size-4 stroke-2" />
-                <span className="inline-block text-sm leading-none">
+                <MessageSquareReply className="inline-block size-3 stroke-2" />
+                <span className="inline-block text-xs leading-none">
                   回复推断
                 </span>
               </MentionReplyOverlayTrigger>

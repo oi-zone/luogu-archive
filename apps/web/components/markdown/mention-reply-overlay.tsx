@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { Loader2, MessageSquare, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 

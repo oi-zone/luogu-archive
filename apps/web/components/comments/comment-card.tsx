@@ -117,7 +117,7 @@ export function CommentCard({
         </div>
         <span className="comment-card-footer pointer-events-none absolute -bottom-4 left-1 z-1 opacity-0 transition-opacity duration-150 group-focus-within/comment-card:pointer-events-auto group-focus-within/comment-card:opacity-100 group-hover/comment-card:pointer-events-auto group-hover/comment-card:opacity-100 sm:left-1.5">
           <button
-            className="relative top-0 inline-flex cursor-pointer items-center gap-1 rounded-full bg-background/50 px-2.5 py-1.5 text-xs text-muted-foreground shadow-lg ring-1 ring-border backdrop-blur-xs transition-[color,top] duration-200 select-none hover:-top-0.25 hover:text-foreground"
+            className="relative top-0 inline-flex cursor-pointer items-center gap-1 rounded-full bg-background/50 px-2.5 py-1.5 text-xs text-muted-foreground shadow ring-1 ring-border backdrop-blur-xs transition-[color,top] duration-200 select-none hover:-top-0.25 hover:text-foreground"
             onClick={() => copy(comment.content)}
             aria-live="polite"
           >
@@ -129,7 +129,7 @@ export function CommentCard({
             复制&thinsp;Markdown
           </button>
         </span>
-        <span className="comment-card-footer pointer-events-none absolute right-1 -bottom-4 rounded-full bg-background/50 px-2.5 py-1.5 text-xs text-muted-foreground opacity-0 shadow-lg ring-1 ring-border backdrop-blur-xs transition-opacity duration-150 group-focus-within/comment-card:pointer-events-auto group-focus-within/comment-card:opacity-100 group-hover/comment-card:pointer-events-auto group-hover/comment-card:opacity-100 sm:right-1.5">
+        <span className="comment-card-footer pointer-events-none absolute right-1 -bottom-4 rounded-full bg-background/50 px-2.5 py-1.5 text-xs text-muted-foreground opacity-0 shadow ring-1 ring-border backdrop-blur-xs transition-opacity duration-150 group-focus-within/comment-card:pointer-events-auto group-focus-within/comment-card:opacity-100 group-hover/comment-card:pointer-events-auto group-hover/comment-card:opacity-100 sm:right-1.5">
           {comment.type === "discussionReply"
             ? `#reply-${comment.id}@${comment.capturedAt.getTime().toString(36)}`
             : `#comment-${comment.id}`}
