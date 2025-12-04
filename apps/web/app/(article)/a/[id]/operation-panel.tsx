@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { enqueueArticleRefresh } from "@/server-actions/queue-jobs";
 import {
   ClipboardCheck,
   ClipboardCopy,
@@ -15,6 +16,7 @@ import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { Button } from "@/components/ui/button";
+import { QueueJobButton } from "@/components/operation-panel/queue-job-button";
 
 type StatRowProps = {
   label: string;
@@ -64,6 +66,10 @@ export default function ArticleOperationPanel({
   const archiveLink = `https://luogu.store/a/${article.lid}`;
   const archiveSnapshotLink = `https://luogu.store/a/${article.lid}@${snapshotToken}`;
   const bodyMarkdown = article.content ?? "";
+  const triggerRefresh = React.useCallback(
+    () => enqueueArticleRefresh(article.lid),
+    [article.lid],
+  );
 
   return (
     <div className={className}>
@@ -113,6 +119,7 @@ export default function ArticleOperationPanel({
         >
           <History className="size-4" aria-hidden="true" /> 时光机
         </Button>
+        <QueueJobButton onTrigger={triggerRefresh} idleText="更新文章" />
         <Button
           variant="outline"
           className="cursor-pointer justify-start gap-2 rounded-2xl py-2"

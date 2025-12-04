@@ -75,6 +75,9 @@ importers:
       '@luogu-discussion-archive/query':
         specifier: workspace:*
         version: link:../../packages/query
+      '@luogu-discussion-archive/redis':
+        specifier: workspace:*
+        version: link:../../packages/redis
       '@luogu-discussion-archive/remark-lda-lfm':
         specifier: workspace:*
         version: link:../../packages/remark-lda-lfm
