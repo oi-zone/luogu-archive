@@ -707,10 +707,16 @@ export async function getPostEntries(ids: number[]): Promise<PostDto[]> {
       },
     },
     extras: {
-      savedReplyCount:
-        sql`(select count(*) from ${schema.Reply} where ${schema.Reply}."${sql.raw(schema.Reply.postId.name)}" = ${schema.Post.id})`
-          .mapWith(Number)
-          .as("saved_reply_count"),
+      savedReplyCount: db
+        .$count(
+          schema.Reply,
+          eq(
+            schema.Post.id,
+            sql`${schema.Reply}.${sql.identifier(schema.Reply.postId.name)}`,
+          ),
+        )
+        .mapWith(Number)
+        .as("saved_reply_count"),
     },
   });
 

@@ -393,10 +393,16 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
       copra: true,
     },
     extras: {
-      savedReplyCount:
-        sql`(select count(*) from ${schema.ArticleReply} where ${schema.ArticleReply}."${sql.raw(schema.ArticleReply.articleId.name)}" = ${schema.Article.lid})`
-          .mapWith(Number)
-          .as("saved_reply_count"),
+      savedReplyCount: db
+        .$count(
+          schema.ArticleReply,
+          eq(
+            schema.Article.lid,
+            sql`${schema.ArticleReply}.${sql.identifier(schema.ArticleReply.articleId.name)}`,
+          ),
+        )
+        .mapWith(Number)
+        .as("saved_reply_count"),
     },
   });
 
