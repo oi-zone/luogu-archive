@@ -116,7 +116,8 @@ export async function getActiveUsers(limit = DEFAULT_LIMIT) {
 
   return db
     .select({
-      uid: allActivities.authorId,
+      type: sql<"user">`'user'`,
+      id: allActivities.authorId,
       score: calculateActivityScoreSql(allActivities.time, 7),
     })
     .from(allActivities)

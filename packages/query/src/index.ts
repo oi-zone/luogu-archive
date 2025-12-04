@@ -14,7 +14,7 @@ export {
   getArticleComment,
   getArticleSnapshotsTimeline,
 } from "./article.js";
-export { getUserWithLatestSnapshot } from "./user.js";
+export { getUserEntries, getUserWithLatestSnapshot } from "./user.js";
 export {
   getUserProfileBundle,
   getUserTimelinePage,
