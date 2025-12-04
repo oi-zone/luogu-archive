@@ -405,54 +405,54 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
 
   const onlyImagesInChildren = onlyHasImageChildren(children);
 
-  if (!isBlankLink) {
-    if (uidMentionParam) {
-      if (userInfo) {
-        const shouldEnableInference =
-          mentionContext?.kind === "discussion" &&
-          mentionContext.discussionId !== undefined &&
-          mentionContext.relativeReplyId !== undefined;
-
-        return (
-          <span className="ls-user-mention inline-flex items-center gap-0.25">
-            <AtSign
-              className={cn(
-                "relative top-0.5 inline-block size-4 stroke-[1.75]",
-                // `text-luogu-${userInfo.color.toLowerCase()}`,
-              )}
-            />
-            <span className="relative top-1 -ms-0.75 -mt-1 inline-flex items-center gap-0">
-              <UserInlineLink user={userInfo} compact avatar={false} />
-              {shouldEnableInference && (
-                <MentionReplyOverlayTrigger
-                  discussionId={mentionContext.discussionId}
-                  mentionUserId={userInfo.id}
-                  relativeReplyId={mentionContext.relativeReplyId}
-                  className="user-select-none me-0.75 inline-flex h-6 cursor-pointer items-center gap-0.75 rounded-full bg-muted px-1.5 py-1"
-                >
-                  <MessageSquareReply className="inline-block size-4 stroke-2" />
-                  <span className="inline-block text-sm leading-none">
-                    回复推断
-                  </span>
-                </MentionReplyOverlayTrigger>
-              )}
-            </span>
-          </span>
-        );
-      }
+  if (uidMentionParam) {
+    if (userInfo) {
+      const shouldEnableInference =
+        mentionContext?.kind === "discussion" &&
+        mentionContext.discussionId !== undefined &&
+        mentionContext.relativeReplyId !== undefined;
 
       return (
         <span className="ls-user-mention inline-flex items-center gap-0.25">
           <AtSign
-            className={cn("relative top-0.5 inline-block size-4 stroke-[1.75]")}
+            className={cn(
+              "relative top-0.5 inline-block size-4 stroke-[1.75]",
+              // `text-luogu-${userInfo.color.toLowerCase()}`,
+            )}
           />
-          <span className="relative top-1 ms-0.25 -mt-1 inline-flex items-center gap-0 text-primary">
-            {children ?? linkLabel}
+          <span className="relative top-1 -ms-0.75 -mt-1 inline-flex items-center gap-0">
+            <UserInlineLink user={userInfo} compact avatar={false} />
+            {shouldEnableInference && (
+              <MentionReplyOverlayTrigger
+                discussionId={mentionContext.discussionId}
+                mentionUserId={userInfo.id}
+                relativeReplyId={mentionContext.relativeReplyId}
+                className="user-select-none me-0.75 inline-flex h-6 cursor-pointer items-center gap-0.75 rounded-full bg-muted px-1.5 py-1"
+              >
+                <MessageSquareReply className="inline-block size-4 stroke-2" />
+                <span className="inline-block text-sm leading-none">
+                  回复推断
+                </span>
+              </MentionReplyOverlayTrigger>
+            )}
           </span>
         </span>
       );
     }
 
+    return (
+      <span className="ls-user-mention inline-flex items-center gap-0.25">
+        <AtSign
+          className={cn("relative top-0.5 inline-block size-4 stroke-[1.75]")}
+        />
+        <span className="relative top-1 ms-0.25 -mt-1 inline-flex items-center gap-0 text-primary">
+          {children ?? linkLabel}
+        </span>
+      </span>
+    );
+  }
+
+  if (!isBlankLink) {
     if (discussionIdParam) {
       if (discussionSummary) {
         return !isLinkTextUseful({
