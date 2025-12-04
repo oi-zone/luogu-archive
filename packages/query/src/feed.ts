@@ -310,7 +310,6 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
     const forum: ForumBasicInfo = {
       slug: row.forumSlug,
       name: row.forumName,
-      problemId: row.forumProblemId ?? null,
       problem:
         row.forumProblemId && row.forumProblemTitle
           ? {

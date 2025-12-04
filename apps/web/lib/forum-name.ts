@@ -7,5 +7,5 @@ export function getForumNameFull(forum: ForumBasicInfo): string {
 }
 
 export function getForumNameShort(forum: ForumBasicInfo): string {
-  return forum.problem?.pid ?? forum.problemId ?? forum.name;
+  return forum.problem?.pid ?? forum.name;
 }

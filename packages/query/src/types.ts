@@ -16,6 +16,5 @@ export interface ForumProblemInfo {
 export interface ForumBasicInfo {
   slug: string;
   name: string;
-  problemId: string | null;
   problem: ForumProblemInfo | null;
 }
