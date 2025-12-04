@@ -4,6 +4,7 @@ import * as React from "react";
 import { useParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+import Container from "@/components/layout/container";
 
 import { DiscussionWaybackModal } from "./wayback-modal";
 
@@ -139,74 +140,72 @@ export default function Layout({
 
   return (
     <>
-      <div className="flex flex-1 justify-center px-4 pt-8 pb-16 sm:px-6 lg:px-8">
-        <div className="w-full">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,3.2fr)] xl:grid-cols-[minmax(0,8fr)_minmax(0,2.7fr)] 2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]">
-            <aside className="hidden 2xl:flex 2xl:flex-col 2xl:gap-4">
-              {recommendationsStacked}
-            </aside>
+      <Container>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,3.2fr)] xl:grid-cols-[minmax(0,8fr)_minmax(0,2.7fr)] 2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]">
+          <aside className="hidden 2xl:flex 2xl:flex-col 2xl:gap-4">
+            {recommendationsStacked}
+          </aside>
 
-            <main className="order-1 flex flex-col gap-8 2xl:order-2">
-              <section className="flex flex-col gap-6">
-                <header className="space-y-4" ref={headerContainerRef}>
-                  {titleRow}
+          <main className="order-1 flex flex-col gap-8 2xl:order-2">
+            <section className="flex flex-col gap-6">
+              <header className="space-y-4" ref={headerContainerRef}>
+                {titleRow}
 
-                  <div ref={metaRowRef}>{metaRow}</div>
-                </header>
+                <div ref={metaRowRef}>{metaRow}</div>
+              </header>
 
-                <div className="lg:hidden">{operationPanel}</div>
+              <div className="lg:hidden">{operationPanel}</div>
 
-                <section
-                  ref={contentRef}
-                  className="space-y-6 text-base leading-relaxed text-muted-foreground sm:text-lg"
-                >
-                  {content}
-                </section>
+              <section
+                ref={contentRef}
+                className="space-y-6 text-base leading-relaxed text-muted-foreground sm:text-lg"
+              >
+                {content}
               </section>
+            </section>
 
-              {replies}
+            {replies}
 
-              <div className="2xl:hidden">{recommendationsInline}</div>
-            </main>
+            <div className="2xl:hidden">{recommendationsInline}</div>
+          </main>
 
-            <aside className="order-2 hidden lg:order-2 lg:block 2xl:order-3">
-              <div className="sticky top-24 flex flex-col gap-4">
+          <aside className="order-2 hidden lg:order-2 lg:block 2xl:order-3">
+            <div className="sticky top-24 flex flex-col gap-4">
+              <div
+                className="grid transition-[grid-template-rows,gap] duration-300 ease-out"
+                style={{
+                  gridTemplateRows: `${isMetaPinned ? floatingMetaHeight : 0}px auto`,
+                  gap: isMetaPinned ? "14px" : "0px",
+                }}
+              >
                 <div
-                  className="grid transition-[grid-template-rows,gap] duration-300 ease-out"
-                  style={{
-                    gridTemplateRows: `${isMetaPinned ? floatingMetaHeight : 0}px auto`,
-                    gap: isMetaPinned ? "14px" : "0px",
-                  }}
+                  className={cn(
+                    "relative h-full transition-opacity duration-300 ease-out",
+                    isMetaPinned ? "opacity-100" : "opacity-0",
+                  )}
                 >
-                  <div
-                    className={cn(
-                      "relative h-full transition-opacity duration-300 ease-out",
-                      isMetaPinned ? "opacity-100" : "opacity-0",
-                    )}
-                  >
-                    <div className="pointer-events-none absolute inset-0" />
-                    <div className="h-full overflow-hidden">
-                      <div ref={floatingMetaRef} className="pb-2.5">
-                        {metaCard}
-                        <hr className="mt-7" />
-                      </div>
+                  <div className="pointer-events-none absolute inset-0" />
+                  <div className="h-full overflow-hidden">
+                    <div ref={floatingMetaRef} className="pb-2.5">
+                      {metaCard}
+                      <hr className="mt-7" />
                     </div>
                   </div>
+                </div>
 
-                  <div
-                    className={cn(
-                      "transition-transform duration-300 ease-out will-change-transform",
-                      isMetaPinned ? "translate-y-[2px]" : "translate-y-0",
-                    )}
-                  >
-                    {operationPanel}
-                  </div>
+                <div
+                  className={cn(
+                    "transition-transform duration-300 ease-out will-change-transform",
+                    isMetaPinned ? "translate-y-[2px]" : "translate-y-0",
+                  )}
+                >
+                  {operationPanel}
                 </div>
               </div>
-            </aside>
-          </div>
+            </div>
+          </aside>
         </div>
-      </div>
+      </Container>
 
       <DiscussionWaybackModal />
     </>

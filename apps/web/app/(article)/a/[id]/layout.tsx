@@ -5,6 +5,7 @@ import { ListTree, X } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+import Container from "@/components/layout/container";
 
 import { ArticleWaybackModal } from "./wayback-modal";
 
@@ -457,73 +458,47 @@ export default function Layout({
 
   return (
     <>
-      <div className="flex flex-1 justify-center px-4 pt-8 pb-16 sm:px-6 lg:px-8">
-        <div className="relative w-full">
-          {hasToc ? (
-            <div
-              className={cn(
-                "article-floating-toc pointer-events-none",
-                "hidden lg:flex lg:items-center lg:justify-end 2xl:hidden",
-              )}
-            >
-              <div className="article-floating-toc-hitbox">
-                <span className="article-floating-toc-button">
-                  <ListTree className="size-4" />
-                </span>
-                <div className="article-floating-toc-panel">
-                  <div className="article-toc-card">
-                    <TocNavigation
-                      items={tocItems}
-                      activeId={activeHeadingId}
-                      onNavigate={scrollToHeading}
-                    />
-                  </div>
+      <Container>
+        {hasToc ? (
+          <div
+            className={cn(
+              "article-floating-toc pointer-events-none",
+              "hidden lg:flex lg:items-center lg:justify-end 2xl:hidden",
+            )}
+          >
+            <div className="article-floating-toc-hitbox">
+              <span className="article-floating-toc-button">
+                <ListTree className="size-4" />
+              </span>
+              <div className="article-floating-toc-panel">
+                <div className="article-toc-card">
+                  <TocNavigation
+                    items={tocItems}
+                    activeId={activeHeadingId}
+                    onNavigate={scrollToHeading}
+                  />
                 </div>
               </div>
             </div>
-          ) : null}
+          </div>
+        ) : null}
 
-          <div
-            ref={gridRef}
-            className={cn(
-              "article-grid grid gap-8",
-              "lg:grid-cols-[minmax(0,8fr)_minmax(0,3.2fr)]",
-              "xl:grid-cols-[minmax(0,8fr)_minmax(0,2.7fr)]",
-              hasToc
-                ? "2xl:grid-cols-[minmax(0,2fr)_minmax(0,8fr)_minmax(0,3fr)]"
-                : "2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]",
-              hasToc &&
-                "3xl:grid-cols-[minmax(0,2.5fr)_minmax(0,2fr)_minmax(0,9fr)_minmax(0,3fr)]",
-            )}
-          >
-            <aside className="hidden 2xl:order-1 2xl:flex 2xl:flex-col 2xl:gap-4">
-              {hasToc ? (
-                <div className="hidden 2xl:block 3xl:hidden">
-                  <div className="article-toc-track" style={tocTrackStyle}>
-                    <div
-                      ref={assignTocDesktopCardRef}
-                      className="article-toc-card sticky"
-                      style={tocStickyStyle}
-                    >
-                      <TocNavigation
-                        items={tocItems}
-                        activeId={activeHeadingId}
-                        onNavigate={scrollToHeading}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-              <div className={cn(hasToc ? "hidden 3xl:block" : "block")}>
-                {recommendationsStacked}
-              </div>
-            </aside>
-
+        <div
+          ref={gridRef}
+          className={cn(
+            "article-grid grid gap-8",
+            "lg:grid-cols-[minmax(0,8fr)_minmax(0,3.2fr)]",
+            "xl:grid-cols-[minmax(0,8fr)_minmax(0,2.7fr)]",
+            hasToc
+              ? "2xl:grid-cols-[minmax(0,2fr)_minmax(0,8fr)_minmax(0,3fr)]"
+              : "2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]",
+            hasToc &&
+              "3xl:grid-cols-[minmax(0,2.5fr)_minmax(0,2fr)_minmax(0,9fr)_minmax(0,3fr)]",
+          )}
+        >
+          <aside className="hidden 2xl:order-1 2xl:flex 2xl:flex-col 2xl:gap-4">
             {hasToc ? (
-              <aside
-                className="article-toc-3xl hidden 3xl:order-2 3xl:block"
-                aria-label="文章目录"
-              >
+              <div className="hidden 2xl:block 3xl:hidden">
                 <div className="article-toc-track" style={tocTrackStyle}>
                   <div
                     ref={assignTocDesktopCardRef}
@@ -537,88 +512,110 @@ export default function Layout({
                     />
                   </div>
                 </div>
-              </aside>
-            ) : null}
-
-            <main className="order-1 flex min-w-0 flex-1 flex-col gap-8 2xl:order-3">
-              <section className="flex flex-col gap-6">
-                <header className="space-y-4" ref={headerContainerRef}>
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1 space-y-3">{titleRow}</div>
-                      {hasToc ? (
-                        <button
-                          type="button"
-                          className="article-toc-mobile-trigger inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-foreground/40 hover:text-foreground lg:hidden"
-                          onClick={() => setIsMobileTocOpen(true)}
-                        >
-                          <ListTree className="h-3.5 w-3.5" />
-                          目录
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div ref={metaRowRef}>{metaRow}</div>
-                </header>
-
-                <div className="lg:hidden">{operationPanel}</div>
-
-                <section
-                  ref={contentRef}
-                  className="space-y-6 text-base leading-relaxed text-muted-foreground sm:text-lg"
-                >
-                  {content}
-                </section>
-              </section>
-
-              <div
-                className={cn("block", hasToc ? "3xl:hidden" : "2xl:hidden")}
-              >
-                {recommendationsInline}
               </div>
+            ) : null}
+            <div className={cn(hasToc ? "hidden 3xl:block" : "block")}>
+              {recommendationsStacked}
+            </div>
+          </aside>
 
-              {replies}
-            </main>
-
-            <aside className="order-2 hidden lg:order-2 lg:block 2xl:order-4">
-              <div className="sticky top-24 flex flex-col gap-4">
+          {hasToc ? (
+            <aside
+              className="article-toc-3xl hidden 3xl:order-2 3xl:block"
+              aria-label="文章目录"
+            >
+              <div className="article-toc-track" style={tocTrackStyle}>
                 <div
-                  className="grid transition-[grid-template-rows,gap] duration-300 ease-out"
-                  style={{
-                    gridTemplateRows: `${isMetaPinned ? floatingMetaHeight : 0}px auto`,
-                    gap: isMetaPinned ? "14px" : "0px",
-                  }}
+                  ref={assignTocDesktopCardRef}
+                  className="article-toc-card sticky"
+                  style={tocStickyStyle}
                 >
-                  <div
-                    className={cn(
-                      "relative h-full transition-opacity duration-300 ease-out",
-                      isMetaPinned ? "opacity-100" : "opacity-0",
-                    )}
-                  >
-                    <div className="pointer-events-none absolute inset-0" />
-                    <div className="h-full overflow-hidden">
-                      <div ref={floatingMetaRef} className="pb-2.5">
-                        {metaCard}
-                        <hr className="mt-7" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className={cn(
-                      "transition-transform duration-300 ease-out will-change-transform",
-                      isMetaPinned ? "translate-y-[2px]" : "translate-y-0",
-                    )}
-                  >
-                    {operationPanel}
-                  </div>
+                  <TocNavigation
+                    items={tocItems}
+                    activeId={activeHeadingId}
+                    onNavigate={scrollToHeading}
+                  />
                 </div>
               </div>
             </aside>
-          </div>
+          ) : null}
+
+          <main className="order-1 flex min-w-0 flex-1 flex-col gap-8 2xl:order-3">
+            <section className="flex flex-col gap-6">
+              <header className="space-y-4" ref={headerContainerRef}>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-3">{titleRow}</div>
+                    {hasToc ? (
+                      <button
+                        type="button"
+                        className="article-toc-mobile-trigger inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-foreground/40 hover:text-foreground lg:hidden"
+                        onClick={() => setIsMobileTocOpen(true)}
+                      >
+                        <ListTree className="h-3.5 w-3.5" />
+                        目录
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div ref={metaRowRef}>{metaRow}</div>
+              </header>
+
+              <div className="lg:hidden">{operationPanel}</div>
+
+              <section
+                ref={contentRef}
+                className="space-y-6 text-base leading-relaxed text-muted-foreground sm:text-lg"
+              >
+                {content}
+              </section>
+            </section>
+
+            <div className={cn("block", hasToc ? "3xl:hidden" : "2xl:hidden")}>
+              {recommendationsInline}
+            </div>
+
+            {replies}
+          </main>
+
+          <aside className="order-2 hidden lg:order-2 lg:block 2xl:order-4">
+            <div className="sticky top-24 flex flex-col gap-4">
+              <div
+                className="grid transition-[grid-template-rows,gap] duration-300 ease-out"
+                style={{
+                  gridTemplateRows: `${isMetaPinned ? floatingMetaHeight : 0}px auto`,
+                  gap: isMetaPinned ? "14px" : "0px",
+                }}
+              >
+                <div
+                  className={cn(
+                    "relative h-full transition-opacity duration-300 ease-out",
+                    isMetaPinned ? "opacity-100" : "opacity-0",
+                  )}
+                >
+                  <div className="pointer-events-none absolute inset-0" />
+                  <div className="h-full overflow-hidden">
+                    <div ref={floatingMetaRef} className="pb-2.5">
+                      {metaCard}
+                      <hr className="mt-7" />
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className={cn(
+                    "transition-transform duration-300 ease-out will-change-transform",
+                    isMetaPinned ? "translate-y-[2px]" : "translate-y-0",
+                  )}
+                >
+                  {operationPanel}
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
-      </div>
+      </Container>
 
       {hasToc ? (
         <div
