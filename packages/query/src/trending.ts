@@ -1,4 +1,4 @@
-import { desc, gt, sql, sum } from "drizzle-orm";
+import { desc, eq, gt, sql, sum } from "drizzle-orm";
 import { unionAll, type PgColumn } from "drizzle-orm/pg-core";
 
 import { db, schema } from "@luogu-discussion-archive/db";
@@ -76,3 +76,51 @@ export const getActiveEntries = async (limit = DEFAULT_LIMIT) =>
   )
     .orderBy(({ score }) => desc(score))
     .limit(limit);
+
+export async function getActiveUsers(limit = DEFAULT_LIMIT) {
+  const allActivities = unionAll(
+    db
+      .selectDistinctOn([schema.Post.id], {
+        authorId: sql<number>`${db
+          .select({ authorId: schema.PostSnapshot.authorId })
+          .from(schema.PostSnapshot)
+          .where(eq(schema.PostSnapshot.postId, schema.Post.id))
+          .orderBy(desc(schema.PostSnapshot.capturedAt))
+          .limit(1)}`.as("author_id"),
+        time: schema.Post.time,
+      })
+      .from(schema.Post)
+      .where(gt(schema.Post.time, sql`now() - interval '20 days'`)),
+    db
+      .select({
+        authorId: schema.Reply.authorId,
+        time: schema.Reply.time,
+      })
+      .from(schema.Reply)
+      .where(gt(schema.Reply.time, sql`now() - interval '20 days'`)),
+    db
+      .select({
+        authorId: schema.Article.authorId,
+        time: schema.Article.time,
+      })
+      .from(schema.Article)
+      .where(gt(schema.Article.time, sql`now() - interval '20 days'`)),
+    db
+      .select({
+        authorId: schema.ArticleReply.authorId,
+        time: schema.ArticleReply.time,
+      })
+      .from(schema.ArticleReply)
+      .where(gt(schema.ArticleReply.time, sql`now() - interval '20 days'`)),
+  ).as("all_activities");
+
+  return db
+    .select({
+      uid: allActivities.authorId,
+      score: calculateActivityScoreSql(allActivities.time, 7),
+    })
+    .from(allActivities)
+    .groupBy(allActivities.authorId)
+    .orderBy(({ score }) => desc(score))
+    .limit(limit);
+}
