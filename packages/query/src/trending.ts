@@ -1,5 +1,5 @@
-import { desc, eq, gt, sql, sum } from "drizzle-orm";
-import { unionAll } from "drizzle-orm/pg-core";
+import { desc, gt, sql, sum } from "drizzle-orm";
+import { unionAll, type PgColumn } from "drizzle-orm/pg-core";
 
 import { db, schema } from "@luogu-discussion-archive/db";
 
@@ -42,15 +42,12 @@ export const getHotEntries = async (limit = DEFAULT_LIMIT) =>
       })
       .from(schema.Article),
   )
-    .orderBy(desc(sql`rank`))
+    .orderBy(({ rank }) => desc(rank))
     .limit(limit);
 
-const calculateRepliesScoreSql = (
-  table: typeof schema.Reply | typeof schema.ArticleReply,
-  days = 3,
-) =>
+const calculateActivityScoreSql = (column: PgColumn, days = 3) =>
   sum(
-    sql`1 / (1 + exp(extract(epoch from age(now(), ${table.time})) / 86400 - ${days}))`,
+    sql`1 / (1 + exp(extract(epoch from age(now(), ${column})) / 86400 - ${days}))`,
   )
     .mapWith(Number)
     .as("score");
@@ -60,27 +57,22 @@ export const getActiveEntries = async (limit = DEFAULT_LIMIT) =>
     db
       .select({
         type: sql<"discuss" | "article">`'discuss'`,
-        id: sql<string>`cast(${schema.Post.id} as text)`,
-        score: calculateRepliesScoreSql(schema.Reply),
+        id: sql<string>`cast(${schema.Reply.postId} as text)`,
+        score: calculateActivityScoreSql(schema.Reply.time),
       })
-      .from(schema.Post)
-      .innerJoin(schema.Reply, eq(schema.Post.id, schema.Reply.postId))
+      .from(schema.Reply)
       .where(gt(schema.Reply.time, sql`now() - interval '15 days'`))
-      .groupBy(schema.Post.id),
+      .groupBy(schema.Reply.postId),
 
     db
       .select({
         type: sql<"discuss" | "article">`'article'`,
-        id: schema.Article.lid,
-        score: calculateRepliesScoreSql(schema.ArticleReply),
+        id: schema.ArticleReply.articleId,
+        score: calculateActivityScoreSql(schema.ArticleReply.time),
       })
-      .from(schema.Article)
-      .innerJoin(
-        schema.ArticleReply,
-        eq(schema.Article.lid, schema.ArticleReply.articleId),
-      )
+      .from(schema.ArticleReply)
       .where(gt(schema.ArticleReply.time, sql`now() - interval '15 days'`))
-      .groupBy(schema.Article.lid),
+      .groupBy(schema.ArticleReply.articleId),
   )
-    .orderBy(desc(sql`score`))
+    .orderBy(({ score }) => desc(score))
     .limit(limit);
