@@ -377,7 +377,14 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
   const articles = await db.query.Article.findMany({
     where: inArray(schema.Article.lid, ids),
     with: {
-      author: { with: { snapshots: true } },
+      author: {
+        with: {
+          snapshots: {
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
+          },
+        },
+      },
       snapshots: {
         orderBy: desc(schema.ArticleSnapshot.capturedAt),
         limit: 1,
