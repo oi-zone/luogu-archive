@@ -97,8 +97,10 @@ model ReplyTakedown {
 }
 
 model Forum {
-  slug String @id
-  name String
+  name  String
+  type  Int?
+  slug  String  @id
+  color String?
 
   problem   Problem? @relation(fields: [problemId], references: [pid])
   problemId String?  @unique

@@ -41,8 +41,10 @@ async function saveForums(forums: Forum[], now: Date) {
     .insert(schema.Forum)
     .values(
       deduplicatedForums.map((forum) => ({
-        slug: forum.slug,
         name: forum.name,
+        type: forum.type,
+        slug: forum.slug,
+        color: forum.color,
         problemId: forum.problem?.pid ?? null,
         updatedAt: now,
       })),
@@ -51,6 +53,8 @@ async function saveForums(forums: Forum[], now: Date) {
       target: [schema.Forum.slug],
       set: {
         name: sql.raw(`excluded."${schema.Forum.name.name}"`),
+        type: sql.raw(`excluded."${schema.Forum.type.name}"`),
+        color: sql.raw(`excluded."${schema.Forum.color.name}"`),
         problemId: sql.raw(`excluded."${schema.Forum.problemId.name}"`),
         updatedAt: sql.raw(`excluded."${schema.Forum.updatedAt.name}"`),
       },
