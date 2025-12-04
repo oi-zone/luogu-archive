@@ -8,12 +8,8 @@ import {
   listDiscuss,
   REPLIES_PER_PAGE,
 } from "@luogu-discussion-archive/crawler";
-import {
-  queueJob,
-  setIfLt,
-  Stream,
-  type Job,
-} from "@luogu-discussion-archive/redis";
+import { queueJob, Stream, type Job } from "@luogu-discussion-archive/redis";
+import { setIfLt } from "@luogu-discussion-archive/redis/utils";
 
 import { REPLY_PAGE_CACHE_TTL_SEC } from "./config.js";
 

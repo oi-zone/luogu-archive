@@ -6,6 +6,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./utils": {
+      "types": "./src/utils.ts",
+      "default": "./dist/utils.js"
     }
   },
   "scripts": {
