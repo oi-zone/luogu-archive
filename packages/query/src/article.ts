@@ -7,10 +7,15 @@ import {
   desc,
   eq,
   gt,
+  inArray,
   lt,
   or,
   schema,
+  sql,
 } from "@luogu-discussion-archive/db";
+
+import type { ArticleDto } from "./dto.js";
+import { getLuoguAvatar } from "./user-profile.js";
 
 export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
   const article = await db.query.Article.findFirst({
@@ -366,4 +371,45 @@ export async function getArticleSnapshotsTimeline(
     hasMore,
     nextCursor: hasMore && lastItem ? lastItem.capturedAt : null,
   };
+}
+
+export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
+  const articles = await db.query.Article.findMany({
+    where: inArray(schema.Article.lid, ids),
+    with: {
+      author: { with: { snapshots: true } },
+      snapshots: {
+        orderBy: desc(schema.ArticleSnapshot.capturedAt),
+        limit: 1,
+        with: { collection: true },
+      },
+    },
+    extras: {
+      savedReplyCount:
+        sql`(select count(*) from ${schema.ArticleReply} where ${schema.ArticleReply}."${sql.raw(schema.ArticleReply.articleId.name)}" = ${schema.Article.lid})`
+          .mapWith(Number)
+          .as("saved_reply_count"),
+    },
+  });
+
+  return articles.flatMap((article) =>
+    article.snapshots.flatMap((snapshot) =>
+      article.author.snapshots.map((authorSnapshot) => ({
+        lid: article.lid,
+        title: snapshot.title,
+        time: article.time.getUTCMilliseconds() / 1000,
+        author: {
+          ...authorSnapshot,
+          uid: authorSnapshot.userId,
+          avatar: getLuoguAvatar(article.authorId),
+        },
+        upvote: article.upvote,
+        replyCount: article.replyCount,
+        favorCount: article.favorCount,
+        category: snapshot.category,
+
+        savedReplyCount: article.savedReplyCount,
+      })),
+    ),
+  );
 }

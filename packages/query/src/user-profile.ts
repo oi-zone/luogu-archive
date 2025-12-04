@@ -621,7 +621,7 @@ function buildProfileTags(snapshot: typeof schema.UserSnapshot.$inferInsert) {
   return Array.from(tags);
 }
 
-function getLuoguAvatar(userId: number) {
+export function getLuoguAvatar(userId: number) {
   return `https://cdn.luogu.com.cn/upload/usericon/${userId.toString()}.png`;
 }
 

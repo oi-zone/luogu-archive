@@ -47,3 +47,5 @@ export {
 } from "./feed.js";
 export { getProblemBasicInfo, type ProblemBasicInfo } from "./problem.js";
 export type { ForumBasicInfo, ForumProblemInfo } from "./types.js";
+export { getActiveEntries, getHotEntries } from "./trending.js";
+export { resolveEntries } from "./entries.js";

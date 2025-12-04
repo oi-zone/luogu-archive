@@ -11,9 +11,11 @@ import {
   lt,
   or,
   schema,
+  sql,
 } from "@luogu-discussion-archive/db";
 
-import type { ForumBasicInfo } from "./types.js";
+import type { ForumDto, PostDto } from "./dto.js";
+import { getLuoguAvatar } from "./user-profile.js";
 
 export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
   const post = await db.query.Post.findFirst({
@@ -487,7 +489,7 @@ interface PostSnapshotTimelineResult {
     ccfLevel: number;
     xcpcLevel: number;
   } | null;
-  forum: ForumBasicInfo;
+  forum: ForumDto;
   changedFields: TimelineChangedField[];
   hasPrevious: boolean;
 }
@@ -624,7 +626,7 @@ export async function getPostSnapshotsTimeline(
             xcpcLevel: authorSnapshot.xcpcLevel,
           }
         : null,
-      forum: mapForumBasicInfo(snapshot.forum),
+      forum: snapshot.forum,
       changedFields,
     };
   });
@@ -680,28 +682,53 @@ export async function getReplyWithLatestSnapshot(replyId: number) {
   };
 }
 
-function mapForumBasicInfo(forum: {
-  slug: string;
-  name: string;
-  problemId: string | null;
-  problem?: { pid: string; title: string; difficulty: number | null } | null;
-}): ForumBasicInfo {
-  return {
-    slug: forum.slug,
-    name: forum.name,
-    problemId: forum.problemId ?? null,
-    problem: forum.problem
-      ? {
-          pid: forum.problem.pid,
-          title: forum.problem.title,
-          difficulty: forum.problem.difficulty ?? null,
-        }
-      : forum.problemId
-        ? {
-            pid: forum.problemId,
-            title: forum.problemId,
-            difficulty: null,
-          }
-        : null,
-  };
+export async function getPostEntries(ids: number[]): Promise<PostDto[]> {
+  const posts = await db.query.Post.findMany({
+    where: inArray(schema.Post.id, ids),
+    with: {
+      snapshots: {
+        orderBy: desc(schema.PostSnapshot.capturedAt),
+        limit: 1,
+        with: {
+          author: {
+            with: {
+              snapshots: {
+                orderBy: desc(schema.UserSnapshot.capturedAt),
+                limit: 1,
+              },
+            },
+          },
+          forum: {
+            with: {
+              problem: true,
+            },
+          },
+        },
+      },
+    },
+    extras: {
+      savedReplyCount:
+        sql`(select count(*) from ${schema.Reply} where ${schema.Reply}."${sql.raw(schema.Reply.postId.name)}" = ${schema.Post.id})`
+          .mapWith(Number)
+          .as("saved_reply_count"),
+    },
+  });
+
+  return posts.flatMap((post) =>
+    post.snapshots.flatMap((snapshot) =>
+      snapshot.author.snapshots.map((authorSnapshot) => ({
+        id: post.id,
+        title: snapshot.title,
+        author: {
+          ...authorSnapshot,
+          uid: authorSnapshot.userId,
+          avatar: getLuoguAvatar(authorSnapshot.userId),
+        },
+        time: post.time.getUTCMilliseconds() / 1000,
+        forum: snapshot.forum,
+        replyCount: post.replyCount,
+        savedReplyCount: post.savedReplyCount,
+      })),
+    ),
+  );
 }
