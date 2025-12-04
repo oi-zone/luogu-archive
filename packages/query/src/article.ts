@@ -383,6 +383,7 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
         limit: 1,
         with: { collection: true },
       },
+      copra: true,
     },
     extras: {
       savedReplyCount:
@@ -397,7 +398,7 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
       article.author.snapshots.map((authorSnapshot) => ({
         lid: article.lid,
         title: snapshot.title,
-        time: article.time.getUTCMilliseconds() / 1000,
+        time: article.time.getTime() / 1000,
         author: {
           ...authorSnapshot,
           uid: authorSnapshot.userId,
@@ -409,6 +410,8 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
         category: snapshot.category,
 
         savedReplyCount: article.savedReplyCount,
+        summary: article.copra[0]?.summary ?? null,
+        tags: (article.copra[0]?.tags as string[] | null) ?? null,
       })),
     ),
   );

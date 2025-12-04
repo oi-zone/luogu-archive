@@ -20,6 +20,7 @@ export interface PostDto extends Pick<
 > {
   author: UserDto;
   forum: ForumDto;
+  content: string;
   savedReplyCount: number;
 }
 
@@ -28,6 +29,7 @@ export interface ArticleDto extends Pick<
   "lid" | "title" | "time" | "upvote" | "replyCount" | "favorCount" | "category"
 > {
   author: UserDto;
+  savedReplyCount: number;
 
   summary?: string | null;
   tags?: string[] | null;

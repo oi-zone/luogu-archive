@@ -724,9 +724,11 @@ export async function getPostEntries(ids: number[]): Promise<PostDto[]> {
           uid: authorSnapshot.userId,
           avatar: getLuoguAvatar(authorSnapshot.userId),
         },
-        time: post.time.getUTCMilliseconds() / 1000,
+        time: post.time.getTime() / 1000,
         forum: snapshot.forum,
         replyCount: post.replyCount,
+        content: snapshot.content,
+
         savedReplyCount: post.savedReplyCount,
       })),
     ),

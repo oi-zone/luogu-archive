@@ -49,3 +49,11 @@ export { getProblemBasicInfo, type ProblemBasicInfo } from "./problem.js";
 export type { ForumBasicInfo, ForumProblemInfo } from "./types.js";
 export { getActiveEntries, getHotEntries } from "./trending.js";
 export { resolveEntries } from "./entries.js";
+export type {
+  ArticleDto,
+  PostDto,
+  UserDto,
+  ProblemDto,
+  ForumDto,
+} from "./dto.js";
+export type { Entry, EntryRef } from "./entries.js";
