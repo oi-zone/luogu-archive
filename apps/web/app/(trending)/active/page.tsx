@@ -6,6 +6,8 @@ import {
 import Container from "@/components/layout/container";
 import TrendingEntry from "@/components/trending/trending-entry";
 
+import ActiveUsers from "../active-users";
+
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
@@ -27,7 +29,7 @@ export default async function Page() {
           </div>
         </main>
         <aside className="order-2 hidden lg:order-2 lg:block 2xl:order-3">
-          龙王榜
+          <ActiveUsers />
         </aside>
       </div>
     </Container>
