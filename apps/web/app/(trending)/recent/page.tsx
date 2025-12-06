@@ -6,6 +6,10 @@ import TrendingEntry from "@/components/trending/trending-entry";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "最近",
+};
+
 export default async function Page() {
   const entries = await resolveEntries(await getHotEntries());
   return (

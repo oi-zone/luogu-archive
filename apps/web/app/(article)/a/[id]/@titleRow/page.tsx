@@ -1,14 +1,24 @@
+import type { Metadata } from "next";
+
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 
 import { getArticleData } from "../data-cache";
 
-export default async function Page({
-  params,
-}: {
+type Props = {
   params: Promise<{ id: string }>;
-}) {
-  const id = (await params).id;
+};
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const id = (await params).id;
+  const article = await getArticleData(id);
+
+  return {
+    title: article.title,
+  };
+}
+
+export default async function Page({ params }: Props) {
+  const id = (await params).id;
   const article = await getArticleData(id);
 
   return (

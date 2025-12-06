@@ -11,6 +11,10 @@ import ActiveUsers from "../active-users";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "探索",
+};
+
 export default async function Page() {
   const entries = await resolveEntries(await getActiveEntries());
 

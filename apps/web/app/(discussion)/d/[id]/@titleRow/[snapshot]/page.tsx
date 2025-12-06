@@ -1,16 +1,30 @@
+import { Metadata } from "next";
+
 import { Badge } from "@/components/ui/badge";
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 
 import { getDiscussionData } from "../../data-cache";
 
-export default async function Page({
-  params,
-}: {
+type Props = {
   params: Promise<{
     id: string;
     snapshot: string;
   }>;
-}) {
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id: idStr, snapshot: snapshotStr } = await params;
+  const id = parseInt(idStr, 10);
+  const snapshot = new Date(parseInt(snapshotStr, 36));
+
+  const discussion = await getDiscussionData(id, snapshot);
+
+  return {
+    title: `[快照] ${discussion.title}`,
+  };
+}
+
+export default async function Page({ params }: Props) {
   const { id: idStr, snapshot: snapshotStr } = await params;
   const id = parseInt(idStr, 10);
   const snapshot = new Date(parseInt(snapshotStr, 36));

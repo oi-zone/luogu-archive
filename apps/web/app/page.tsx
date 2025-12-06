@@ -4,6 +4,8 @@ import { FeedGrid } from "@/components/feed/feed-grid";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {};
+
 const INITIAL_FEED_LIMIT = 30;
 
 export default async function Page() {

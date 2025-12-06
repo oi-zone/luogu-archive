@@ -4,7 +4,6 @@ import * as React from "react";
 import { useParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
-import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 import Container from "@/components/layout/container";
 
 import { PasteWaybackModal } from "./wayback-modal";

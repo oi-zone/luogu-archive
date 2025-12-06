@@ -1,8 +1,7 @@
 import { getUserProfileBundleCache } from "@/app/(user)/u/[id]/data-cache";
+import { Metadata } from "next/dist/lib/metadata/types/metadata-interface";
 import { notFound } from "next/navigation";
 
-import { NAME_COLOR_CLASS } from "@/lib/user-profile-shared";
-import { cn } from "@/lib/utils";
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 import { UserInfoCard } from "@/components/user/user-info-card";
 import { UserRecommendations } from "@/components/user/user-recommendations";
@@ -10,11 +9,24 @@ import { UserRecommendations } from "@/components/user/user-recommendations";
 import { UserTimeline } from "./user-timeline";
 import { UsernameHistoryCard } from "./username-history-card";
 
-export default async function UserDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type Props = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const uid = Number.parseInt(id, 10);
+  const data = await getUserProfileBundleCache(uid);
+  if (!data) notFound();
+
+  return {
+    title: `@${data.profile.name}`,
+  };
+}
+
+export default async function UserDetailPage({ params }: Props) {
   const { id } = await params;
   const uid = Number.parseInt(id, 10);
   const data = await getUserProfileBundleCache(uid);
@@ -30,7 +42,7 @@ export default async function UserDetailPage({
   const breadcrumbs = [
     { label: "首页", href: "/" },
     { label: "用户", href: "/users" },
-    { label: profile.name },
+    { label: `@${profile.name}` },
   ];
 
   return (

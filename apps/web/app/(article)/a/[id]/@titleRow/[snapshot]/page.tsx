@@ -1,16 +1,29 @@
+import type { Metadata } from "next";
+
 import { Badge } from "@/components/ui/badge";
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 
 import { getArticleData } from "../../data-cache";
 
-export default async function Page({
-  params,
-}: {
+type Props = {
   params: Promise<{
     id: string;
     snapshot: string;
   }>;
-}) {
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id, snapshot: snapshotStr } = await params;
+  const snapshot = new Date(parseInt(snapshotStr, 36));
+
+  const article = await getArticleData(id, snapshot);
+
+  return {
+    title: `[快照] ${article.title}`,
+  };
+}
+
+export default async function Page({ params }: Props) {
   const { id, snapshot: snapshotStr } = await params;
   const snapshot = new Date(parseInt(snapshotStr, 36));
 

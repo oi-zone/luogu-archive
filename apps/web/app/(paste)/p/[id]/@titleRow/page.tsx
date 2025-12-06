@@ -1,12 +1,26 @@
+import type { Metadata } from "next";
+
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 
 import { getPasteData } from "../data-cache";
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type Props = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const id = (await params).id;
+
+  const paste = await getPasteData(id);
+
+  return {
+    title: `云剪贴板 ${paste.id}`,
+  };
+}
+
+export default async function Page({ params }: Props) {
   const id = (await params).id;
 
   const paste = await getPasteData(id);
@@ -17,12 +31,12 @@ export default async function Page({
         trail={[
           { label: "首页", href: "/" },
           { label: "云剪贴板" },
-          { label: paste.id.toUpperCase(), href: `/p/${paste.id}` },
+          { label: paste.id, href: `/p/${paste.id}` },
         ]}
       />
       <p className="text-sm font-medium text-muted-foreground">云剪贴板</p>
       <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-        云剪贴板&thinsp;{paste.id.toUpperCase()}
+        云剪贴板 {paste.id}
       </h1>
     </div>
   );

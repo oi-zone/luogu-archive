@@ -11,6 +11,10 @@ import { OstrakaTimeline } from "./ostraka-timeline";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "陶片放逐",
+};
+
 export default async function OstrakaPage() {
   const page = await getGlobalOstrakonPage();
   const stat = await getOstrakonStat();
