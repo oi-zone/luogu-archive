@@ -39,34 +39,6 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  apps/daemon:
-    dependencies:
-      '@luogu-discussion-archive/crawler':
-        specifier: workspace:*
-        version: link:../../packages/crawler
-      '@luogu-discussion-archive/logging':
-        specifier: workspace:*
-        version: link:../../packages/logging
-      '@luogu-discussion-archive/redis':
-        specifier: workspace:*
-        version: link:../../packages/redis
-      '@sentry/node':
-        specifier: ^10.29.0
-        version: 10.29.0
-      dotenv:
-        specifier: ^17.2.3
-        version: 17.2.3
-    devDependencies:
-      '@luogu-discussion-archive/typescript-config':
-        specifier: workspace:*
-        version: link:../../packages/typescript-config
-      '@types/node':
-        specifier: ^20.19.25
-        version: 20.19.25
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
   apps/web:
     dependencies:
       '@floating-ui/react':
@@ -196,6 +168,34 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  apps/worker:
+    dependencies:
+      '@luogu-discussion-archive/crawler':
+        specifier: workspace:*
+        version: link:../../packages/crawler
+      '@luogu-discussion-archive/logging':
+        specifier: workspace:*
+        version: link:../../packages/logging
+      '@luogu-discussion-archive/redis':
+        specifier: workspace:*
+        version: link:../../packages/redis
+      '@sentry/node':
+        specifier: ^10.29.0
+        version: 10.29.0
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.2.3
+    devDependencies:
+      '@luogu-discussion-archive/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/node':
+        specifier: ^20.19.25
+        version: 20.19.25
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

@@ -2,7 +2,7 @@
 module.exports = {
   apps: [
     {
-      name: "daemon",
+      name: "worker",
       script: "./dist/index.js",
       args: ["consumer-1", "consumer-2"],
       env: {

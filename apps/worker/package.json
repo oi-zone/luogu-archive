@@ -1,5 +1,5 @@
 {
-  "name": "@luogu-discussion-archive/daemon",
+  "name": "@luogu-discussion-archive/worker",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",

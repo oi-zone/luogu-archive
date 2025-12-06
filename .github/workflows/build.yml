@@ -20,11 +20,11 @@ jobs:
       - run: pnpm config set --location=project injectWorkspacePackages=true
       - run: pnpm install --no-frozen-lockfile
 
-      - run: pnpm --filter daemon --prod deploy out/daemon/ && tar -cvf out/daemon.tar -C out/daemon/ .
+      - run: pnpm --filter worker --prod deploy out/worker/ && tar -cvf out/worker.tar -C out/worker/ .
       - uses: actions/upload-artifact@v4
         with:
-          name: daemon
-          path: out/daemon.tar
+          name: worker
+          path: out/worker.tar
           if-no-files-found: error
 
       - run: pnpm --filter web --prod deploy out/web/ && tar -cvf out/web.tar -C out/web/ .
