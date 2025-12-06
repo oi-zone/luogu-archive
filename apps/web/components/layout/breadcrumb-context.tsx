@@ -3,7 +3,7 @@
 import * as React from "react";
 
 export type BreadcrumbEntry = {
-  label: string;
+  label: React.ReactNode;
   href?: string;
 };
 

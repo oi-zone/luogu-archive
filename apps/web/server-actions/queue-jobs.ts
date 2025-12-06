@@ -13,3 +13,7 @@ export async function enqueueDiscussionRefresh(id: number | string) {
 export async function enqueuePasteRefresh(id: string) {
   await queueJob({ type: "paste", id });
 }
+
+export async function enqueueJudgementRefresh() {
+  await queueJob({ type: "judgement" });
+}

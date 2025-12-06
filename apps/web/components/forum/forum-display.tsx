@@ -19,7 +19,7 @@ export function ForumDisplayShort({ forum }: { forum: ForumBasicInfo }) {
   if (!forum.problem) return forum.name;
 
   return (
-    <span className={`me-1 text-luogu-problem-${forum.problem.difficulty}`}>
+    <span className={`text-luogu-problem-${forum.problem.difficulty}`}>
       {forum.problem.pid}
     </span>
   );

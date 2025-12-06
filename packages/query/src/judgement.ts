@@ -1,8 +1,11 @@
 import {
   and,
+  count,
+  countDistinct,
   db,
   desc,
   eq,
+  gt,
   inArray,
   lt,
   or,
@@ -15,13 +18,14 @@ const OSTRAKA_PAGE_DEFAULT_LIMIT = 50;
 const OSTRAKA_PAGE_MAX_LIMIT = 200;
 const OSTRAKA_CURSOR_SEPARATOR = "-";
 const OSTRAKA_ANCHOR_PREFIX = "ostrakon-";
+const OSTRAKA_RECENT_WINDOW_DAYS = 15;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export interface OstrakonEntry {
   id: string;
   cursor: string;
   anchor: string;
   createdAt: string;
-  action: string;
   reason: string;
   addedPermission: number;
   revokedPermission: number;
@@ -34,6 +38,12 @@ export interface OstrakonPage {
   entries: OstrakonEntry[];
   hasMore: boolean;
   nextCursor: string | null;
+}
+
+export interface OstrakonStat {
+  totalJudgements: number;
+  judgedUsers: number;
+  recentJudgements: number;
 }
 
 export interface OstrakonCursor {
@@ -121,10 +131,6 @@ export async function getGlobalOstrakonPage(options?: {
       cursor: cursorValue,
       anchor: `${OSTRAKA_ANCHOR_PREFIX}${cursorValue}`,
       createdAt: judgement.time.toISOString(),
-      action: describeJudgementAction(
-        judgement.addedPermission,
-        judgement.revokedPermission,
-      ),
       reason: judgement.reason,
       addedPermission: judgement.addedPermission,
       revokedPermission: judgement.revokedPermission,
@@ -190,18 +196,25 @@ function encodeOstrakonCursor(time: Date, userId: number) {
   return `${millis}${OSTRAKA_CURSOR_SEPARATOR}${userPart}`;
 }
 
-function describeJudgementAction(added: number, revoked: number) {
-  const changes: string[] = [];
-  if (added) {
-    changes.push(`增加权限 ${String(added)}`);
-  }
-  if (revoked) {
-    changes.push(`撤销权限 ${String(revoked)}`);
-  }
+export async function getOstrakonStat(): Promise<OstrakonStat> {
+  const recentThreshold = new Date(
+    Date.now() - OSTRAKA_RECENT_WINDOW_DAYS * MS_PER_DAY,
+  );
 
-  if (changes.length === 0) {
-    return "社区裁决";
-  }
+  const [totalRows, judgedUserRows, recentRows] = await Promise.all([
+    db.select({ total: count() }).from(schema.Judgement),
+    db
+      .select({ total: countDistinct(schema.Judgement.userId) })
+      .from(schema.Judgement),
+    db
+      .select({ total: count() })
+      .from(schema.Judgement)
+      .where(gt(schema.Judgement.time, recentThreshold)),
+  ]);
 
-  return changes.join("，");
+  return {
+    totalJudgements: totalRows[0]?.total ?? 0,
+    judgedUsers: judgedUserRows[0]?.total ?? 0,
+    recentJudgements: recentRows[0]?.total ?? 0,
+  } satisfies OstrakonStat;
 }

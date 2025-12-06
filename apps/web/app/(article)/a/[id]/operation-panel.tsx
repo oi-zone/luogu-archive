@@ -17,26 +17,7 @@ import { cn } from "@/lib/utils";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { Button } from "@/components/ui/button";
 import { QueueJobButton } from "@/components/operation-panel/queue-job-button";
-
-type StatRowProps = {
-  label: string;
-  value: string;
-  hint?: string;
-};
-
-function StatRow({ label, value, hint }: StatRowProps) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {label}
-      </dt>
-      <dd className="text-sm font-medium text-foreground">{value}</dd>
-      {hint ? (
-        <span className="text-xs text-muted-foreground/70">{hint}</span>
-      ) : null}
-    </div>
-  );
-}
+import StatRow from "@/components/operation-panel/stat-row";
 
 export default function ArticleOperationPanel({
   article,

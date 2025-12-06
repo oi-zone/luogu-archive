@@ -60,7 +60,12 @@ export default function FeedCardTemplate({
 }) {
   return (
     <article>
-      <div className="group relative flex flex-col rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
+      <div
+        className={cn(
+          "group relative flex flex-col rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition duration-200 hover:shadow-lg",
+          { "hover:-translate-y-1": href },
+        )}
+      >
         {href && (
           <Link
             href={href}
@@ -69,42 +74,40 @@ export default function FeedCardTemplate({
             prefetch={false}
           />
         )}
-        <div className="pointer-events-none z-1">
+        <div className={cn("z-1", { "pointer-events-none": href })}>
           <header className="flex items-center justify-between gap-3">
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-                TYPE_META[kind].badgeClass,
-              )}
-            >
-              {TYPE_META[kind].label}
+            <span className="inline-flex gap-1.5">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+                  TYPE_META[kind].badgeClass,
+                )}
+              >
+                {TYPE_META[kind].label}
+              </span>
+              {metaTags?.map((tag, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
             </span>
             <time
-              className="text-xs text-muted-foreground/80"
+              className="text-xs text-muted-foreground"
               dateTime={time.toISOString()}
             >
               {ABSOLUTE_DATE_FORMATTER.format(time)}
             </time>
           </header>
           <div className="mt-4 space-y-3">
-            {metaTags?.length || metaText ? (
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                {metaTags?.map((tag, index) => (
-                  <Badge
-                    key={index}
-                    className="bg-muted/70 !px-2 !py-0.5 text-muted-foreground"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {metaText && (
-                  <span className="text-muted-foreground/70">{metaText}</span>
-                )}
-              </div>
-            ) : null}
             <h3 className="text-lg leading-tight font-semibold text-foreground">
               {title}
             </h3>
+            {metaText && (
+              <span className="text-muted-foreground">{metaText}</span>
+            )}
             <div
               className="fake-p my-2 text-base"
               style={{
@@ -137,7 +140,7 @@ export default function FeedCardTemplate({
               </div>
             ) : null}
           </div>
-          <footer className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs text-muted-foreground">
+          <footer className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs text-muted-foreground">
             {user ? (
               <UserInlineLink user={user} avatar />
             ) : (
