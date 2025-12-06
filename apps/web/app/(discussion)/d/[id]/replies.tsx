@@ -281,6 +281,7 @@ export default function DiscussionReplies({
       topOffset={TOP_OFFSET}
       messages={messages}
       data-replies-root=""
+      riDiscussionAuthors={discussion.authors}
     />
   );
 }

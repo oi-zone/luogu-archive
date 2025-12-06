@@ -21,6 +21,7 @@ export type MarkdownDiscussionMentionContext = {
   kind: "discussion";
   discussionId: number;
   relativeReplyId?: number;
+  discussionAuthors: number[];
 };
 
 export type MarkdownMentionContext = MarkdownDiscussionMentionContext;

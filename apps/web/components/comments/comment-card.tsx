@@ -1,6 +1,7 @@
 import { Camera, ClipboardCheck, ClipboardCopy } from "lucide-react";
 
 import { formatRelativeTime } from "@/lib/time";
+import { cn } from "@/lib/utils";
 import { useClipboard } from "@/hooks/use-clipboard";
 import UserInlineLink, {
   UserBasicInfo,
@@ -36,9 +37,11 @@ export type ArticleComment = {
 
 export type CommentCardProps = {
   comment: DiscussionReply | ArticleComment;
-  isFromDiscussionAuthor: boolean;
-  isFromArticleAuthor: boolean;
-  isPinned: boolean;
+  isFromDiscussionAuthor?: boolean;
+  isFromArticleAuthor?: boolean;
+  isPinned?: boolean;
+  riDiscussionAuthors?: number[];
+  maxHeight?: number;
 };
 
 export function CommentCard({
@@ -46,6 +49,8 @@ export function CommentCard({
   isFromDiscussionAuthor = false,
   isFromArticleAuthor = false,
   isPinned = false,
+  riDiscussionAuthors,
+  maxHeight,
 }: CommentCardProps) {
   const { copy, copied } = useClipboard();
 
@@ -55,6 +60,7 @@ export function CommentCard({
           kind: "discussion",
           discussionId: comment.postId,
           relativeReplyId: comment.id,
+          discussionAuthors: riDiscussionAuthors ?? [],
         }
       : undefined;
 
@@ -102,7 +108,13 @@ export function CommentCard({
         </div>
       </header>
       <div className="comment-card group/comment-card relative mt-1.5 rounded-2xl border border-muted/75 bg-muted/75">
-        <div className="m-3 leading-relaxed sm:m-3.5">
+        <div
+          className="m-3 leading-relaxed sm:m-3.5"
+          style={{
+            maxHeight: maxHeight,
+            overflow: maxHeight ? "auto" : "visible",
+          }}
+        >
           <Markdown
             originalUrl={
               comment.type === "discussionReply"

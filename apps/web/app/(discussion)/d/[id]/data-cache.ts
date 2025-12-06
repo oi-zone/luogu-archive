@@ -5,8 +5,6 @@ import { getPostWithSnapshot } from "@luogu-discussion-archive/query";
 export const getDiscussionData = cache(async (id: number, snapshot?: Date) => {
   const discussionWithSnapshot = await getPostWithSnapshot(id, snapshot);
 
-  console.log(discussionWithSnapshot);
-
   if (discussionWithSnapshot === null) {
     throw new Error("Discussion not found");
   }

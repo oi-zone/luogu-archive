@@ -158,8 +158,6 @@ export async function getUserProfileBundle(
     return null;
   }
 
-  console.log("Fetching user profile for userId:", userId);
-
   const user = await db.query.User.findFirst({
     where: eq(schema.User.id, userId),
     with: {

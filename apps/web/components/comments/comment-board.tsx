@@ -111,6 +111,7 @@ type CommentBoardProps = React.HTMLAttributes<HTMLElement> & {
   anchorWindow?: { before: number; after: number };
   initialTotalCount?: number | null;
   messages?: TimelineMessages;
+  riDiscussionAuthors?: number[];
 };
 
 function getCommentDomId(comment: CommentCardProps["comment"]): string {
@@ -149,6 +150,7 @@ export function CommentBoard(props: CommentBoardProps) {
     anchorWindow,
     initialTotalCount = null,
     messages,
+    riDiscussionAuthors,
     ...rest
   } = props;
 
@@ -797,7 +799,10 @@ export function CommentBoard(props: CommentBoardProps) {
                   }
                 >
                   {item.type === "comment" ? (
-                    <CommentCard {...item.comment} />
+                    <CommentCard
+                      {...item.comment}
+                      riDiscussionAuthors={riDiscussionAuthors}
+                    />
                   ) : (
                     <DuplicatePlaceholder
                       group={item.group}

@@ -346,8 +346,6 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
 
   const isBlankLink = href === null || href === undefined || href.trim() === "";
 
-  console.log("MarkdownLink href:", href, isBlankLink);
-
   const trueUrl = isBlankLink
     ? "#"
     : new URL(
@@ -428,6 +426,9 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
                 mentionUserId={userInfo.id}
                 relativeReplyId={mentionContext.relativeReplyId}
                 className="me-0.75 inline-flex cursor-pointer items-center gap-0.75 rounded-full bg-background/50 px-1.75 py-1.25 shadow-sm ring-1 ring-border backdrop-blur-xs transition duration-200 select-none hover:-translate-y-0.25 hover:shadow"
+                isFromDiscussionAuthor={mentionContext.discussionAuthors.includes(
+                  userInfo.id,
+                )}
               >
                 <MessageSquareReply className="inline-block size-3 stroke-2" />
                 <span className="inline-block text-xs leading-none">

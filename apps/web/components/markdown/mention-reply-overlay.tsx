@@ -2,20 +2,21 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+import { CommentCard } from "../comments/comment-card";
 import { Button } from "../ui/button";
 import Markdown from "./markdown";
 
 export type MentionReply = {
   id: number;
   postId: number;
-  time: string;
+  time: number;
   content: string;
-  capturedAt: string;
-  lastSeenAt: string;
+  capturedAt: number;
+  lastSeenAt: number;
   authorId: number;
   author: {
     id: number;
@@ -42,6 +43,7 @@ type MentionReplyOverlayProps = {
   relativeReplyId?: number;
   children: React.ReactNode;
   className?: string;
+  isFromDiscussionAuthor?: boolean;
 };
 
 type RectSnapshot = {
@@ -99,6 +101,7 @@ export function MentionReplyOverlayTrigger({
   relativeReplyId,
   children,
   className,
+  isFromDiscussionAuthor,
 }: MentionReplyOverlayProps) {
   const [overlayState, setOverlayState] = React.useState<OverlayState>({
     open: false,
@@ -293,24 +296,10 @@ export function MentionReplyOverlayTrigger({
         ? createPortal(
             <div
               ref={overlayRef}
-              className="mention-reply-overlay fixed z-50 rounded-2xl border border-border bg-popover/50 p-3 text-sm shadow-lg backdrop-blur-xs"
+              className="mention-reply-overlay fixed z-50 rounded-2xl border border-border bg-popover/50 p-4 text-sm shadow-lg backdrop-blur-xs"
               style={positionStyles}
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-xs text-muted-foreground">
-                  引用该用户的历史回复
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="size-7 p-0"
-                  onClick={handleClose}
-                  aria-label="关闭"
-                >
-                  <X className="size-3.5" />
-                </Button>
-              </div>
-              <div className="mt-2 min-h-[120px]">
+              <div>
                 {loading ? (
                   <div className="flex items-center justify-center py-8 text-muted-foreground">
                     <Loader2 className="size-4 animate-spin" />
@@ -319,45 +308,43 @@ export function MentionReplyOverlayTrigger({
                 ) : error ? (
                   <div className="text-sm text-destructive">{error}</div>
                 ) : data ? (
-                  <article>
-                    <header className="text-xs text-muted-foreground">
-                      <span>#{data.reply.id}</span>
-                      <span className="mx-1">·</span>
-                      <time dateTime={data.reply.time}>
-                        {new Date(data.reply.time).toLocaleString("zh-CN")}
-                      </time>
-                    </header>
-                    <div className="mt-2 rounded-xl border border-border/60 bg-background/70 p-2">
-                      <Markdown compact>{data.reply.content}</Markdown>
-                    </div>
-                  </article>
+                  <CommentCard
+                    comment={{
+                      ...data.reply,
+                      time: new Date(data.reply.time * 1000),
+                      capturedAt: new Date(data.reply.capturedAt * 1000),
+                      lastSeenAt: new Date(data.reply.lastSeenAt * 1000),
+                      type: "discussionReply",
+                    }}
+                    isFromDiscussionAuthor={isFromDiscussionAuthor}
+                    maxHeight={480}
+                  />
                 ) : null}
               </div>
-              <div className="mt-3 flex items-center justify-between text-xs">
+              <div className="mt-3 flex items-center gap-3 text-xs">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1"
+                  variant="secondary"
+                  className="size-8 cursor-pointer rounded-full"
                   disabled={!data?.hasPrevious || loading}
                   onClick={handlePrev}
                 >
-                  上一条
+                  <ArrowLeft className="size-4" />
                 </Button>
-                <span className="text-muted-foreground">
-                  {data
-                    ? `#${data.reply.id}`
-                    : currentReplyIdRef.current
-                      ? `#${currentReplyIdRef.current}`
-                      : "--"}
-                </span>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1"
+                  variant="secondary"
+                  className="size-8 cursor-pointer rounded-full"
                   disabled={!data?.hasNext || loading}
                   onClick={handleNext}
                 >
-                  下一条
+                  <ArrowRight className="size-4" />
+                </Button>
+                <div className="flex-grow" />
+                <Button
+                  variant="secondary"
+                  className="size-8 cursor-pointer rounded-full"
+                  onClick={handleClose}
+                >
+                  <X className="size-4" />
                 </Button>
               </div>
             </div>,

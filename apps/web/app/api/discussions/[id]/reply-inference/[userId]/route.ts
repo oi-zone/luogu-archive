@@ -5,10 +5,10 @@ import { getPostUserReplyInference } from "@luogu-discussion-archive/query";
 type ReplyPayload = {
   id: number;
   postId: number;
-  time: string;
+  time: number;
   content: string;
-  capturedAt: string;
-  lastSeenAt: string;
+  capturedAt: number;
+  lastSeenAt: number;
   authorId: number;
   author: {
     id: number;
@@ -40,18 +40,18 @@ function mapReplyToPayload(
   return {
     id: reply.id,
     postId: reply.postId,
-    time: reply.time.toISOString(),
-    content: latestSnapshot?.content ?? "该评论尚未保存。",
-    capturedAt: (latestSnapshot?.capturedAt ?? reply.time).toISOString(),
-    lastSeenAt: (latestSnapshot?.lastSeenAt ?? reply.time).toISOString(),
+    time: reply.time.getTime() / 1000,
+    content: latestSnapshot.content,
+    capturedAt: latestSnapshot.capturedAt.getTime() / 1000,
+    lastSeenAt: latestSnapshot.lastSeenAt.getTime() / 1000,
     authorId: reply.authorId,
     author: {
       id: reply.author.id,
-      name: authorSnapshot?.name ?? `用户${reply.author.id}`,
-      badge: authorSnapshot?.badge ?? null,
-      color: (authorSnapshot?.color ?? "gray").toLowerCase(),
-      ccfLevel: authorSnapshot?.ccfLevel ?? 0,
-      xcpcLevel: authorSnapshot?.xcpcLevel ?? 0,
+      name: authorSnapshot.name,
+      badge: authorSnapshot.badge,
+      color: authorSnapshot.color,
+      ccfLevel: authorSnapshot.ccfLevel,
+      xcpcLevel: authorSnapshot.xcpcLevel,
     },
     snapshotsCount: reply._count.snapshots,
   };
