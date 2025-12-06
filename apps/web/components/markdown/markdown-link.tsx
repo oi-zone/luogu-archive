@@ -14,9 +14,11 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
+import { Entry, EntryRef } from "@luogu-discussion-archive/query";
+
 import { cn } from "@/lib/utils";
 
-import UserInlineLink, { type UserBasicInfo } from "../user/user-inline-link";
+import UserInlineLink from "../user/user-inline-link";
 import {
   articleRegexes,
   captureFromFirstMatch,
@@ -25,19 +27,14 @@ import {
   problemRegexes,
   userRegexes,
 } from "./link";
-import ArticleMagicLinkDirect, {
-  ArticleLinkInfo,
-} from "./magic-link/article/direct";
+import ArticleMagicLinkDirect from "./magic-link/article/direct";
 import ArticleMagicLinkWithOriginal from "./magic-link/article/with-original";
-import DiscussionMagicLinkDirect, {
-  DiscussionLinkInfo,
-} from "./magic-link/discussion/direct";
+import DiscussionMagicLinkDirect from "./magic-link/discussion/direct";
 import DiscussionMagicLinkWithOriginal from "./magic-link/discussion/with-original";
-import PasteMagicLinkDirect, { PasteLinkInfo } from "./magic-link/paste/direct";
+import { entryLoader } from "./magic-link/entry-loader";
+import PasteMagicLinkDirect from "./magic-link/paste/direct";
 import PasteMagicLinkWithOriginal from "./magic-link/paste/with-original";
-import ProblemMagicLinkDirect, {
-  ProblemLinkInfo,
-} from "./magic-link/problem/direct";
+import ProblemMagicLinkDirect from "./magic-link/problem/direct";
 import ProblemMagicLinkWithOriginal from "./magic-link/problem/with-original";
 import UserMagicLinkDirect from "./magic-link/user/direct";
 import UserMagicLinkWithOriginal from "./magic-link/user/with-original";
@@ -253,7 +250,7 @@ function isLinkTextUseful({
 type MarkdownLinkProps = React.ComponentProps<"a"> & {
   originalUrl?: string;
   "data-ls-user-mention"?: string;
-  "data-ls-discussion"?: string;
+  "data-ls-discuss"?: string;
   "data-ls-article"?: string;
   "data-ls-user"?: string;
   "data-ls-paste"?: string;
@@ -262,62 +259,6 @@ type MarkdownLinkProps = React.ComponentProps<"a"> & {
   "data-ls-link-source"?: string;
   mentionContext?: MarkdownMentionContext;
 };
-
-type MentionUser = UserBasicInfo;
-
-async function fetchUser(uid: number): Promise<MentionUser> {
-  const response = await fetch(`/api/users/${uid}`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error("Failed to load user");
-  }
-  return response.json();
-}
-
-async function fetchDiscussionSummary(
-  discussionId: number,
-): Promise<DiscussionLinkInfo> {
-  const response = await fetch(`/api/discussions/${discussionId}`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to load discussion");
-  }
-  return response.json();
-}
-
-async function fetchArticleSummary(
-  articleId: string,
-): Promise<ArticleLinkInfo> {
-  const response = await fetch(`/api/articles/${articleId}`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to load article");
-  }
-  return response.json();
-}
-
-async function fetchPasteSummary(pasteId: string): Promise<PasteLinkInfo> {
-  const response = await fetch(`/api/pastes/${pasteId}`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error("Failed to load paste");
-  }
-  return response.json();
-}
-
-async function fetchProblemInfo(pid: string): Promise<ProblemLinkInfo> {
-  const response = await fetch(`/api/problems/${pid}`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error("Failed to load problem");
-  }
-  const data = await response.json();
-  return {
-    pid: data.pid,
-    title: data.title,
-    difficulty: data.difficulty ?? null,
-    solutionsCount: data.solutionsCount ?? 0,
-  } satisfies ProblemLinkInfo;
-}
 
 export default function MarkdownLink(props: MarkdownLinkProps) {
   const { href, children, className, originalUrl, mentionContext, ...rest } =
@@ -352,59 +293,32 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
         href ?? "",
         originalUrl ?? "https://www.luogu.com.cn/",
       ).toString();
-  const uidMentionParam = props["data-ls-user-mention"];
-  const uidLinkParam = props["data-ls-user"];
-  const uidParam = uidMentionParam ?? uidLinkParam;
 
-  const parsedUid = uidParam ? Number.parseInt(uidParam, 10) : Number.NaN;
-  const uid = Number.isNaN(parsedUid) ? undefined : parsedUid;
+  const ref: EntryRef | null = props["data-ls-discuss"]
+    ? { type: "discuss", id: props["data-ls-discuss"] }
+    : props["data-ls-article"]
+      ? { type: "article", id: props["data-ls-article"] }
+      : (props["data-ls-user"] ?? props["data-ls-user-mention"])
+        ? {
+            type: "user",
+            id: props["data-ls-user"] ?? props["data-ls-user-mention"]!,
+          }
+        : props["data-ls-paste"]
+          ? { type: "paste", id: props["data-ls-paste"] }
+          : props["data-ls-problem"]
+            ? { type: "problem", id: props["data-ls-problem"] }
+            : null;
 
-  const discussionIdParam = props["data-ls-discussion"];
-  const parsedDiscussionId = discussionIdParam
-    ? Number.parseInt(discussionIdParam, 10)
-    : Number.NaN;
-  const discussionId = Number.isNaN(parsedDiscussionId)
-    ? undefined
-    : parsedDiscussionId;
-
-  const articleId = props["data-ls-article"];
-  const pasteId = props["data-ls-paste"];
-  const problemId = props["data-ls-problem"];
-
-  const { data: userInfo } = useQuery<MentionUser>({
-    queryKey: ["user", uid],
-    queryFn: () => fetchUser(uid!),
-    enabled: uid !== undefined,
-  });
-
-  const { data: discussionSummary } = useQuery<DiscussionLinkInfo>({
-    queryKey: ["discussion", discussionId],
-    queryFn: () => fetchDiscussionSummary(discussionId!),
-    enabled: discussionId !== undefined,
-  });
-
-  const { data: articleSummary } = useQuery<ArticleLinkInfo>({
-    queryKey: ["article", articleId],
-    queryFn: () => fetchArticleSummary(articleId!),
-    enabled: Boolean(articleId),
-  });
-
-  const { data: pasteSummary } = useQuery<PasteLinkInfo>({
-    queryKey: ["paste", pasteId],
-    queryFn: () => fetchPasteSummary(pasteId!),
-    enabled: Boolean(pasteId),
-  });
-
-  const { data: problemInfo } = useQuery<ProblemLinkInfo>({
-    queryKey: ["problem", problemId],
-    queryFn: () => fetchProblemInfo(problemId!),
-    enabled: Boolean(problemId),
+  const { data: entry } = useQuery<Entry>({
+    queryKey: [ref?.type, ref?.id],
+    queryFn: () => entryLoader.load(ref!),
+    enabled: ref !== null,
   });
 
   const onlyImagesInChildren = onlyHasImageChildren(children);
 
-  if (uidMentionParam) {
-    if (userInfo) {
+  if (props["data-ls-user-mention"]) {
+    if (entry && entry.type === "user" && entry.data) {
       const shouldEnableInference =
         mentionContext?.kind === "discussion" &&
         mentionContext.discussionId !== undefined &&
@@ -419,15 +333,19 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
             )}
           />
           <span className="relative top-1 -ms-0.75 -mt-1 inline-flex items-center gap-0">
-            <UserInlineLink user={userInfo} compact avatar={false} />
+            <UserInlineLink
+              user={{ ...entry.data, id: entry.data.uid }}
+              compact
+              avatar={false}
+            />
             {shouldEnableInference && (
               <MentionReplyOverlayTrigger
                 discussionId={mentionContext.discussionId}
-                mentionUserId={userInfo.id}
+                mentionUserId={entry.data.uid}
                 relativeReplyId={mentionContext.relativeReplyId}
                 className="me-0.75 inline-flex cursor-pointer items-center gap-0.75 rounded-full bg-background/50 px-1.75 py-1.25 shadow-sm ring-1 ring-border backdrop-blur-xs transition duration-200 select-none hover:-translate-y-0.25 hover:shadow"
                 isFromDiscussionAuthor={mentionContext.discussionAuthors.includes(
-                  userInfo.id,
+                  entry.data.uid,
                 )}
               >
                 <MessageSquareReply className="inline-block size-3 stroke-2" />
@@ -454,125 +372,125 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
   }
 
   if (!isBlankLink) {
-    if (discussionIdParam) {
-      if (discussionSummary) {
+    if (entry?.type === "discuss") {
+      if (entry.data) {
         return !isLinkTextUseful({
           href: trueUrl,
           text: linkLabel,
           rawSource: linkTextSource,
           kind: "discussion",
-          referenceTitle: discussionSummary.title,
-          referenceId: discussionId?.toString(),
+          referenceTitle: entry.data.title,
+          referenceId: entry.id,
         }) ? (
-          <DiscussionMagicLinkDirect discussionSummary={discussionSummary} />
+          <DiscussionMagicLinkDirect discussionSummary={entry.data} />
         ) : (
           <DiscussionMagicLinkWithOriginal
-            discussionSummary={discussionSummary}
+            discussionSummary={entry.data}
             iconCorner={onlyImagesInChildren}
           >
-            {children ?? (linkLabel || `讨论\u2009${discussionId}`)}
+            {children ?? (linkLabel || `讨论\u2009${entry.id}`)}
           </DiscussionMagicLinkWithOriginal>
         );
       }
 
       return (
-        <Link href={`/d/${discussionId}`} className={className} {...rest}>
+        <Link href={`/d/${entry.id}`} className={className} {...rest}>
           <MessagesSquare
             className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
             aria-hidden="true"
           />
-          {children ?? (linkLabel || `讨论\u2009${discussionId}`)}
+          {children ?? (linkLabel || `讨论\u2009${entry.id}`)}
         </Link>
       );
     }
 
-    if (articleId) {
-      if (articleSummary) {
+    if (entry?.type === "article") {
+      if (entry.data) {
         return !isLinkTextUseful({
           href: trueUrl,
           text: linkLabel,
           rawSource: linkTextSource,
           kind: "article",
-          referenceTitle: articleSummary.title,
-          referenceId: articleId,
+          referenceTitle: entry.data.title,
+          referenceId: entry.id,
         }) ? (
-          <ArticleMagicLinkDirect articleSummary={articleSummary} />
+          <ArticleMagicLinkDirect articleSummary={entry.data} />
         ) : (
           <ArticleMagicLinkWithOriginal
-            articleSummary={articleSummary}
+            articleSummary={entry.data}
             iconCorner={onlyImagesInChildren}
           >
-            {children ?? (linkLabel || `文章\u2009${articleId}`)}
+            {children ?? (linkLabel || `文章\u2009${entry.id}`)}
           </ArticleMagicLinkWithOriginal>
         );
       }
 
       return (
-        <Link href={`/a/${articleId}`} className={className} {...rest}>
+        <Link href={`/a/${entry.id}`} className={className} {...rest}>
           <FileText
             className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
             aria-hidden="true"
           />
-          {children ?? (linkLabel || `文章\u2009${articleId}`)}
+          {children ?? (linkLabel || `文章\u2009${entry.id}`)}
         </Link>
       );
     }
 
-    if (pasteId) {
-      if (pasteSummary) {
+    if (entry?.type === "paste") {
+      if (entry.data) {
         return !isLinkTextUseful({
           href: trueUrl,
           text: linkLabel,
           rawSource: linkTextSource,
           kind: "paste",
-          referenceId: pasteId,
+          referenceId: entry.id,
         }) ? (
-          <PasteMagicLinkDirect pasteSummary={pasteSummary} />
+          <PasteMagicLinkDirect pasteSummary={entry.data} />
         ) : (
           <PasteMagicLinkWithOriginal
-            pasteSummary={pasteSummary}
+            pasteSummary={entry.data}
             iconCorner={onlyImagesInChildren}
           >
-            {children ?? (linkLabel || `云剪贴板\u2009${pasteId}`)}
+            {children ?? (linkLabel || `云剪贴板\u2009${entry.id}`)}
           </PasteMagicLinkWithOriginal>
         );
       }
 
       return (
-        <Link href={`/p/${pasteId}`} className={className} {...rest}>
+        <Link href={`/p/${entry.id}`} className={className} {...rest}>
           <ClipboardList
             className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
             aria-hidden="true"
           />
-          {children ?? (linkLabel || `云剪贴板\u2009${pasteId}`)}
+          {children ?? (linkLabel || `云剪贴板\u2009${entry.id}`)}
         </Link>
       );
     }
 
-    if (problemId) {
-      if (problemInfo) {
+    if (entry?.type === "problem") {
+      if (entry.data) {
         return !isLinkTextUseful({
           href: trueUrl,
           text: linkLabel,
           rawSource: linkTextSource,
           kind: "problem",
-          referenceTitle: problemInfo.title,
-          referenceId: problemId,
+          referenceTitle: entry.data.title,
+          referenceId: entry.id,
         }) ? (
-          <ProblemMagicLinkDirect problemInfo={problemInfo} />
+          <ProblemMagicLinkDirect problemInfo={entry.data} />
         ) : (
           <ProblemMagicLinkWithOriginal
-            problemInfo={problemInfo}
+            problemInfo={entry.data}
             iconCorner={onlyImagesInChildren}
           >
-            {children ?? (linkLabel || `题目\u2009${problemId}`)}
+            {children ?? (linkLabel || `题目\u2009${entry.id}`)}
           </ProblemMagicLinkWithOriginal>
         );
       }
 
       return (
         <Link
-          href={`https://www.luogu.com.cn/problem/${problemId}`}
+          href={`https://www.luogu.com.cn/problem/${entry.id}`}
           className={className}
           {...rest}
         >
@@ -580,25 +498,25 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
             className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
             aria-hidden="true"
           />
-          {children ?? (linkLabel || `题目\u2009${problemId}`)}
+          {children ?? (linkLabel || `题目\u2009${entry.id}`)}
         </Link>
       );
     }
 
-    if (uidLinkParam) {
-      if (userInfo) {
+    if (entry?.type === "user") {
+      if (entry.data) {
         // TODO: improve styles when both images and non-images are in children
         return !isLinkTextUseful({
           href: trueUrl,
           text: markdownLabel,
           rawSource: linkTextSource,
           kind: "user",
-          referenceName: userInfo.name,
-          referenceId: userInfo.id.toString(),
+          referenceName: entry.data.name,
+          referenceId: entry.id,
         }) ? (
-          <UserMagicLinkDirect userInfo={userInfo} />
+          <UserMagicLinkDirect userInfo={entry.data} />
         ) : (
-          <UserMagicLinkWithOriginal userInfo={userInfo}>
+          <UserMagicLinkWithOriginal userInfo={entry.data}>
             {children ?? (linkLabel || trueUrl)}
           </UserMagicLinkWithOriginal>
         );

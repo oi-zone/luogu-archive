@@ -6,11 +6,8 @@ import MetaItem from "@/components/meta/meta-item";
 
 export type PasteLinkInfo = {
   id: string;
-  title: string;
-  capturedAt: string;
-  lastSeenAt: string;
-  isPublic: boolean;
-  snapshotsCount: number;
+  public: boolean;
+  snapshotCount: number;
 };
 
 export default function PasteMagicLinkDirect({
@@ -51,16 +48,16 @@ export function PasteMagicLinkContent({
       </span>
       <span className="relative top-0.5 inline-block">
         <MetaItem icon={Camera} compact className="gap-0.5">
-          {pasteSummary.snapshotsCount.toLocaleString("zh-CN")}
+          {pasteSummary.snapshotCount.toLocaleString("zh-CN")}
         </MetaItem>
       </span>
       <span className="relative top-0.5 inline-block">
         <MetaItem
-          icon={pasteSummary.isPublic ? Globe : Lock}
+          icon={pasteSummary.public ? Globe : Lock}
           compact
           className="gap-0.5"
         >
-          {pasteSummary.isPublic ? "公开" : "私密"}
+          {pasteSummary.public ? "公开" : "私密"}
         </MetaItem>
       </span>
     </>

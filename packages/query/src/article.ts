@@ -403,6 +403,18 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
         )
         .mapWith(Number)
         .as("saved_reply_count"),
+      snapshotCount: db
+        .$count(
+          schema.ArticleSnapshot,
+          eq(
+            schema.Article.lid,
+            sql`${schema.ArticleSnapshot}.${sql.identifier(
+              schema.ArticleSnapshot.articleId.name,
+            )}`,
+          ),
+        )
+        .mapWith(Number)
+        .as("snapshot_count"),
     },
   });
 
@@ -423,6 +435,7 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
         category: snapshot.category,
 
         savedReplyCount: article.savedReplyCount,
+        snapshotCount: article.snapshotCount,
         summary: article.copra[0]?.summary ?? null,
         tags: (article.copra[0]?.tags as string[] | null) ?? null,
       })),

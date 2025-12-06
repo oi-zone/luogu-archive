@@ -4,9 +4,14 @@ import {
   db,
   desc,
   eq,
+  inArray,
   lt,
   schema,
+  sql,
 } from "@luogu-discussion-archive/db";
+
+import type { PasteDto } from "./dto.js";
+import { getLuoguAvatar } from "./user-profile.js";
 
 export async function getPasteWithSnapshot(id: string, capturedAt?: Date) {
   const paste = await db.query.Paste.findFirst({
@@ -124,4 +129,52 @@ export async function getPasteSnapshotsTimeline(
     hasMore,
     nextCursor: hasMore && lastItem ? lastItem.capturedAt : null,
   };
+}
+
+export async function getPasteEntries(ids: string[]): Promise<PasteDto[]> {
+  const pastes = await db.query.Paste.findMany({
+    where: inArray(schema.Paste.id, ids),
+    with: {
+      snapshots: {
+        orderBy: desc(schema.PasteSnapshot.capturedAt),
+        limit: 1,
+      },
+      user: {
+        with: {
+          snapshots: {
+            orderBy: desc(schema.UserSnapshot.capturedAt),
+            limit: 1,
+          },
+        },
+      },
+    },
+    extras: {
+      snapshotCount: db
+        .$count(
+          schema.PasteSnapshot,
+          eq(
+            schema.Paste.id,
+            sql`${schema.PasteSnapshot}.${sql.identifier(schema.PasteSnapshot.pasteId.name)}`,
+          ),
+        )
+        .as("snapshot_count"),
+    },
+  });
+
+  return pastes.flatMap((paste) =>
+    paste.snapshots.flatMap((snapshot) =>
+      paste.user.snapshots.map((userSnapshot) => ({
+        id: paste.id,
+        data: snapshot.data ?? "",
+        time: paste.time.getTime() / 1000,
+        public: snapshot.public,
+        user: {
+          ...userSnapshot,
+          uid: userSnapshot.userId,
+          avatar: getLuoguAvatar(userSnapshot.userId),
+        },
+        snapshotCount: paste.snapshotCount,
+      })),
+    ),
+  );
 }

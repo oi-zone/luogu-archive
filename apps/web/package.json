@@ -27,6 +27,7 @@
     "@tanstack/react-query-devtools": "^5.91.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dataloader": "^2.2.3",
     "framer-motion": "^12.23.25",
     "highlight.js": "^11.11.1",
     "highlightjs-line-numbers.js": "^2.9.1",

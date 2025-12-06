@@ -3,7 +3,6 @@ export {
   getPostRepliesWithLatestSnapshot,
   getPostUserReplyInference,
   getReplyWithLatestSnapshot,
-  getPostSummaryWithLatestSnapshot,
   getPostBasicInfo,
   getPostSnapshotsTimeline,
 } from "./discussion.js";
@@ -14,7 +13,7 @@ export {
   getArticleComment,
   getArticleSnapshotsTimeline,
 } from "./article.js";
-export { getUserEntries, getUserWithLatestSnapshot } from "./user.js";
+export { getUserEntries } from "./user.js";
 export {
   getUserProfileBundle,
   getUserTimelinePage,
@@ -47,7 +46,6 @@ export {
   type FeedPage,
   type FeedCursor,
 } from "./feed.js";
-export { getProblemBasicInfo, type ProblemBasicInfo } from "./problem.js";
 export type { ForumBasicInfo, ForumProblemInfo } from "./types.js";
 export { getActiveEntries, getActiveUsers, getHotEntries } from "./trending.js";
 export { resolveEntries, type Entry, type EntryRef } from "./entries.js";

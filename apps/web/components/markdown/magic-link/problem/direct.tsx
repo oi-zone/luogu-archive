@@ -7,7 +7,6 @@ export type ProblemLinkInfo = {
   pid: string;
   title: string;
   difficulty: number | null;
-  solutionsCount: number;
 };
 
 export default function ProblemMagicLinkDirect({

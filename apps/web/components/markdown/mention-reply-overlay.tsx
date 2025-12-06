@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 import { CommentCard } from "../comments/comment-card";
 import { Button } from "../ui/button";
-import Markdown from "./markdown";
 
 export type MentionReply = {
   id: number;

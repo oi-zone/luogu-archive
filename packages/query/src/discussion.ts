@@ -238,66 +238,6 @@ export async function getPostRepliesWithLatestSnapshot(
   }));
 }
 
-export async function getPostSummaryWithLatestSnapshot(postId: number) {
-  const post = await db.query.Post.findFirst({
-    where: eq(schema.Post.id, postId),
-    with: {
-      snapshots: {
-        orderBy: desc(schema.PostSnapshot.capturedAt),
-        limit: 1,
-        columns: {
-          title: true,
-          capturedAt: true,
-          lastSeenAt: true,
-        },
-        with: {
-          forum: {
-            columns: {
-              slug: true,
-              name: true,
-              problemId: true,
-            },
-            with: {
-              problem: {
-                columns: {
-                  pid: true,
-                  title: true,
-                  difficulty: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!post) {
-    return null;
-  }
-
-  const [replyCounts, snapshotCounts] = await Promise.all([
-    db
-      .select({ total: count() })
-      .from(schema.Reply)
-      .where(eq(schema.Reply.postId, postId)),
-    db
-      .select({ total: count() })
-      .from(schema.PostSnapshot)
-      .where(eq(schema.PostSnapshot.postId, postId)),
-  ]);
-
-  return {
-    id: post.id,
-    time: post.time,
-    snapshots: post.snapshots,
-    _count: {
-      replies: replyCounts[0]?.total ?? 0,
-      snapshots: snapshotCounts[0]?.total ?? 0,
-    },
-  };
-}
-
 interface ReplyCursorCandidate {
   id: number;
   postId: number;
@@ -717,6 +657,18 @@ export async function getPostEntries(ids: number[]): Promise<PostDto[]> {
         )
         .mapWith(Number)
         .as("saved_reply_count"),
+      snapshotCount: db
+        .$count(
+          schema.PostSnapshot,
+          eq(
+            schema.Post.id,
+            sql`${schema.PostSnapshot}.${sql.identifier(
+              schema.PostSnapshot.postId.name,
+            )}`,
+          ),
+        )
+        .mapWith(Number)
+        .as("snapshot_count"),
     },
   });
 
@@ -736,6 +688,7 @@ export async function getPostEntries(ids: number[]): Promise<PostDto[]> {
         content: snapshot.content,
 
         savedReplyCount: post.savedReplyCount,
+        snapshotCount: post.snapshotCount,
       })),
     ),
   );

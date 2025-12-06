@@ -7,11 +7,9 @@ import MetaItem from "@/components/meta/meta-item";
 export type DiscussionLinkInfo = {
   id: number;
   title: string;
-  capturedAt: string;
-  lastSeenAt: string;
   forum: { slug: string; name: string } | null;
-  allRepliesCount: number;
-  snapshotsCount: number;
+  savedReplyCount: number;
+  snapshotCount: number;
 };
 
 export default function DiscussionMagicLinkDirect({
@@ -55,12 +53,12 @@ export function DiscussionMagicLinkContent({
       </span>
       <span className="relative top-0.5 inline-block">
         <MetaItem icon={MessageSquare} compact className="gap-0.5">
-          {discussionSummary.allRepliesCount.toLocaleString("zh-CN")}
+          {discussionSummary.savedReplyCount.toLocaleString("zh-CN")}
         </MetaItem>
       </span>
       <span className="relative top-0.5 inline-block">
         <MetaItem icon={Camera} compact className="gap-0.5">
-          {discussionSummary.snapshotsCount.toLocaleString("zh-CN")}
+          {discussionSummary.snapshotCount.toLocaleString("zh-CN")}
         </MetaItem>
       </span>
     </>

@@ -1,6 +1,7 @@
 import type {
   Article,
   Forum,
+  Paste,
   Post,
   ProblemSummary,
   UserSummary,
@@ -21,7 +22,9 @@ export interface PostDto extends Pick<
   author: UserDto;
   forum: ForumDto;
   content: string;
+
   savedReplyCount: number;
+  snapshotCount: number;
 }
 
 export interface ArticleDto extends Pick<
@@ -29,8 +32,18 @@ export interface ArticleDto extends Pick<
   "lid" | "title" | "time" | "upvote" | "replyCount" | "favorCount" | "category"
 > {
   author: UserDto;
-  savedReplyCount: number;
 
+  savedReplyCount: number;
+  snapshotCount: number;
   summary?: string | null;
   tags?: string[] | null;
+}
+
+export interface PasteDto extends Pick<
+  Paste,
+  "data" | "id" | "time" | "public"
+> {
+  user: UserDto;
+
+  snapshotCount: number;
 }

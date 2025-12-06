@@ -308,7 +308,7 @@ export default function remarkLuoguFlavor(options) {
 
         match = captureFromFirstMatch(discussionRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-discussion"] = match[1];
+          hProperties["data-ls-discuss"] = match[1];
           return;
         }
 

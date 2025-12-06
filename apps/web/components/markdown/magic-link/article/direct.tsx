@@ -5,12 +5,10 @@ import { cn } from "@/lib/utils";
 import MetaItem from "@/components/meta/meta-item";
 
 export type ArticleLinkInfo = {
-  id: string;
+  lid: string;
   title: string;
-  capturedAt: string;
-  lastSeenAt: string;
-  allRepliesCount: number;
-  snapshotsCount: number;
+  savedReplyCount: number;
+  snapshotCount: number;
 };
 
 export default function ArticleMagicLinkDirect({
@@ -20,7 +18,7 @@ export default function ArticleMagicLinkDirect({
 }) {
   return (
     <Link
-      href={`/a/${articleSummary.id}`}
+      href={`/a/${articleSummary.lid}`}
       className={cn(
         "clear-markdown-style relative -top-0.25 -mt-0.5",
         "ls-article-link inline-flex items-center gap-2 rounded-full px-2.5 py-0.75 text-sm font-medium text-foreground no-underline",
@@ -46,17 +44,17 @@ export function ArticleMagicLinkContent({
           {articleSummary.title}
         </span>
         <span className="align-bottom text-xs text-muted-foreground">
-          #{articleSummary.id}
+          #{articleSummary.lid}
         </span>
       </span>
       <span className="relative top-0.5 inline-block">
         <MetaItem icon={MessageCircle} compact className="gap-0.5">
-          {articleSummary.allRepliesCount.toLocaleString("zh-CN")}
+          {articleSummary.savedReplyCount.toLocaleString("zh-CN")}
         </MetaItem>
       </span>
       <span className="relative top-0.5 inline-block">
         <MetaItem icon={Camera} compact className="gap-0.5">
-          {articleSummary.snapshotsCount.toLocaleString("zh-CN")}
+          {articleSummary.snapshotCount.toLocaleString("zh-CN")}
         </MetaItem>
       </span>
     </>

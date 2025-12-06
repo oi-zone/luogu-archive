@@ -16,7 +16,7 @@ export default function ArticleMagicLinkWithOriginal({
 }) {
   return (
     <LinkWithOriginal
-      href={`/a/${articleSummary.id}`}
+      href={`/a/${articleSummary.lid}`}
       Icon={FileText}
       original={children}
       iconCorner={iconCorner}
