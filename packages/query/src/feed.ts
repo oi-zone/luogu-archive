@@ -71,7 +71,6 @@ export interface JudgementFeedEntry extends FeedEntryBase {
   kind: "judgement";
   judgementId: string;
   userId: number;
-  action: string;
   reason: string;
   addedPermission: number;
   revokedPermission: number;
@@ -387,10 +386,6 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
       author,
       judgementId: judgementCursor,
       userId: row.userId,
-      action: describeJudgementAction(
-        row.addedPermission,
-        row.revokedPermission,
-      ),
       reason: row.reason,
       addedPermission: row.addedPermission,
       revokedPermission: row.revokedPermission,
@@ -583,15 +578,6 @@ function mapJudgedUserFromRow(row: JudgementRow): BasicUserSnapshot | null {
     ccfLevel: row.authorCcfLevel ?? 0,
     xcpcLevel: row.authorXcpcLevel ?? 0,
   } satisfies BasicUserSnapshot;
-}
-
-// Formats permission deltas into一句可读的裁决描述。
-function describeJudgementAction(added: number, revoked: number) {
-  const parts: string[] = [];
-  if (added) parts.push(`增加权限 ${String(added)}`);
-  if (revoked) parts.push(`撤销权限 ${String(revoked)}`);
-  if (parts.length === 0) return "社区裁决";
-  return parts.join("，");
 }
 
 // Uses时间戳+用户ID生成唯一游标键，既当 cursor 也当 entry key。

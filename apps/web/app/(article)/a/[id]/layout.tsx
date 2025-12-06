@@ -580,7 +580,7 @@ export default function Layout({
           </main>
 
           <aside className="order-2 hidden lg:order-2 lg:block 2xl:order-4">
-            <div className="sticky top-24 flex flex-col gap-4">
+            <div className="sticky top-24.25 flex flex-col gap-4">
               <div
                 className="grid transition-[grid-template-rows,gap] duration-300 ease-out"
                 style={{

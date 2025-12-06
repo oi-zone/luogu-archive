@@ -10,24 +10,26 @@ import type { OstrakonEntry, OstrakonPage } from "@/lib/ostrakon-shared";
 import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import UserInlineLink from "@/components/user/user-inline-link";
+import UserInlineLink, {
+  UserBasicInfo,
+} from "@/components/user/user-inline-link";
 
 const TONE_STYLES = {
   green: {
     badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-    cardClass: "border-emerald-500/40 bg-emerald-500/5",
+    cardClass: "border-emerald-500/40 shadow-emerald-500/15 bg-emerald-500/2",
     titleClass: "text-emerald-600 dark:text-emerald-200",
     bodyClass: "text-emerald-600/80 dark:text-emerald-200/80",
   },
   yellow: {
     badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
-    cardClass: "border-amber-500/40 bg-amber-500/5",
+    cardClass: "border-amber-500/40 shadow-amber-500/15 bg-amber-500/2",
     titleClass: "text-amber-600 dark:text-amber-200",
     bodyClass: "text-amber-600/80 dark:text-amber-200/80",
   },
   red: {
     badgeClass: "bg-red-500/10 text-red-600 dark:text-red-300",
-    cardClass: "border-red-500/40 bg-red-500/5",
+    cardClass: "border-red-500/40 shadow-red-500/15 bg-red-500/2",
     titleClass: "text-red-600 dark:text-red-200",
     bodyClass: "text-red-600/80 dark:text-red-200/80",
   },
@@ -118,16 +120,47 @@ export function OstrakaTimeline({
       : "加载失败"
     : null;
 
+  const collapsedEntries = React.useMemo(() => {
+    const collapsed: {
+      entry: OstrakonEntry;
+      collapsedUsers: UserBasicInfo[];
+    }[] = [];
+
+    let last: OstrakonEntry | null = null;
+
+    for (const entry of entries) {
+      if (
+        last !== null &&
+        entry.reason === last.reason &&
+        entry.addedPermission === last.addedPermission &&
+        entry.revokedPermission === last.revokedPermission
+      ) {
+        collapsed.at(-1)!.collapsedUsers.push(entry.user!);
+      } else {
+        collapsed.push({
+          entry,
+          collapsedUsers: [],
+        });
+        last = entry;
+      }
+    }
+    return collapsed;
+  }, [entries]);
+
   return (
-    <section className="space-y-6">
+    <section className="space-y-5">
       {showLoading ? (
         <Placeholder message="正在加载陶片放逐" />
       ) : isEmpty ? (
         <EmptyState />
       ) : (
-        <div className="space-y-6">
-          {entries.map((entry) => (
-            <OstrakonCard key={entry.id} entry={entry} />
+        <div className="space-y-5">
+          {collapsedEntries.map(({ entry, collapsedUsers }) => (
+            <OstrakonCard
+              key={entry.id}
+              entry={entry}
+              collapsedUsers={collapsedUsers}
+            />
           ))}
         </div>
       )}
@@ -166,7 +199,13 @@ export function OstrakaTimeline({
   );
 }
 
-function OstrakonCard({ entry }: { entry: OstrakonEntry }) {
+function OstrakonCard({
+  entry,
+  collapsedUsers,
+}: {
+  entry: OstrakonEntry;
+  collapsedUsers?: UserBasicInfo[];
+}) {
   const createdAt = new Date(entry.createdAt);
   const relative = formatRelativeTime(createdAt);
   const style = resolveTone(entry);
@@ -174,61 +213,88 @@ function OstrakonCard({ entry }: { entry: OstrakonEntry }) {
     <article
       id={entry.anchor}
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-sm",
+        "relative overflow-hidden rounded-3xl border border-border bg-card px-5 py-4.5 text-card-foreground shadow-sm transition duration-200 hover:shadow-lg",
         style.cardClass,
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex gap-x-3 gap-y-2">
+        <div className="flex flex-1 items-center gap-2">
+          <span className="inline-flex gap-2">
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold",
+                "inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold",
                 style.badgeClass,
               )}
             >
               <Gavel className="size-3.5" aria-hidden />
               陶片放逐
             </span>
-            {entry.user ? (
-              <UserInlineLink user={entry.user} avatar compact />
-            ) : (
-              <span className="text-sm text-muted-foreground">未知用户</span>
-            )}
+            <span className={cn("font-medium", style.titleClass)}>
+              {entry.reason}
+            </span>
           </span>
-          <Link
-            href={`#${entry.anchor}`}
-            scroll={false}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            style={{ display: "none" }}
-          >
-            <LinkIcon className="size-3.5" aria-hidden />#{entry.anchor}
-          </Link>
         </div>
         <time
-          className="text-xs text-muted-foreground"
+          className={cn("text-xs", style.bodyClass)}
           dateTime={entry.createdAt}
         >
-          {ABSOLUTE_DATE_FORMATTER.format(createdAt)} · {relative}
+          {ABSOLUTE_DATE_FORMATTER.format(createdAt)}
+        </time>
+        <time
+          className={cn("text-xs", style.bodyClass)}
+          dateTime={entry.createdAt}
+        >
+          {relative}
         </time>
       </div>
 
-      <div className="mt-4 space-y-3">
-        <div className={cn("text-base font-semibold", style.titleClass)}>
-          <ul>
-            {getPermissionNames(entry.addedPermission).map((name) => (
-              <li key={name}>
-                授予 <code>{name}</code> 权限
-              </li>
-            ))}
-            {getPermissionNames(entry.revokedPermission).map((name) => (
-              <li key={name}>
-                撤销 <code>{name}</code> 权限
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className={cn("leading-relaxed", style.bodyClass)}>{entry.reason}</p>
+      <div className="mt-2.5 space-y-3">
+        <p className="leading-7">
+          {entry.user ? (
+            <UserInlineLink
+              user={entry.user}
+              avatar
+              compact
+              className="me-2 align-bottom"
+            />
+          ) : null}
+          {collapsedUsers && collapsedUsers.length > 0
+            ? collapsedUsers.map((user) => (
+                <React.Fragment key={user.id}>
+                  <UserInlineLink
+                    user={user}
+                    avatar
+                    compact
+                    className="me-2 align-bottom"
+                  />
+                </React.Fragment>
+              ))
+            : null}
+        </p>
+        {entry.addedPermission || entry.revokedPermission ? (
+          <div className={cn("text-base", style.bodyClass)}>
+            <ul>
+              {getPermissionNames(entry.addedPermission).map((name) => (
+                <li key={name}>
+                  授予{" "}
+                  <code className={cn("font-medium", style.titleClass)}>
+                    {name}
+                  </code>{" "}
+                  权限
+                </li>
+              ))}
+              {getPermissionNames(entry.revokedPermission).map((name) => (
+                <li key={name}>
+                  撤销{" "}
+                  <code className={cn("font-medium", style.titleClass)}>
+                    {name}
+                  </code>{" "}
+                  权限
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </article>
   );

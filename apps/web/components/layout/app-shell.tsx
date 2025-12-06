@@ -4,11 +4,11 @@ import * as React from "react";
 import {
   Gavel,
   Home,
+  Layers,
   ListChecks,
-  MessagesSquare,
-  Newspaper,
   PanelLeft,
   Search,
+  Telescope,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -47,30 +47,15 @@ const NAV_ITEMS = [
     icon: Home,
   },
   {
-    title: "讨论",
-    href: "/discussions",
-    icon: MessagesSquare,
+    title: "探索",
+    href: "/explore",
+    icon: Telescope,
   },
   {
-    title: "文章",
-    href: "/articles",
-    icon: Newspaper,
+    title: "最近",
+    href: "/recent",
+    icon: Layers,
   },
-  // {
-  //   title: "云剪贴板",
-  //   href: "/pastes",
-  //   icon: Clipboard,
-  // },
-  // {
-  //   title: "犇犇",
-  //   href: "/benben",
-  //   icon: PenLine,
-  // },
-  // {
-  //   title: "团队",
-  //   href: "/teams",
-  //   icon: Compass,
-  // },
   {
     title: "陶片放逐",
     href: "/ostraka",
@@ -103,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "flex min-h-svh flex-col transition-[margin-left] duration-300 ease-in-out",
-          "md:ml-16",
+          "md:ml-15.25",
         )}
       >
         <BreadcrumbProvider key={pathname}>
@@ -349,53 +334,9 @@ function createBreadcrumbs(pathname: string): BreadcrumbEntry[] {
 
   const [first, second] = segments;
 
-  switch (first) {
-    case "status":
-      crumbs.push({ label: "动态" });
-      break;
-    case "articles":
-      crumbs.push({ label: "文章" });
-      break;
-    case "discussions":
-      crumbs.push({ label: "讨论" });
-      break;
-    case "benben":
-      crumbs.push({ label: "犇犇" });
-      break;
-    case "teams":
-      crumbs.push({ label: "团队" });
-      break;
-    case "ostraka":
-      crumbs.push({ label: "陶片放逐" });
-      break;
-    case "search":
-      crumbs.push({ label: "站内搜索" });
-      break;
-    case "queue":
-      crumbs.push({ label: "保存队列" });
-      break;
-    case "a": {
-      crumbs.push({ label: "文章", href: "/articles" });
-      if (second) {
-        crumbs.push({ label: "文章详情" });
-      }
-      break;
-    }
-    case "d": {
-      crumbs.push({ label: "讨论", href: "/discussions" });
-      if (second) {
-        crumbs.push({ label: "讨论详情" });
-      }
-      break;
-    }
-    default: {
-      // Fallback to displaying the first segment in title case when not explicitly handled
-      crumbs.push({ label: toTitleCase(first) });
-      if (second) {
-        crumbs.push({ label: decodeURIComponent(second) });
-      }
-      break;
-    }
+  crumbs.push({ label: toTitleCase(first) });
+  if (second) {
+    crumbs.push({ label: decodeURIComponent(second) });
   }
 
   return crumbs;

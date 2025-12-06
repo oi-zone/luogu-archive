@@ -4,6 +4,7 @@ import * as React from "react";
 import { useParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 import Container from "@/components/layout/container";
 
 import { PasteWaybackModal } from "./wayback-modal";
@@ -166,7 +167,7 @@ export default function Layout({
           </main>
 
           <aside className="order-2 hidden lg:order-2 lg:block 2xl:order-3">
-            <div className="sticky top-24 flex flex-col gap-4">
+            <div className="sticky top-24.25 flex flex-col gap-4">
               <div
                 className="grid transition-[grid-template-rows,gap] duration-300 ease-out"
                 style={{

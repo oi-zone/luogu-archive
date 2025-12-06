@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const rankColors = ["text-yellow-400", "text-gray-400", "text-amber-700"];
 
 export default async function ActiveUsers() {
-  const activeUsers = await getActiveUsers(120);
+  const activeUsers = await getActiveUsers(140);
   const users = await resolveUsers(activeUsers.map((u) => u.uid));
   const activeUsersWithData = activeUsers
     .filter((_u, i) => users[i].data !== null)
@@ -40,8 +40,11 @@ export default async function ActiveUsers() {
                   className="align-middle"
                 />
               </span>
-              <span className="text-sm text-muted-foreground">
-                {user.score.toFixed(2)}
+              <span
+                className="font-mono text-sm text-muted-foreground"
+                title="活跃指数"
+              >
+                {user.score.toFixed(3)}
               </span>
             </div>
           </li>

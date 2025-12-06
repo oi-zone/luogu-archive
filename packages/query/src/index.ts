@@ -34,9 +34,11 @@ export {
   getGlobalOstrakonPage,
   parseOstrakonCursor,
   formatOstrakonAnchor,
+  getOstrakonStat,
   type OstrakonEntry,
   type OstrakonPage,
   type OstrakonCursor,
+  type OstrakonStat,
 } from "./judgement.js";
 export {
   getFeedPage,
