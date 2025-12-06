@@ -30,7 +30,7 @@ model PostSnapshot {
   content String @db.Text
 
   pinnedReply   Reply? @relation(fields: [pinnedReplyId], references: [id])
-  pinnedReplyId Int?   @unique
+  pinnedReplyId Int?
 
   capturedAt DateTime
   lastSeenAt DateTime
@@ -65,7 +65,7 @@ model Reply {
   snapshots ReplySnapshot[]
   takedown  ReplyTakedown?
 
-  pinnedTo PostSnapshot?
+  pinnedTo PostSnapshot[]
 
   @@index([postId])
   @@index([authorId])
