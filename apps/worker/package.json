@@ -9,8 +9,9 @@
   "dependencies": {
     "@luogu-discussion-archive/crawler": "workspace:*",
     "@luogu-discussion-archive/logging": "workspace:*",
-    "@luogu-discussion-archive/redis": "workspace:*",
+    "@luogu-discussion-archive/queue": "workspace:*",
     "@sentry/node": "^10.29.0",
+    "bullmq": "^5.65.1",
     "dotenv": "^17.2.3"
   },
   "devDependencies": {

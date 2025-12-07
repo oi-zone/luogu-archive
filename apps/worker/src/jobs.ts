@@ -8,29 +8,23 @@ import {
   listDiscuss,
   REPLIES_PER_PAGE,
 } from "@luogu-discussion-archive/crawler";
-import { queueJob, Stream, type Job } from "@luogu-discussion-archive/redis";
-import { setIfLt } from "@luogu-discussion-archive/redis/utils";
+import { queueJob, type Job } from "@luogu-discussion-archive/queue";
 
-import { REPLY_PAGE_CACHE_TTL_SEC } from "./config.js";
+import { PRIORITY_BACKFILL } from "./config.js";
 
-export async function execute(job: Job, stream: Stream) {
+export async function processJob(job: Job, priority?: number) {
   switch (job.type) {
     case "listDiscuss": {
-      const discussions = await listDiscuss(
-        job.forum,
-        job.page ? parseInt(job.page) : undefined,
-      );
+      const discussions = await listDiscuss(job.forum, job.page);
       await Promise.all(
         discussions.map(({ id, replyCount }) =>
           queueJob(
             {
               type: "discuss",
-              id: String(id),
-              page: replyCount
-                ? String(Math.ceil(replyCount / REPLIES_PER_PAGE))
-                : "1",
+              id: id,
+              page: replyCount ? Math.ceil(replyCount / REPLIES_PER_PAGE) : 1,
             },
-            stream,
+            priority,
           ),
         ),
       );
@@ -40,17 +34,17 @@ export async function execute(job: Job, stream: Stream) {
     case "listArticles": {
       const articles = await listArticles(
         job.collection ? parseInt(job.collection) : undefined,
-        job.page ? parseInt(job.page) : undefined,
+        job.page,
       );
       await Promise.all(
-        articles.map((lid) => queueJob({ type: "article", lid }, stream)),
+        articles.map((lid) => queueJob({ type: "article", lid }, priority)),
       );
       break;
     }
 
     case "discuss": {
       const id = job.id,
-        page = job.page ? parseInt(job.page) : undefined;
+        page = job.page;
 
       const {
         numPages,
@@ -58,50 +52,35 @@ export async function execute(job: Job, stream: Stream) {
         numNewReplies,
         recentReply,
         recentReplySnapshot,
-      } = await fetchDiscuss(parseInt(id), page);
+      } = await fetchDiscuss(id, page);
 
-      if (page && recentReply && !recentReplySnapshot)
-        await queueJob({ type: "discuss", id, page: String(numPages) });
+      if (recentReply && !recentReplySnapshot)
+        await queueJob({ type: "discuss", id, page: numPages });
 
-      if (numPages > 1) {
-        const prevPage = page ? page - 1 : numPages;
-        if (prevPage < 1) break;
-
-        const keyRecentlySavedPage = `crawler:recent:discuss:${job.id}`;
-        const notRecentlySaved = await setIfLt(
-          keyRecentlySavedPage,
-          String(prevPage),
-          "EX",
-          String(REPLY_PAGE_CACHE_TTL_SEC),
+      if (numPages && page && page > 1)
+        await queueJob(
+          { type: "discuss", id, page: Math.min(page - 1, numPages) },
+          numNewReplies < numReplies ? PRIORITY_BACKFILL : priority,
         );
-
-        const streamToUse =
-          page && numNewReplies < numReplies ? Stream.Routine : stream;
-        if (streamToUse === Stream.Immediate || notRecentlySaved)
-          await queueJob(
-            { type: "discuss", id, page: String(prevPage) },
-            streamToUse,
-          );
-      }
 
       break;
     }
 
     case "article":
       await fetchArticle(job.lid);
-      await queueJob({ type: "articleReplies", lid: job.lid }, stream);
+      await queueJob({ type: "articleReplies", lid: job.lid }, priority);
       break;
 
     case "articleReplies": {
       const { lastReplyId, lastReplySaved } = await fetchArticleReplies(
         job.lid,
-        job.after ? parseInt(job.after) : undefined,
+        job.after,
       );
 
       if (lastReplyId)
         await queueJob(
-          { type: "articleReplies", lid: job.lid, after: String(lastReplyId) },
-          lastReplySaved ? Stream.Routine : stream,
+          { type: "articleReplies", lid: job.lid, after: lastReplyId },
+          lastReplySaved ? PRIORITY_BACKFILL : priority,
         );
 
       break;

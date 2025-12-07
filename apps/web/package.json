@@ -11,7 +11,7 @@
   "dependencies": {
     "@floating-ui/react": "^0.27.16",
     "@luogu-discussion-archive/query": "workspace:*",
-    "@luogu-discussion-archive/redis": "workspace:*",
+    "@luogu-discussion-archive/queue": "workspace:*",
     "@luogu-discussion-archive/remark-lda-lfm": "workspace:*",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-collapsible": "^1.1.12",
