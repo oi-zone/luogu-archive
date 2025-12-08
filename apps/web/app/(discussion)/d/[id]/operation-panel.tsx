@@ -141,7 +141,7 @@ export default function DiscussionOperationPanel({
           ) : (
             <ClipboardCopy className="size-4" aria-hidden="true" />
           )}
-          复制主题 Markdown
+          复制零楼 Markdown
         </Button>
       </div>
     </div>
