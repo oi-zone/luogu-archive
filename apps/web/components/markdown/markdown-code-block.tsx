@@ -147,7 +147,7 @@ export default function MarkdownCodeBlock({
             className="ls-code-block-line-numbers block border-e-[1px] border-border py-[1em]"
             aria-hidden="true"
           >
-            {Object.entries(lineNumbers).map(([lineNumber, isHighlighted]) => (
+            {Object.entries(lineNumbers).map(([lineNumber, _isHighlighted]) => (
               <span
                 key={lineNumber}
                 className="block px-2 text-right text-sm text-muted-foreground/60 select-none"
