@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
-import { Gavel, Link as LinkIcon, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Gavel, Loader2 } from "lucide-react";
 
 import { getPermissionNames } from "@/lib/judgement";
 import type { OstrakonEntry, OstrakonPage } from "@/lib/ostrakon-shared";
