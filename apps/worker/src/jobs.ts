@@ -8,9 +8,11 @@ import {
   listDiscuss,
   REPLIES_PER_PAGE,
 } from "@luogu-discussion-archive/crawler";
-import { queueJob, type Job } from "@luogu-discussion-archive/queue";
-
-import { PRIORITY_BACKFILL } from "./config.js";
+import {
+  BACKFILL_PRIORITY,
+  queueJob,
+  type Job,
+} from "@luogu-discussion-archive/queue";
 
 export async function processJob(job: Job, priority?: number) {
   switch (job.type) {
@@ -60,7 +62,7 @@ export async function processJob(job: Job, priority?: number) {
       if (numPages && page && page > 1)
         await queueJob(
           { type: "discuss", id, page: Math.min(page - 1, numPages) },
-          numNewReplies < numReplies ? PRIORITY_BACKFILL : priority,
+          numNewReplies < numReplies ? BACKFILL_PRIORITY : priority,
         );
 
       break;
@@ -80,7 +82,7 @@ export async function processJob(job: Job, priority?: number) {
       if (lastReplyId)
         await queueJob(
           { type: "articleReplies", lid: job.lid, after: lastReplyId },
-          lastReplySaved ? PRIORITY_BACKFILL : priority,
+          lastReplySaved ? BACKFILL_PRIORITY : priority,
         );
 
       break;

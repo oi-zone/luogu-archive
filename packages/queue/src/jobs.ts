@@ -1,5 +1,6 @@
 import type { DeduplicationOptions, JobsOptions } from "bullmq";
 
+import { BACKFILL_DUPLICATION_TTL, BACKFILL_PRIORITY } from "./config.js";
 import { queue } from "./queue.js";
 
 export type Job =
@@ -45,6 +46,10 @@ export function queueJob(job: Job, priority?: number) {
       break;
 
     default:
+  }
+  if (priority === BACKFILL_PRIORITY) {
+    deduplication.ttl = BACKFILL_DUPLICATION_TTL;
+    deduplication.id += ":backfill";
   }
 
   const opts: JobsOptions = { deduplication };
