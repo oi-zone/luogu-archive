@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import Markdown from "@/components/markdown/markdown";
 
 import { getArticleData } from "../data-cache";
@@ -10,6 +12,8 @@ export default async function Page({
   const id = (await params).id;
 
   const article = await getArticleData(id);
+
+  if (article === null) notFound();
 
   return (
     <Markdown

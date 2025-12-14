@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 
@@ -12,6 +13,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = (await params).id;
   const article = await getArticleData(id);
 
+  if (article === null) notFound();
+
   return {
     title: article.title,
   };
@@ -20,6 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const id = (await params).id;
   const article = await getArticleData(id);
+
+  if (article === null) notFound();
 
   return (
     <div>

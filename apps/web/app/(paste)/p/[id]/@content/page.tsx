@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import Markdown from "@/components/markdown/markdown";
 
 import { getPasteData } from "../data-cache";
@@ -10,6 +12,8 @@ export default async function Page({
   const id = (await params).id;
 
   const paste = await getPasteData(id);
+
+  if (paste === null) notFound();
 
   return paste.content !== null ? (
     <Markdown originalUrl={`https://www.luogu.com.cn/paste/${paste.id}`}>

@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
@@ -19,6 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const discussion = await getDiscussionData(id, snapshot);
 
+  if (discussion === null) notFound();
+
   return {
     title: `[快照] ${discussion.title}`,
   };
@@ -30,6 +33,8 @@ export default async function Page({ params }: Props) {
   const snapshot = new Date(parseInt(snapshotStr, 36));
 
   const discussion = await getDiscussionData(id, snapshot);
+
+  if (discussion === null) notFound();
 
   return (
     <div>

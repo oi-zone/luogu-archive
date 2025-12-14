@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import { getArticleData } from "../data-cache";
 import ArticleMetaRow from "../meta-row";
 
@@ -9,6 +11,8 @@ export default async function Page({
   const id = (await params).id;
 
   const article = await getArticleData(id);
+
+  if (article === null) notFound();
 
   return (
     <>

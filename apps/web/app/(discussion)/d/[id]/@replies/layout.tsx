@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import { getPostBasicInfo } from "@luogu-discussion-archive/query";
 
 import DiscussionReplies from "../replies";
@@ -10,6 +12,8 @@ export default async function Layout({
   const id = parseInt((await params).id, 10);
 
   const discussion = await getPostBasicInfo(id);
+
+  if (discussion === null) notFound();
 
   return (
     <DiscussionReplies

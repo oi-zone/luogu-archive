@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import { getPasteData } from "../../data-cache";
 import MetaRow from "../../meta-row";
 
@@ -10,6 +12,8 @@ export default async function Page({
   const snapshot = new Date(parseInt(snapshotStr, 36));
 
   const paste = await getPasteData(id, snapshot);
+
+  if (paste === null) notFound();
 
   return <MetaRow paste={paste} />;
 }

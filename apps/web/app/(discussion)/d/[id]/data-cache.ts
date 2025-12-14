@@ -3,15 +3,21 @@ import { cache } from "react";
 import { getPostWithSnapshot } from "@luogu-discussion-archive/query";
 
 export const getDiscussionData = cache(async (id: number, snapshot?: Date) => {
-  const discussionWithSnapshot = await getPostWithSnapshot(id, snapshot);
+  let discussionWithSnapshot;
+
+  try {
+    discussionWithSnapshot = await getPostWithSnapshot(id, snapshot);
+  } catch {
+    return null;
+  }
 
   if (discussionWithSnapshot === null) {
-    throw new Error("Discussion not found");
+    return null;
   }
 
-  if (discussionWithSnapshot.takedown?.length) {
-    throw new Error("Discussion taken down");
-  }
+  // if (discussionWithSnapshot.takedown?.length) {
+  //   throw new Error("Discussion taken down");
+  // }
 
   return {
     id,

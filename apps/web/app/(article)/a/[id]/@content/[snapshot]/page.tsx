@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import Markdown from "@/components/markdown/markdown";
 
 import { getArticleData } from "../../data-cache";
@@ -14,6 +16,8 @@ export default async function Page({
   const snapshot = new Date(parseInt(snapshotStr, 36));
 
   const article = await getArticleData(id, snapshot);
+
+  if (article === null) notFound();
 
   return (
     <Markdown

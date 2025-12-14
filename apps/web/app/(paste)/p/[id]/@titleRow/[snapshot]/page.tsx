@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
@@ -18,6 +19,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const paste = await getPasteData(id, snapshot);
 
+  if (paste === null) notFound();
+
   return {
     title: `[快照] 云剪贴板 ${paste.id}`,
   };
@@ -28,6 +31,8 @@ export default async function Page({ params }: Props) {
   const snapshot = new Date(parseInt(snapshotStr, 36));
 
   const paste = await getPasteData(id, snapshot);
+
+  if (paste === null) notFound();
 
   return (
     <div>

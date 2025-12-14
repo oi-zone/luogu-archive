@@ -3,10 +3,16 @@ import { cache } from "react";
 import { getPasteWithSnapshot } from "@luogu-discussion-archive/query";
 
 export const getPasteData = cache(async (id: string, snapshot?: Date) => {
-  const pasteWithSnapshot = await getPasteWithSnapshot(id, snapshot);
+  let pasteWithSnapshot;
+
+  try {
+    pasteWithSnapshot = await getPasteWithSnapshot(id, snapshot);
+  } catch {
+    return null;
+  }
 
   if (pasteWithSnapshot === null) {
-    throw new Error("Paste not found");
+    return null;
   }
 
   // if (pasteWithSnapshot.takedown) {

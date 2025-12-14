@@ -3,10 +3,16 @@ import { cache } from "react";
 import { getArticleWithSnapshot } from "@luogu-discussion-archive/query";
 
 export const getArticleData = cache(async (lid: string, snapshot?: Date) => {
-  const articleWithSnapshot = await getArticleWithSnapshot(lid, snapshot);
+  let articleWithSnapshot;
+
+  try {
+    articleWithSnapshot = await getArticleWithSnapshot(lid, snapshot);
+  } catch {
+    return null;
+  }
 
   if (articleWithSnapshot === null) {
-    throw new Error("Article not found");
+    return null;
   }
 
   // if (articleWithSnapshot.takedown) {
