@@ -2,7 +2,7 @@
 
 @layer base {
   .markdown-body {
-    @apply text-muted-foreground;
+    @apply text-foreground;
     font-size: 1rem;
     line-height: 1.75;
     letter-spacing: -0.003em;
@@ -96,15 +96,12 @@
   }
 
   .markdown-body :is(h1, h2, h3, h4, h5, h6) {
-    @apply font-semibold text-foreground;
+    @apply font-semibold;
     line-height: 1.2;
     letter-spacing: -0.025em;
     scroll-margin-top: 7rem;
     margin-top: var(--md-hn-mt);
     margin-bottom: var(--md-hn-mb);
-  }
-  .markdown-body h6 {
-    @apply text-muted-foreground;
   }
 
   .markdown-body
@@ -152,10 +149,6 @@
     --md-hn-mb: 12px;
   }
 
-  .markdown-body div.fake-p {
-    @apply text-muted-foreground;
-  }
-
   .markdown-body a:not(.clear-markdown-style) {
     @apply text-indigo-500 transition-colors hover:text-indigo-700 dark:hover:text-indigo-400;
   }
@@ -165,10 +158,6 @@
   }
   .markdown-body em {
     @apply italic;
-  }
-
-  .markdown-body :is(strong, em):not(:is(.clear-markdown-style *)) {
-    @apply text-foreground;
   }
 
   .markdown-body :is(ul, ol) {
@@ -188,18 +177,15 @@
   .markdown-body li + li {
     @apply mt-3;
   }
-  .markdown-body li {
-    @apply text-muted-foreground;
-  }
   .markdown-body li::marker {
     color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
   }
 
   .markdown-body :is(blockquote:not(.ls-epigraph-blockquote), details) {
+    @apply text-muted-foreground;
     position: relative;
     margin-inline: 0;
     padding: 0.5rem 0.5rem 0.5rem 1.25rem;
-    color: var(--muted-foreground);
   }
 
   @media (min-width: 40rem) {
@@ -209,12 +195,11 @@
   }
 
   .markdown-body figure.ls-epigraph {
-    @apply relative text-right;
+    @apply relative text-right text-muted-foreground;
     --before-bar-color: var(--color-gray-500);
     --summary-color: var(--primary);
     margin-inline: 0;
     padding: 0.5rem 1.25rem 0.5rem 0.5rem;
-    color: var(--muted-foreground);
   }
 
   @media (min-width: 40rem) {

@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   autoUpdate,
   FloatingPortal,
-  offset,
   shift,
   size,
   useDismiss,
@@ -22,6 +21,7 @@ type LinkWithOriginalRawProps = {
   originalRaw: React.ReactNode;
   className?: string;
   outerClassName?: string;
+  singleLine?: boolean;
 };
 
 export default function LinkWithOriginalRaw({
@@ -29,6 +29,7 @@ export default function LinkWithOriginalRaw({
   originalRaw,
   className,
   outerClassName,
+  singleLine = false,
 }: LinkWithOriginalRawProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -41,10 +42,11 @@ export default function LinkWithOriginalRaw({
       size({
         padding: 16,
         apply({ availableWidth, elements }) {
-          const ideal = 800;
-          const maxWidth = Math.min(ideal, availableWidth);
+          const maxWidth = Math.min(560, availableWidth);
+          const minWidth = Math.min(340, availableWidth);
           Object.assign(elements.floating.style, {
             maxWidth: `${maxWidth}px`,
+            minWidth: singleLine ? undefined : `${minWidth}px`,
           });
         },
       }),
@@ -84,22 +86,25 @@ export default function LinkWithOriginalRaw({
 
       {/* 悬浮窗：Portal 到 body，完全脱离任何 overflow 容器 */}
       <FloatingPortal>
-        <span
+        <div
           // eslint-disable-next-line react-hooks/refs
           ref={refs.setFloating}
           {...getFloatingProps({
             className: cn(
-              "pointer-events-none z-50 mt-1 flex w-max rounded-full bg-background/60 p-0.5",
-              "whitespace-nowrap overflow-hidden text-ellipsis",
-              "shadow-lg ring-1 ring-border backdrop-blur-xs",
+              "pointer-events-none z-50 mt-1 flex w-max rounded-2xl bg-background/60",
+              "overflow-hidden",
+              "shadow-lg ring-1 ring-border",
               "transition-opacity duration-120",
               open ? "opacity-100" : "opacity-0",
+              singleLine
+                ? "p-0.75 inline-flex items-center gap-1 backdrop-blur-xs"
+                : "p-5 flex-col backdrop-blur-sm",
             ),
             style: floatingStyles, // 包含 position / top / left / maxWidth
           })}
         >
           {preview}
-        </span>
+        </div>
       </FloatingPortal>
     </>
   );

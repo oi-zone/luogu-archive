@@ -45,6 +45,7 @@ export default function FeedCardTemplate({
   metrics,
   user,
   href,
+  headless = false,
 }: {
   kind: FeedEntry["kind"];
   time: Date;
@@ -57,8 +58,23 @@ export default function FeedCardTemplate({
   metrics?: Omit<MetaItemProps, "compact">[] | null;
   user?: UserBasicInfo | null;
   href?: string | null;
+  headless?: boolean;
 }) {
-  return (
+  return headless ? (
+    <FeedCardTemplateContent
+      kind={kind}
+      time={time}
+      metaTags={metaTags}
+      metaText={metaText}
+      title={title}
+      content={content}
+      contentMaxLines={contentMaxLines}
+      tags={tags}
+      metrics={metrics}
+      user={user}
+      preventInnerPointerEvents
+    />
+  ) : (
     <article>
       <div
         className={cn(
@@ -74,87 +90,133 @@ export default function FeedCardTemplate({
             prefetch={false}
           />
         )}
-        <div className={cn("z-1", { "pointer-events-none": href })}>
-          <header className="flex items-center justify-between gap-3">
-            <span className="inline-flex gap-1.5">
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-                  TYPE_META[kind].badgeClass,
-                )}
-              >
-                {TYPE_META[kind].label}
-              </span>
-              {metaTags?.map((tag, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground"
-                >
-                  {tag}
-                </span>
-              ))}
-            </span>
-            <time
-              className="text-xs text-muted-foreground"
-              dateTime={time.toISOString()}
-            >
-              {ABSOLUTE_DATE_FORMATTER.format(time)}
-            </time>
-          </header>
-          <div className="mt-4 space-y-3">
-            <h3 className="text-lg leading-tight font-semibold text-foreground">
-              {title}
-            </h3>
-            {metaText && (
-              <span className="text-muted-foreground">{metaText}</span>
-            )}
-            <div
-              className="fake-p my-2 text-base"
-              style={{
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitBoxOrient: "vertical",
-                WebkitLineClamp: contentMaxLines,
-                lineClamp: contentMaxLines,
-              }}
-            >
-              {content}
-            </div>
-            {tags?.length ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {tags.map((tag, index) => (
-                  <Badge
-                    key={index}
-                    className="bg-muted/70 !px-2 !py-0.5 text-muted-foreground"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-            {metrics?.length ? (
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-                {metrics.map((metric, index) => (
-                  <MetaItem key={index} compact {...metric} />
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <footer className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs text-muted-foreground">
-            {user ? (
-              <UserInlineLink user={user} avatar />
-            ) : (
-              <span className="text-foreground">匿名用户</span>
-            )}
-            <time
-              className="text-xs text-muted-foreground"
-              dateTime={time.toISOString()}
-            >
-              {formatRelativeTime(time)}
-            </time>
-          </footer>
-        </div>
+        <FeedCardTemplateContent
+          kind={kind}
+          time={time}
+          metaTags={metaTags}
+          metaText={metaText}
+          title={title}
+          content={content}
+          contentMaxLines={contentMaxLines}
+          tags={tags}
+          metrics={metrics}
+          user={user}
+          preventPointerEvents={!!href}
+        />
       </div>
     </article>
+  );
+}
+
+export function FeedCardTemplateContent({
+  kind,
+  time,
+  metaTags = [],
+  metaText,
+  title,
+  content,
+  contentMaxLines,
+  tags,
+  metrics,
+  user,
+  preventPointerEvents = false,
+  preventInnerPointerEvents = false,
+}: {
+  kind: FeedEntry["kind"];
+  time: Date;
+  metaTags?: React.ReactNode[] | null;
+  metaText?: string | null;
+  title?: string | null;
+  content?: React.ReactNode | null;
+  contentMaxLines?: number;
+  tags?: React.ReactNode[] | null;
+  metrics?: Omit<MetaItemProps, "compact">[] | null;
+  user?: UserBasicInfo | null;
+  preventPointerEvents?: boolean;
+  preventInnerPointerEvents?: boolean;
+}) {
+  return (
+    <div className={cn("z-1", { "pointer-events-none": preventPointerEvents })}>
+      <header className="flex items-center justify-between gap-3">
+        <span className="inline-flex gap-1.5">
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+              TYPE_META[kind].badgeClass,
+            )}
+          >
+            {TYPE_META[kind].label}
+          </span>
+          {metaTags?.map((tag, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground"
+            >
+              {tag}
+            </span>
+          ))}
+        </span>
+        <time
+          className="text-xs text-muted-foreground"
+          dateTime={time.toISOString()}
+        >
+          {ABSOLUTE_DATE_FORMATTER.format(time)}
+        </time>
+      </header>
+      <div className="mt-4 space-y-3">
+        <h3 className="text-lg leading-tight font-semibold text-foreground">
+          {title}
+        </h3>
+        {metaText && <span className="text-muted-foreground">{metaText}</span>}
+        <div
+          className="fake-p my-2 text-base"
+          style={{
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: contentMaxLines,
+            lineClamp: contentMaxLines,
+          }}
+        >
+          {content}
+        </div>
+        {tags?.length ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {tags.map((tag, index) => (
+              <Badge
+                key={index}
+                className="bg-muted/70 !px-2 !py-0.5 text-muted-foreground"
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
+        {metrics?.length ? (
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+            {metrics.map((metric, index) => (
+              <MetaItem key={index} compact {...metric} />
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <footer className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs text-muted-foreground">
+        {user ? (
+          <UserInlineLink
+            user={user}
+            avatar
+            preventPointerEvents={preventInnerPointerEvents}
+          />
+        ) : (
+          <span className="text-foreground">匿名用户</span>
+        )}
+        <time
+          className="text-xs text-muted-foreground"
+          dateTime={time.toISOString()}
+        >
+          {formatRelativeTime(time)}
+        </time>
+      </footer>
+    </div>
   );
 }

@@ -5,19 +5,27 @@ import luoguSvg from "@/app/luogu.svg";
 import { useQuery } from "@tanstack/react-query";
 import {
   AtSign,
+  CalendarClock,
   ClipboardList,
   FileText,
+  MessageCircle,
+  MessageSquare,
   MessageSquareReply,
   MessagesSquare,
+  Star,
   Swords,
+  ThumbsUp,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { Entry, EntryRef } from "@luogu-discussion-archive/query";
 
+import { getCategoryInfo } from "@/lib/category-info";
 import { cn } from "@/lib/utils";
 
+import FeedCardTemplate from "../feed/feed-card-template";
+import { ForumDisplayShort } from "../forum/forum-display";
 import UserInlineLink from "../user/user-inline-link";
 import {
   articleRegexes,
@@ -27,15 +35,8 @@ import {
   problemRegexes,
   userRegexes,
 } from "./link";
-import ArticleMagicLinkDirect from "./magic-link/article/direct";
-import ArticleMagicLinkWithOriginal from "./magic-link/article/with-original";
-import DiscussionMagicLinkDirect from "./magic-link/discussion/direct";
-import DiscussionMagicLinkWithOriginal from "./magic-link/discussion/with-original";
 import { entryLoader } from "./magic-link/entry-loader";
-import PasteMagicLinkDirect from "./magic-link/paste/direct";
-import PasteMagicLinkWithOriginal from "./magic-link/paste/with-original";
-import ProblemMagicLinkDirect from "./magic-link/problem/direct";
-import ProblemMagicLinkWithOriginal from "./magic-link/problem/with-original";
+import LinkWithOriginal from "./magic-link/link-with-original";
 import UserMagicLinkDirect from "./magic-link/user/direct";
 import UserMagicLinkWithOriginal from "./magic-link/user/with-original";
 import type { MarkdownMentionContext } from "./markdown";
@@ -374,22 +375,45 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
   if (!isBlankLink) {
     if (entry?.type === "discuss") {
       if (entry.data) {
-        return !isLinkTextUseful({
+        const display = isLinkTextUseful({
           href: trueUrl,
           text: linkLabel,
           rawSource: linkTextSource,
           kind: "discussion",
           referenceTitle: entry.data.title,
           referenceId: entry.id,
-        }) ? (
-          <DiscussionMagicLinkDirect discussionSummary={entry.data} />
-        ) : (
-          <DiscussionMagicLinkWithOriginal
-            discussionSummary={entry.data}
+        })
+          ? (children ?? (linkLabel || `讨论\u2009${entry.id}`))
+          : entry.data.title;
+
+        return (
+          <LinkWithOriginal
+            href={`/d/${entry.id}`}
+            Icon={MessagesSquare}
             iconCorner={onlyImagesInChildren}
-          >
-            {children ?? (linkLabel || `讨论\u2009${entry.id}`)}
-          </DiscussionMagicLinkWithOriginal>
+            original={display}
+            preview={
+              <FeedCardTemplate
+                headless
+                kind="discussion"
+                time={new Date(entry.data.time * 1000)}
+                metaTags={[
+                  <ForumDisplayShort
+                    forum={entry.data.forum}
+                    key={entry.data.forum.slug}
+                  />,
+                ]}
+                title={entry.data.title}
+                metrics={[
+                  {
+                    icon: MessageSquare,
+                    children: `${entry.data.replyCount}\u2009回复`,
+                  },
+                ]}
+                user={{ ...entry.data.author, id: entry.data.author.uid }}
+              />
+            }
+          />
         );
       }
 
@@ -406,22 +430,55 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
 
     if (entry?.type === "article") {
       if (entry.data) {
-        return !isLinkTextUseful({
+        const display = isLinkTextUseful({
           href: trueUrl,
           text: linkLabel,
           rawSource: linkTextSource,
           kind: "article",
           referenceTitle: entry.data.title,
           referenceId: entry.id,
-        }) ? (
-          <ArticleMagicLinkDirect articleSummary={entry.data} />
-        ) : (
-          <ArticleMagicLinkWithOriginal
-            articleSummary={entry.data}
+        })
+          ? (children ?? (linkLabel || `文章\u2009${entry.id}`))
+          : entry.data.title;
+
+        const categoryName =
+          typeof entry.data.category === "number"
+            ? getCategoryInfo(entry.data.category).name
+            : null;
+
+        return (
+          <LinkWithOriginal
+            href={`/a/${entry.id}`}
+            Icon={FileText}
             iconCorner={onlyImagesInChildren}
-          >
-            {children ?? (linkLabel || `文章\u2009${entry.id}`)}
-          </ArticleMagicLinkWithOriginal>
+            original={display}
+            preview={
+              <FeedCardTemplate
+                headless
+                kind="article"
+                time={new Date(entry.data.time * 1000)}
+                metaTags={categoryName ? [categoryName] : undefined}
+                title={entry.data.title}
+                content={entry.data.summary?.trim() || undefined}
+                tags={entry.data.tags?.length ? entry.data.tags : undefined}
+                metrics={[
+                  {
+                    icon: MessageCircle,
+                    children: `${entry.data.replyCount}\u2009评论`,
+                  },
+                  {
+                    icon: Star,
+                    children: `${entry.data.favorCount}\u2009收藏`,
+                  },
+                  {
+                    icon: ThumbsUp,
+                    children: `${entry.data.upvote}\u2009赞同`,
+                  },
+                ]}
+                user={{ ...entry.data.author, id: entry.data.author.uid }}
+              />
+            }
+          />
         );
       }
 
@@ -438,21 +495,34 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
 
     if (entry?.type === "paste") {
       if (entry.data) {
-        return !isLinkTextUseful({
+        const display = isLinkTextUseful({
           href: trueUrl,
           text: linkLabel,
           rawSource: linkTextSource,
           kind: "paste",
           referenceId: entry.id,
-        }) ? (
-          <PasteMagicLinkDirect pasteSummary={entry.data} />
-        ) : (
-          <PasteMagicLinkWithOriginal
-            pasteSummary={entry.data}
+        })
+          ? (children ?? (linkLabel || `云剪贴板\u2009${entry.id}`))
+          : `云剪贴板\u2009${entry.id}`;
+
+        return (
+          <LinkWithOriginal
+            href={`/p/${entry.id}`}
+            Icon={ClipboardList}
             iconCorner={onlyImagesInChildren}
-          >
-            {children ?? (linkLabel || `云剪贴板\u2009${entry.id}`)}
-          </PasteMagicLinkWithOriginal>
+            original={display}
+            preview={
+              <FeedCardTemplate
+                headless
+                kind="paste"
+                time={new Date(entry.data.time * 1000)}
+                title={`云剪贴板\u2009${entry.id}`}
+                content={entry.data.data.slice(0, 140).trim() || "（空剪贴板）"}
+                contentMaxLines={7}
+                user={{ ...entry.data.user, id: entry.data.user.uid }}
+              />
+            }
+          />
         );
       }
 
@@ -469,22 +539,39 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
 
     if (entry?.type === "problem") {
       if (entry.data) {
-        return !isLinkTextUseful({
+        const display = isLinkTextUseful({
           href: trueUrl,
           text: linkLabel,
           rawSource: linkTextSource,
           kind: "problem",
           referenceTitle: entry.data.title,
           referenceId: entry.id,
-        }) ? (
-          <ProblemMagicLinkDirect problemInfo={entry.data} />
-        ) : (
-          <ProblemMagicLinkWithOriginal
-            problemInfo={entry.data}
+        })
+          ? (children ?? (linkLabel || `题目\u2009${entry.id}`))
+          : entry.data.title;
+
+        return (
+          <LinkWithOriginal
+            href={`https://www.luogu.com.cn/problem/${entry.id}`}
+            Icon={Swords}
             iconCorner={onlyImagesInChildren}
-          >
-            {children ?? (linkLabel || `题目\u2009${entry.id}`)}
-          </ProblemMagicLinkWithOriginal>
+            original={display}
+            preview={
+              <>
+                <Swords
+                  className={`ms-1 size-4 text-luogu-problem-${entry.data.difficulty ?? 0}`}
+                  aria-hidden="true"
+                />
+                <span
+                  className={`font-bold text-luogu-problem-${entry.data.difficulty ?? 0}`}
+                >
+                  {entry.data.pid}
+                </span>
+                <span className="me-1 text-foreground">{entry.data.title}</span>
+              </>
+            }
+            singleLine
+          />
         );
       }
 

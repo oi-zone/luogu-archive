@@ -37,20 +37,23 @@ export function UserInlineLink({
   compact = false,
   avatar = true,
   nameColorOverride,
+  preventPointerEvents = false,
 }: {
   className?: string;
   user: UserBasicInfo;
   compact?: boolean;
   avatar?: boolean;
   nameColorOverride?: string;
+  preventPointerEvents?: boolean;
 }) {
   return (
     <Link
       href={`/u/${user.id}`}
       className={cn(
-        "clear-markdown-style pointer-events-auto inline-flex items-center rounded-full transition-colors duration-200 hover:bg-primary/7",
+        "clear-markdown-style inline-flex items-center rounded-full transition-colors duration-200 hover:bg-primary/7",
         className,
         { "ps-0.25": !avatar },
+        preventPointerEvents ? "pointer-events-none" : "pointer-events-auto",
       )}
       prefetch={false}
     >

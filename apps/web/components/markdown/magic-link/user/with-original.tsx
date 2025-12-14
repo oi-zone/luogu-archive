@@ -22,7 +22,7 @@ export default function UserMagicLinkWithOriginal({
             id: userInfo.uid,
           }}
           compact
-          nameColorOverride="text-magic"
+          nameColorOverride="text-indigo-500"
           className="rounded-full transition-colors duration-200 hover:bg-primary/7"
         />
       }
@@ -31,6 +31,7 @@ export default function UserMagicLinkWithOriginal({
       }
       className="relative top-1.5 mx-0 -mt-1 inline-block overflow-hidden rounded-full leading-0"
       outerClassName="rounded-full"
+      singleLine
     />
   );
 }

@@ -12,6 +12,7 @@ type LinkWithOriginalProps = {
   original: React.ReactNode;
   className?: string;
   iconCorner?: boolean;
+  singleLine?: boolean;
 };
 
 export default function LinkWithOriginal({
@@ -21,6 +22,7 @@ export default function LinkWithOriginal({
   original,
   className,
   iconCorner = false,
+  singleLine = false,
 }: LinkWithOriginalProps) {
   return (
     <LinkWithOriginalRaw
@@ -29,8 +31,8 @@ export default function LinkWithOriginal({
         <Link
           href={href}
           className={cn(
-            "ls-inline-reference ls-link-preview clear-markdown-style relative no-underline",
-            { "text-magic-interactive mx-0.25": !iconCorner },
+            "ls-inline-reference ls-link-preview relative no-underline",
+            { "mx-0.25": !iconCorner },
           )}
         >
           {iconCorner ? (
@@ -44,6 +46,7 @@ export default function LinkWithOriginal({
         </Link>
       }
       className={className}
+      singleLine={singleLine}
     />
   );
 }

@@ -19,7 +19,13 @@ const FALLBACK_ARTICLE_SUMMARY =
 const FALLBACK_DISCUSSION_SUMMARY =
   "野火烧不尽，春风吹又生。该讨论的摘要暂时不可用，请点击查看全文。";
 
-export function FeedCard({ item }: { item: FeedEntry }) {
+export function FeedCard({
+  item,
+  headless,
+}: {
+  item: FeedEntry;
+  headless?: boolean;
+}) {
   const timestamp = getEntryTimestamp(item);
 
   switch (item.kind) {
@@ -47,6 +53,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
             { icon: ThumbsUp, children: `${item.upvote}\u2009赞同` },
           ]}
           user={item.author}
+          headless={headless}
         />
       );
     }
@@ -69,6 +76,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
             },
           ]}
           user={item.author}
+          headless={headless}
         />
       );
     case "paste":
@@ -81,6 +89,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
           content={item.preview}
           contentMaxLines={7}
           user={item.author}
+          headless={headless}
         />
       );
     case "judgement":
@@ -113,6 +122,7 @@ export function FeedCard({ item }: { item: FeedEntry }) {
           }
           contentMaxLines={6}
           user={item.author}
+          headless={headless}
         />
       );
     default:
