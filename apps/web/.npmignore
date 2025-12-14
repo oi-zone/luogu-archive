@@ -1,0 +1,13 @@
+/.turbo/
+/turbo.json
+
+/.env
+/.env.*
+
+/components.json
+
+/eslint.config.js
+/eslint.config.?js
+
+/postcss.config.js
+/postcss.config.?js
