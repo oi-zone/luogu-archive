@@ -15,6 +15,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install
+      - name: Create .env.local for apps/web
+        run: echo $ENV_LOCAL > apps/web/.env.local
+        env:
+          ENV_LOCAL: ${{ vars.ENV_LOCAL_WEB }}
       - run: pnpm run build
 
       - run: pnpm config set --location=project injectWorkspacePackages=true

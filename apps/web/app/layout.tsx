@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/query/query-provider";
+import { Umami } from "@/components/umami";
 
 import "./globals.css";
 
@@ -49,6 +50,7 @@ export default function RootLayout({
           </QueryProvider>
         </ThemeProvider>
       </body>
+      {process.env.NODE_ENV === "production" && <Umami />}
     </html>
   );
 }
