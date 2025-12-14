@@ -344,7 +344,7 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
                 discussionId={mentionContext.discussionId}
                 mentionUserId={entry.data.uid}
                 relativeReplyId={mentionContext.relativeReplyId}
-                className="me-0.75 inline-flex cursor-pointer items-center gap-0.75 rounded-full bg-background/50 px-1.75 py-1.25 shadow-sm ring-1 ring-border backdrop-blur-xs transition duration-200 select-none hover:-translate-y-0.25 hover:shadow"
+                className="me-1 inline-flex cursor-pointer items-center gap-0.75 rounded-full bg-background/50 px-1.75 py-1.25 shadow-sm ring-1 ring-border backdrop-blur-xs transition duration-200 select-none hover:-translate-y-0.25 hover:shadow"
                 isFromDiscussionAuthor={mentionContext.discussionAuthors.includes(
                   entry.data.uid,
                 )}
@@ -365,7 +365,7 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
         <AtSign
           className={cn("relative top-0.5 inline-block size-4 stroke-[1.75]")}
         />
-        <span className="relative top-1 ms-0.25 -mt-1 inline-flex items-center gap-0 text-primary">
+        <span className="relative top-1 ms-0.25 me-0.75 -mt-1 inline-flex items-center gap-0 text-muted-foreground">
           {children ?? linkLabel}
         </span>
       </span>
