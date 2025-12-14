@@ -81,16 +81,16 @@ export async function getActiveUsers(limit = DEFAULT_LIMIT) {
   const allActivities = unionAll(
     db
       .selectDistinctOn([schema.Post.id], {
-        authorId: sql<number>`${db
-          .select({ authorId: schema.PostSnapshot.authorId })
-          .from(schema.PostSnapshot)
-          .where(eq(schema.PostSnapshot.postId, schema.Post.id))
-          .orderBy(desc(schema.PostSnapshot.capturedAt))
-          .limit(1)}`.as("author_id"),
+        authorId: schema.PostSnapshot.authorId,
         time: schema.Post.time,
       })
       .from(schema.Post)
-      .where(gt(schema.Post.time, sql`now() - interval '20 days'`)),
+      .innerJoin(
+        schema.PostSnapshot,
+        eq(schema.Post.id, schema.PostSnapshot.postId),
+      )
+      .where(gt(schema.Post.time, sql`now() - interval '20 days'`))
+      .orderBy(schema.Post.id, desc(schema.PostSnapshot.capturedAt)),
     db
       .select({
         authorId: schema.Reply.authorId,
