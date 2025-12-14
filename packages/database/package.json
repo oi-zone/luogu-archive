@@ -21,8 +21,8 @@
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
-    "@types/node": "^20.19.25",
-    "@types/pg": "^8.15.6",
+    "@types/node": "^20.19.27",
+    "@types/pg": "^8.16.0",
     "dotenv": "^17.2.3",
     "drizzle-prisma-generator": "^0.1.7",
     "prisma": "^7.1.0",

@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
-    "@types/node": "^20.19.25",
+    "@types/node": "^20.19.27",
     "pino-pretty": "^13.1.2",
     "typescript": "^5.9.3"
   }

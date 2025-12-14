@@ -16,7 +16,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "bullmq": "^5.65.1"
+    "bullmq": "^5.66.0"
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",

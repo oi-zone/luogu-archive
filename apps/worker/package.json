@@ -10,13 +10,13 @@
     "@luogu-discussion-archive/crawler": "workspace:*",
     "@luogu-discussion-archive/logging": "workspace:*",
     "@luogu-discussion-archive/queue": "workspace:*",
-    "@sentry/node": "^10.29.0",
-    "bullmq": "^5.65.1",
+    "@sentry/node": "^10.30.0",
+    "bullmq": "^5.66.0",
     "dotenv": "^17.2.3"
   },
   "devDependencies": {
     "@luogu-discussion-archive/typescript-config": "workspace:*",
-    "@types/node": "^20.19.25",
+    "@types/node": "^20.19.27",
     "typescript": "^5.9.3"
   }
 }
