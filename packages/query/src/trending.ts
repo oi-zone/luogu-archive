@@ -7,6 +7,8 @@ const DEFAULT_LIMIT = 30;
 
 const GRAVITY = 1.8;
 
+const HOT_DEFAULT_INTERVAL = sql`interval '7 days'`;
+
 /** @see https://www.righto.com/2009/06/how-does-newsyc-ranking-work.html */
 const calculateRankSql = (
   table: typeof schema.Post | typeof schema.Article,
@@ -29,7 +31,8 @@ export const getHotEntries = async (limit = DEFAULT_LIMIT) =>
         id: sql<string>`cast(${schema.Post.id} as text)`,
         rank: calculateRankSql(schema.Post),
       })
-      .from(schema.Post),
+      .from(schema.Post)
+      .where(gt(schema.Post.time, sql`now() - ${HOT_DEFAULT_INTERVAL}`)),
 
     db
       .select({
@@ -40,7 +43,8 @@ export const getHotEntries = async (limit = DEFAULT_LIMIT) =>
           sql`${schema.Article.upvote} + ${schema.Article.replyCount} + ${schema.Article.favorCount}`,
         ),
       })
-      .from(schema.Article),
+      .from(schema.Article)
+      .where(gt(schema.Article.time, sql`now() - ${HOT_DEFAULT_INTERVAL}`)),
   )
     .orderBy(({ rank }) => desc(rank))
     .limit(limit);
