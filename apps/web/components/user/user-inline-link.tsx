@@ -149,7 +149,12 @@ function UserInlineContent({
   nameColorOverride?: string;
 }) {
   const displayBadge =
-    user.badge ?? (user.color === "purple" ? "管理员" : null);
+    user.badge ||
+    (user.color.toLowerCase() === "purple"
+      ? "管理员"
+      : user.color.toLowerCase() === "cheater"
+        ? "作弊者"
+        : null);
   return (
     <>
       {avatar ? (
