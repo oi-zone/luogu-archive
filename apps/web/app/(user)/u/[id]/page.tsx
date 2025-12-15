@@ -45,8 +45,8 @@ export default async function UserDetailPage({ params }: Props) {
   } = data;
   const breadcrumbs = [
     { label: "首页", href: "/" },
-    { label: "用户", href: "/users" },
-    { label: `@${profile.name}` },
+    { label: "用户" },
+    { label: `@${profile.name}`, href: `/u/${profile.id}` },
   ];
 
   return (
