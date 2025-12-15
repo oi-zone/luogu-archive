@@ -19,7 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const paste = await getPasteData(id, snapshot);
 
-  if (paste === null) notFound();
+  if (paste === null) {
+    return {
+      title: `云剪贴板快照不存在`,
+    };
+  }
 
   return {
     title: `[快照] 云剪贴板 ${paste.id}`,

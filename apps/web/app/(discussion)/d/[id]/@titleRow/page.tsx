@@ -13,7 +13,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = parseInt((await params).id, 10);
   const discussion = await getDiscussionData(id);
 
-  if (discussion === null) notFound();
+  if (discussion === null) {
+    return {
+      title: `帖子掘地三尺找不到`,
+    };
+  }
 
   return {
     title: discussion.title,

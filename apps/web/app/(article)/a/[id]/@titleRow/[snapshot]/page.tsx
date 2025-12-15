@@ -19,7 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const article = await getArticleData(id, snapshot);
 
-  if (article === null) notFound();
+  if (article === null) {
+    return {
+      title: `文章快照不存在`,
+    };
+  }
 
   return {
     title: `[快照] ${article.title}`,

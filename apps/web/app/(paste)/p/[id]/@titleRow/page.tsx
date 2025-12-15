@@ -16,7 +16,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const paste = await getPasteData(id);
 
-  if (paste === null) notFound();
+  if (paste === null) {
+    return {
+      title: `云剪贴板似乎飘走了`,
+    };
+  }
 
   return {
     title: `云剪贴板 ${paste.id}`,

@@ -19,7 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const uid = Number.parseInt(id, 10);
   const data = await getUserProfileBundleCache(uid);
-  if (!data) notFound();
+  if (!data) {
+    return {
+      title: `神秘用户`,
+    };
+  }
 
   return {
     title: `@${data.profile.name}`,

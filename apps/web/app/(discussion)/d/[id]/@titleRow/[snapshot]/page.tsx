@@ -20,7 +20,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const discussion = await getDiscussionData(id, snapshot);
 
-  if (discussion === null) notFound();
+  if (discussion === null) {
+    return {
+      title: `讨论快照不存在`,
+    };
+  }
 
   return {
     title: `[快照] ${discussion.title}`,

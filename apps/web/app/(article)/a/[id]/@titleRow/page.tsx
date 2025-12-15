@@ -13,7 +13,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = (await params).id;
   const article = await getArticleData(id);
 
-  if (article === null) notFound();
+  if (article === null) {
+    return {
+      title: `文章随风而去了`,
+    };
+  }
 
   return {
     title: article.title,

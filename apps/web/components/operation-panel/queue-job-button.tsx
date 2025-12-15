@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-type QueueJobButtonProps = {
+export type QueueJobButtonProps = {
   onTrigger: () => Promise<void>;
   idleText: string;
   pendingText?: string;
