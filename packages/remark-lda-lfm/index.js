@@ -189,7 +189,7 @@ export default function remarkLuoguFlavor(options) {
     gfmStrikethrough({ singleTilde: false, ...settings }),
     gfmTable(),
     gfmTaskListItem(),
-    gfmAutolinkLiteral(),
+    // gfmAutolinkLiteral(),
   );
 
   fromMarkdownExtensions.push(
@@ -198,7 +198,7 @@ export default function remarkLuoguFlavor(options) {
     gfmStrikethroughFromMarkdown(),
     gfmTableFromMarkdown(),
     gfmTaskListItemFromMarkdown(),
-    gfmAutolinkLiteralFromMarkdown(),
+    // gfmAutolinkLiteralFromMarkdown(),
   );
 
   toMarkdownExtensions.push(
@@ -207,7 +207,7 @@ export default function remarkLuoguFlavor(options) {
     gfmTableToMarkdown(),
     gfmStrikethroughToMarkdown(),
     gfmTaskListItemToMarkdown(),
-    gfmAutolinkLiteralToMarkdown(),
+    // gfmAutolinkLiteralToMarkdown(),
   );
 
   /**
