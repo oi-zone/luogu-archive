@@ -58,7 +58,7 @@ export default function TrendingEntryTemplate({
         {href && (
           <Link
             href={href}
-            className="absolute inset-0 cursor-pointer"
+            className="absolute inset-0 rounded-2xl"
             scroll={false}
             prefetch={false}
           />

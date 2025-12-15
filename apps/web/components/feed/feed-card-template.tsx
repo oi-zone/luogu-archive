@@ -85,7 +85,7 @@ export default function FeedCardTemplate({
         {href && (
           <Link
             href={href}
-            className="absolute inset-0"
+            className="absolute inset-0 rounded-2xl"
             scroll={false}
             prefetch={false}
           />

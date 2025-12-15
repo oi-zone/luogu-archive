@@ -137,10 +137,10 @@ function DesktopNavItem({
     <Link
       href={item.href}
       className={cn(
-        "group/nav flex items-center overflow-hidden rounded-full p-3 text-sm transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
+        "group/nav flex items-center overflow-hidden rounded-full p-3 text-sm transition-colors duration-200 focus-visible:text-foreground focus-visible:outline-none",
         active
-          ? "bg-blue-500/85 text-white"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "bg-indigo-500/85 !text-white"
+          : "text-muted-foreground hover:bg-muted/85 hover:text-foreground",
       )}
     >
       <Icon className="size-5 shrink-0" size={20} aria-hidden />
