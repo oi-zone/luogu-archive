@@ -84,6 +84,14 @@ export function FeedGrid({ initialPage }: FeedGridProps) {
     return buckets;
   }, [items, columnCount]);
 
+  const tabIndexMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    items.forEach((entry, index) => {
+      map.set(entry.key, index + 1);
+    });
+    return map;
+  }, [items]);
+
   React.useEffect(() => {
     if (!hasNextPage) return;
     const node = sentinelRef.current;
@@ -140,7 +148,11 @@ export function FeedGrid({ initialPage }: FeedGridProps) {
             className="flex flex-col gap-6"
           >
             {columnItems.map((item) => (
-              <FeedCard key={item.key} item={item} />
+              <FeedCard
+                key={item.key}
+                item={item}
+                tabIndexOverride={tabIndexMap.get(item.key)}
+              />
             ))}
           </div>
         ))}

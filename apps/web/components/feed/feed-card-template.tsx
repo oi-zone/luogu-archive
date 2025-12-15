@@ -46,6 +46,7 @@ export default function FeedCardTemplate({
   user,
   href,
   headless = false,
+  tabIndexOverride,
 }: {
   kind: FeedEntry["kind"];
   time: Date;
@@ -59,6 +60,7 @@ export default function FeedCardTemplate({
   user?: UserBasicInfo | null;
   href?: string | null;
   headless?: boolean;
+  tabIndexOverride?: number;
 }) {
   return headless ? (
     <FeedCardTemplateContent
@@ -88,6 +90,7 @@ export default function FeedCardTemplate({
             className="absolute inset-0 rounded-2xl"
             scroll={false}
             prefetch={false}
+            tabIndex={tabIndexOverride}
           />
         )}
         <FeedCardTemplateContent
@@ -102,6 +105,7 @@ export default function FeedCardTemplate({
           metrics={metrics}
           user={user}
           preventPointerEvents={!!href}
+          tabIndexOverride={tabIndexOverride}
         />
       </div>
     </article>
@@ -121,6 +125,7 @@ export function FeedCardTemplateContent({
   user,
   preventPointerEvents = false,
   preventInnerPointerEvents = false,
+  tabIndexOverride,
 }: {
   kind: FeedEntry["kind"];
   time: Date;
@@ -134,6 +139,7 @@ export function FeedCardTemplateContent({
   user?: UserBasicInfo | null;
   preventPointerEvents?: boolean;
   preventInnerPointerEvents?: boolean;
+  tabIndexOverride?: number;
 }) {
   return (
     <div className={cn("z-1", { "pointer-events-none": preventPointerEvents })}>
@@ -206,6 +212,7 @@ export function FeedCardTemplateContent({
             user={user}
             avatar
             preventPointerEvents={preventInnerPointerEvents}
+            tabIndex={tabIndexOverride}
           />
         ) : (
           <span className="text-foreground">匿名用户</span>

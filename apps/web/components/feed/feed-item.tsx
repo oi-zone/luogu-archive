@@ -22,9 +22,11 @@ const FALLBACK_DISCUSSION_SUMMARY =
 export function FeedCard({
   item,
   headless,
+  tabIndexOverride,
 }: {
   item: FeedEntry;
   headless?: boolean;
+  tabIndexOverride?: number;
 }) {
   const timestamp = getEntryTimestamp(item);
 
@@ -54,6 +56,7 @@ export function FeedCard({
           ]}
           user={item.author}
           headless={headless}
+          tabIndexOverride={tabIndexOverride}
         />
       );
     }
@@ -77,6 +80,7 @@ export function FeedCard({
           ]}
           user={item.author}
           headless={headless}
+          tabIndexOverride={tabIndexOverride}
         />
       );
     case "paste":
@@ -90,6 +94,7 @@ export function FeedCard({
           contentMaxLines={7}
           user={item.author}
           headless={headless}
+          tabIndexOverride={tabIndexOverride}
         />
       );
     case "judgement":
@@ -123,6 +128,7 @@ export function FeedCard({
           contentMaxLines={6}
           user={item.author}
           headless={headless}
+          tabIndexOverride={tabIndexOverride}
         />
       );
     default:

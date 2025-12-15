@@ -38,6 +38,7 @@ export function UserInlineLink({
   avatar = true,
   nameColorOverride,
   preventPointerEvents = false,
+  tabIndex,
 }: {
   className?: string;
   user: UserBasicInfo;
@@ -45,6 +46,7 @@ export function UserInlineLink({
   avatar?: boolean;
   nameColorOverride?: string;
   preventPointerEvents?: boolean;
+  tabIndex?: number;
 }) {
   return (
     <Link
@@ -56,6 +58,7 @@ export function UserInlineLink({
         preventPointerEvents ? "pointer-events-none" : "pointer-events-auto",
       )}
       prefetch={false}
+      tabIndex={tabIndex}
     >
       <UserInlineContent
         user={user}
