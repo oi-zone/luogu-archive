@@ -216,7 +216,7 @@ export function ArticleWaybackModal() {
     (item: WaybackTimelineItem) => {
       if (!isArticleIdValid) return;
 
-      const targetPath = `/a/${articleId}/${item.snapshotId}`;
+      const targetPath = `/a/${articleId}@${item.snapshotId}`;
       const currentPath =
         typeof window !== "undefined"
           ? `${window.location.pathname}${window.location.search}`

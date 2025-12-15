@@ -157,7 +157,7 @@ export function PasteWaybackModal() {
     (item: WaybackTimelineItem) => {
       if (!isPasteIdValid) return;
 
-      const targetPath = `/p/${pasteId}/${item.snapshotId}`;
+      const targetPath = `/p/${pasteId}@${item.snapshotId}`;
       const currentPath =
         typeof window !== "undefined"
           ? `${window.location.pathname}${window.location.search}`

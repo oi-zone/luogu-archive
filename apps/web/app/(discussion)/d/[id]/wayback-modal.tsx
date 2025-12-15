@@ -173,7 +173,7 @@ export function DiscussionWaybackModal() {
     (item: WaybackTimelineItem) => {
       if (!isDiscussionIdValid) return;
 
-      const targetPath = `/d/${discussionId}/${item.snapshotId}`;
+      const targetPath = `/d/${discussionId}@${item.snapshotId}`;
       const currentPath =
         typeof window !== "undefined"
           ? `${window.location.pathname}${window.location.search}`
