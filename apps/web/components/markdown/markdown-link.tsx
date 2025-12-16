@@ -571,6 +571,7 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
               </>
             }
             singleLine
+            targetBlank
           />
         );
       }
@@ -580,6 +581,8 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
           href={`https://www.luogu.com.cn/problem/${entry.id}`}
           className={className}
           {...rest}
+          target="_blank"
+          rel="noreferrer noopener"
         >
           <Swords
             className="relative top-[0.03125em] me-0.5 -mt-[0.25em] inline-block size-[1em]"
@@ -620,7 +623,13 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
   const luoguRe =
     /^https?:\/\/(?:[a-zA-Z0-9\-\.]*\.)?luogu\.(?:com\.cn|com|org)(?:\/\S*)?/;
   return (
-    <Link href={trueUrl ?? "#"} className={className} {...rest}>
+    <Link
+      href={trueUrl ?? "#"}
+      className={className}
+      {...rest}
+      target="_blank"
+      rel="noreferrer noopener"
+    >
       {luoguRe.test(trueUrl) && !onlyImagesInChildren ? (
         <Image
           className="relative -top-0.5 inline-block h-[1.5em] w-[1.05em]"

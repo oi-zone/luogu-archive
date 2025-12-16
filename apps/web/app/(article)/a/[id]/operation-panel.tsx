@@ -88,8 +88,8 @@ export default function ArticleOperationPanel({
 
       <div className="mt-6 grid gap-2">
         <Button asChild className="justify-start gap-2 rounded-2xl py-2">
-          <Link href={originalLink} target="_blank" rel="noreferrer">
-            <Reply className="size-4" aria-hidden="true" /> 查看原帖
+          <Link href={originalLink} target="_blank" rel="noreferrer noopener">
+            <Reply className="size-4" aria-hidden="true" /> 查看原文
           </Link>
         </Button>
         <Button

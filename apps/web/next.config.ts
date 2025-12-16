@@ -1,3 +1,4 @@
+import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
 const { UMAMI_SCRIPT_URL } = process.env;
@@ -21,6 +22,9 @@ const nextConfig: NextConfig = {
     },
   ],
   serverExternalPackages: ["pg"],
+  pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
 };
 
-export default nextConfig;
+const withMDX = createMDX({});
+
+export default withMDX(nextConfig);

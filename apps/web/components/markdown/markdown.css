@@ -24,6 +24,7 @@
   .markdown-body
     :is(
       div.fake-p,
+      p,
       blockquote:not(.ls-epigraph-blockquote),
       details,
       pre,
@@ -42,6 +43,7 @@
   .markdown-body
     :is(
       div.fake-p,
+      p,
       blockquote:not(.ls-epigraph-blockquote),
       details,
       pre,
@@ -54,6 +56,7 @@
     )
     + :is(
       div.fake-p,
+      p,
       blockquote:not(.ls-epigraph-blockquote),
       details,
       pre,
@@ -70,6 +73,7 @@
   .markdown-body
     > :is(
       div.fake-p,
+      p,
       blockquote:not(.ls-epigraph-blockquote),
       details,
       pre,
@@ -82,6 +86,7 @@
     )
     + :is(
       div.fake-p,
+      p,
       blockquote:not(.ls-epigraph-blockquote),
       details,
       pre,
@@ -107,6 +112,7 @@
   .markdown-body
     :is(
       div.fake-p,
+      p,
       blockquote:not(.ls-epigraph-blockquote),
       details,
       pre,
@@ -178,7 +184,7 @@
     @apply mt-3;
   }
   .markdown-body li::marker {
-    color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
+    @apply text-muted-foreground;
   }
 
   .markdown-body :is(blockquote:not(.ls-epigraph-blockquote), details) {

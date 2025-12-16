@@ -13,6 +13,7 @@ type LinkWithOriginalProps = {
   className?: string;
   iconCorner?: boolean;
   singleLine?: boolean;
+  targetBlank?: boolean;
 };
 
 export default function LinkWithOriginal({
@@ -23,6 +24,7 @@ export default function LinkWithOriginal({
   className,
   iconCorner = false,
   singleLine = false,
+  targetBlank = false,
 }: LinkWithOriginalProps) {
   return (
     <LinkWithOriginalRaw
@@ -34,6 +36,8 @@ export default function LinkWithOriginal({
             "ls-inline-reference ls-link-preview relative no-underline",
             { "mx-0.25": !iconCorner },
           )}
+          target={targetBlank ? "_blank" : undefined}
+          rel={targetBlank ? "noreferrer noopener" : undefined}
         >
           {iconCorner ? (
             <div className="absolute -top-0.5 right-0.25 rounded-full bg-orange-500/60 p-0.5 leading-0">

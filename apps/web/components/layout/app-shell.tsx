@@ -31,6 +31,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { AppFooter } from "@/components/layout/app-footer";
 import {
   BreadcrumbProvider,
   useBreadcrumbContext,
@@ -98,6 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             pathname={pathname}
           />
           <div className="flex-1">{children}</div>
+          <AppFooter className="mt-8" />
         </BreadcrumbProvider>
       </div>
     </div>
