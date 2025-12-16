@@ -59,7 +59,7 @@ const NAV_ITEMS = [
   },
   {
     title: "陶片放逐",
-    href: "/ostraka",
+    href: "/judgement",
     icon: Gavel,
   },
 ] as const;

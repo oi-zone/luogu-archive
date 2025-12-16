@@ -21,7 +21,7 @@ export default function OperationPanel({
 }) {
   const { copy: copyLink, copied: copiedLink } = useClipboard();
   const originalLink = "https://www.luogu.com.cn/judgement";
-  const archiveLink = "https://luogu.store/ostraka";
+  const archiveLink = "https://luogu.store/judgement";
   const triggerRefresh = React.useCallback(() => enqueueJudgementRefresh(), []);
 
   return (

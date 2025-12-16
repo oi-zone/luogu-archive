@@ -160,7 +160,7 @@ function resolveLink(item: FeedEntry) {
     case "paste":
       return `/p/${item.pasteId}`;
     case "judgement":
-      return `/ostraka`;
+      return `/judgement`;
     default:
       return null;
   }

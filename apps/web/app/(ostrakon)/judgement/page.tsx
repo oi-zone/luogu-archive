@@ -24,7 +24,7 @@ export default async function OstrakaPage() {
       <BreadcrumbSetter
         trail={[
           { label: "首页", href: "/" },
-          { label: "陶片放逐", href: "/ostraka" },
+          { label: "陶片放逐", href: "/judgement" },
         ]}
       />
       <div className="grid gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,3.5fr)] xl:grid-cols-[minmax(0,8fr)_minmax(0,3fr)] 2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]">
