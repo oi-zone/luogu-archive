@@ -433,6 +433,7 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
         replyCount: article.replyCount,
         favorCount: article.favorCount,
         category: snapshot.category,
+        content: snapshot.content,
 
         savedReplyCount: article.savedReplyCount,
         snapshotCount: article.snapshotCount,

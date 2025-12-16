@@ -110,7 +110,7 @@ export default function TrendingEntryTemplate({
               {title}
             </h3>
             <div
-              className="fake-p my-2 text-base"
+              className="fake-p my-2 text-base wrap-anywhere"
               style={{
                 overflow: "hidden",
                 display: "-webkit-box",

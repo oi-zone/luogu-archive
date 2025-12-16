@@ -8,17 +8,19 @@ import {
 import { ArticleDto } from "@luogu-discussion-archive/query";
 
 import { getCategoryInfo } from "@/lib/category-info";
+import { renderMarkdownToPlainText } from "@/lib/markdown-plain-text";
 
 import TrendingEntryTemplate from "./trending-entry-template";
-
-const FALLBACK_ARTICLE_SUMMARY =
-  "海内存知己，天涯若比邻。该文章的摘要暂时不可用，请点击查看全文。";
 
 export default function TrendingEntryArticle({
   article,
 }: {
   article: ArticleDto;
 }) {
+  const rawContent = article.content?.trim() || "";
+  const plainContent =
+    rawContent.length > 0 ? renderMarkdownToPlainText(rawContent) : "";
+  const summary = article.summary?.trim() || "";
   return (
     <TrendingEntryTemplate
       href={`/a/${article.lid}`}
@@ -26,7 +28,8 @@ export default function TrendingEntryArticle({
       time={new Date(article.time * 1000)}
       metaTags={[getCategoryInfo(article.category).name]}
       title={article.title}
-      content={article.summary?.trim() || FALLBACK_ARTICLE_SUMMARY}
+      content={summary || plainContent}
+      contentMaxLines={summary ? undefined : 3}
       tags={article.tags}
       metrics={[
         { icon: MessageCircle, children: `${article.replyCount}\u2009评论` },

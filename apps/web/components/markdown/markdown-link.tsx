@@ -22,11 +22,6 @@ import Link from "next/link";
 import { Entry, EntryRef } from "@luogu-discussion-archive/query";
 
 import { getCategoryInfo } from "@/lib/category-info";
-import { cn } from "@/lib/utils";
-
-import FeedCardTemplate from "../feed/feed-card-template";
-import { ForumDisplayShort } from "../forum/forum-display";
-import UserInlineLink from "../user/user-inline-link";
 import {
   articleRegexes,
   captureFromFirstMatch,
@@ -34,7 +29,12 @@ import {
   pasteRegexes,
   problemRegexes,
   userRegexes,
-} from "./link";
+} from "@/lib/link";
+import { cn } from "@/lib/utils";
+
+import FeedCardTemplate from "../feed/feed-card-template";
+import { ForumDisplayShort } from "../forum/forum-display";
+import UserInlineLink from "../user/user-inline-link";
 import { entryLoader } from "./magic-link/entry-loader";
 import LinkWithOriginal from "./magic-link/link-with-original";
 import UserMagicLinkDirect from "./magic-link/user/direct";

@@ -1,3 +1,5 @@
+import { LinkIntake } from "@/app/link-intake";
+
 import { getFeedPage } from "@luogu-discussion-archive/query";
 
 import { FeedGrid } from "@/components/feed/feed-grid";
@@ -13,6 +15,9 @@ export default async function Page() {
 
   return (
     <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-12 sm:px-6">
+      <div className="mt-10 mb-4">
+        <LinkIntake />
+      </div>
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

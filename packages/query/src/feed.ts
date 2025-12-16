@@ -42,6 +42,7 @@ export interface ArticleFeedEntry extends FeedEntryBase {
   articleId: string;
   title: string;
   category: number | null;
+  content: string | null;
   summary: string | null;
   tags: string[] | null;
   replyCount: number;
@@ -54,6 +55,7 @@ export interface DiscussionFeedEntry extends FeedEntryBase {
   kind: "discussion";
   postId: number;
   title: string;
+  content: string | null;
   forum: ForumBasicInfo;
   replyCount: number;
   recentReplyCount: number;
@@ -114,6 +116,7 @@ interface ArticleRow extends Record<string, unknown> {
   recentReplyCount: number;
   title: string | null;
   category: number | null;
+  content: string | null;
   summary: string | null;
   tags: unknown;
   authorId: number | null;
@@ -131,6 +134,7 @@ interface DiscussionRow extends Record<string, unknown> {
   replyCount: number;
   recentReplyCount: number;
   title: string | null;
+  content: string | null;
   forumSlug: string | null;
   forumName: string | null;
   forumProblemId: string | null;
@@ -264,6 +268,7 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
     if (!timestamp) continue;
     const title = row.title?.trim() ?? "未命名文章";
     const author = mapAuthorFromRow(row);
+    const content = typeof row.content === "string" ? row.content : null;
     const publishedAt = pickTimestamp(row.time) ?? timestamp;
     const recentReplyCount = row.recentReplyCount;
     const baseline = computeArticleBaseline({
@@ -284,7 +289,8 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
       articleId: row.articleId,
       title,
       category: typeof row.category === "number" ? row.category : null,
-      summary: typeof row.summary === "string" ? row.summary : null,
+      content,
+      summary: row.summary,
       tags: normalizeCopraTags(row.tags),
       replyCount: row.replyCount,
       recentReplyCount,
@@ -330,6 +336,7 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
       author,
       postId: row.postId,
       title: row.title,
+      content: row.content,
       forum,
       replyCount: row.replyCount,
       recentReplyCount: row.recentReplyCount,
@@ -670,7 +677,8 @@ async function executeArticleRowsQuery({
       SELECT DISTINCT ON ("articleId")
         "articleId",
         "title",
-        "category"
+        "category",
+        "content"
       FROM "ArticleSnapshot"
       ORDER BY "articleId", "capturedAt" DESC
     ),
@@ -690,6 +698,7 @@ async function executeArticleRowsQuery({
       COALESCE(rar."recentReplyCount", 0) AS "recentReplyCount",
       las."title" AS "title",
       las."category" AS "category",
+      las."content" AS "content",
       ${summarySelection} AS "summary",
       ${tagsSelection} AS "tags",
       au."userId" AS "authorId",
@@ -732,6 +741,7 @@ async function fetchDiscussionRows() {
       SELECT DISTINCT ON (ps."postId")
         ps."postId",
         ps."title",
+        ps."content",
         ps."authorId",
         ps."forumSlug",
         f."name" AS "forumName",
@@ -756,6 +766,7 @@ async function fetchDiscussionRows() {
       p."replyCount",
       COALESCE(rdr."recentReplyCount", 0) AS "recentReplyCount",
       lps."title",
+      lps."content",
       lps."forumSlug",
       lps."forumName",
       lps."forumProblemId",

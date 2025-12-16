@@ -2,17 +2,19 @@ import { MessageCircle, MessageCircleDashed } from "lucide-react";
 
 import { PostDto } from "@luogu-discussion-archive/query";
 
+import { renderMarkdownToPlainText } from "@/lib/markdown-plain-text";
+
 import ForumDisplay from "../forum/forum-display";
 import TrendingEntryTemplate from "./trending-entry-template";
-
-const FALLBACK_DISCUSSION_SUMMARY =
-  "野火烧不尽，春风吹又生。该讨论的摘要暂时不可用，请点击查看全文。";
 
 export default function TrendingEntryDiscussion({
   discussion,
 }: {
   discussion: PostDto;
 }) {
+  const rawContent = discussion.content?.trim() || "";
+  const plainContent =
+    rawContent.length > 0 ? renderMarkdownToPlainText(rawContent) : "";
   return (
     <TrendingEntryTemplate
       href={`/d/${discussion.id.toString()}`}
@@ -22,7 +24,8 @@ export default function TrendingEntryDiscussion({
         <ForumDisplay forum={discussion.forum} key={discussion.forum.slug} />,
       ]}
       title={discussion.title}
-      content={FALLBACK_DISCUSSION_SUMMARY}
+      content={plainContent}
+      contentMaxLines={3}
       tags={[]}
       metrics={[
         { icon: MessageCircle, children: `${discussion.replyCount}\u2009评论` },

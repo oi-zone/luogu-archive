@@ -32,6 +32,7 @@ export interface ArticleDto extends Pick<
   "lid" | "title" | "time" | "upvote" | "replyCount" | "favorCount" | "category"
 > {
   author: UserDto;
+  content: string;
 
   savedReplyCount: number;
   snapshotCount: number;

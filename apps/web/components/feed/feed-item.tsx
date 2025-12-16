@@ -10,14 +10,10 @@ import type { FeedEntry } from "@luogu-discussion-archive/query";
 
 import { getCategoryInfo } from "@/lib/category-info";
 import { getPermissionNames } from "@/lib/judgement";
+import { renderMarkdownToPlainText } from "@/lib/markdown-plain-text";
 
 import { ForumDisplayShort } from "../forum/forum-display";
 import FeedCardTemplate from "./feed-card-template";
-
-const FALLBACK_ARTICLE_SUMMARY =
-  "海内存知己，天涯若比邻。该文章的摘要暂时不可用，请点击查看全文。";
-const FALLBACK_DISCUSSION_SUMMARY =
-  "野火烧不尽，春风吹又生。该讨论的摘要暂时不可用，请点击查看全文。";
 
 export function FeedCard({
   item,
@@ -36,6 +32,10 @@ export function FeedCard({
         typeof item.category === "number"
           ? getCategoryInfo(item.category).name
           : null;
+      const rawContent = item.content?.trim() || "";
+      const plainContent =
+        rawContent.length > 0 ? renderMarkdownToPlainText(rawContent) : "";
+      const summary = item.summary?.trim() || "";
       return (
         <FeedCardTemplate
           href={resolveLink(item)}
@@ -43,7 +43,8 @@ export function FeedCard({
           time={timestamp}
           metaTags={categoryName ? [categoryName] : undefined}
           title={item.title}
-          content={item.summary?.trim() || FALLBACK_ARTICLE_SUMMARY}
+          content={summary || plainContent}
+          contentMaxLines={summary ? undefined : 4}
           tags={item.tags?.length ? item.tags : undefined}
           metrics={[
             { icon: MessageCircle, children: `${item.replyCount}\u2009评论` },
@@ -60,7 +61,10 @@ export function FeedCard({
         />
       );
     }
-    case "discussion":
+    case "discussion": {
+      const rawContent = item.content?.trim() || "";
+      const plainContent =
+        rawContent.length > 0 ? renderMarkdownToPlainText(rawContent) : "";
       return (
         <FeedCardTemplate
           href={resolveLink(item)}
@@ -70,7 +74,8 @@ export function FeedCard({
             <ForumDisplayShort forum={item.forum} key={item.forum.slug} />,
           ]}
           title={item.title}
-          content={FALLBACK_DISCUSSION_SUMMARY}
+          content={plainContent}
+          contentMaxLines={4}
           metrics={[
             { icon: MessageSquare, children: `${item.replyCount}\u2009回复` },
             {
@@ -83,6 +88,7 @@ export function FeedCard({
           tabIndexOverride={tabIndexOverride}
         />
       );
+    }
     case "paste":
       return (
         <FeedCardTemplate
