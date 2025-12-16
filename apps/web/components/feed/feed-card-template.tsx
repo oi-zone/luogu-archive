@@ -182,6 +182,7 @@ export function FeedCardTemplateContent({
             WebkitBoxOrient: "vertical",
             WebkitLineClamp: contentMaxLines,
             lineClamp: contentMaxLines,
+            textAutospace: "normal",
           }}
         >
           {content}

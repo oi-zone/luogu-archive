@@ -117,6 +117,7 @@ export default function TrendingEntryTemplate({
                 WebkitBoxOrient: "vertical",
                 WebkitLineClamp: contentMaxLines,
                 lineClamp: contentMaxLines,
+                textAutospace: "normal",
               }}
             >
               {content}
