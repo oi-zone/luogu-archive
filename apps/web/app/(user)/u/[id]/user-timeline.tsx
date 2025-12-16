@@ -374,7 +374,9 @@ function renderTimelineContent(
           >
             {entry.title}
           </Link>
-          <p className="mt-2 text-muted-foreground">{entry.summary}</p>
+          <p className="mt-2 wrap-anywhere text-muted-foreground">
+            {entry.summary}
+          </p>
           <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
             <span>获赞 {entry.reactions}</span>
             <span>评论 {entry.comments}</span>
@@ -390,7 +392,9 @@ function renderTimelineContent(
           >
             {entry.title}
           </Link>
-          <p className="mt-2 text-muted-foreground">{entry.summary}</p>
+          <p className="mt-2 wrap-anywhere text-muted-foreground">
+            {entry.summary}
+          </p>
           <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
             <span>回复 {entry.replies}</span>
             <span>参与人数 {entry.participants}</span>
@@ -410,7 +414,7 @@ function renderTimelineContent(
             </Link>
             发表评论：
           </p>
-          <blockquote className="mt-2 border-l-2 border-primary/40 pl-3 text-muted-foreground">
+          <blockquote className="mt-2 border-l-2 border-primary/40 pl-3 wrap-anywhere text-muted-foreground">
             {entry.excerpt}
           </blockquote>
         </div>
@@ -428,7 +432,7 @@ function renderTimelineContent(
             </Link>
             回复：
           </p>
-          <blockquote className="mt-2 border-l-2 border-primary/40 pl-3 text-muted-foreground">
+          <blockquote className="mt-2 border-l-2 border-primary/40 pl-3 wrap-anywhere text-muted-foreground">
             {entry.excerpt}
           </blockquote>
         </div>
@@ -442,7 +446,7 @@ function renderTimelineContent(
           >
             {entry.title}
           </Link>
-          <p className="mt-2 leading-relaxed text-muted-foreground">
+          <p className="mt-2 leading-relaxed wrap-anywhere text-muted-foreground">
             {entry.description}
           </p>
           <div className="mt-3 text-xs text-muted-foreground">

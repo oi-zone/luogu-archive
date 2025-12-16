@@ -203,7 +203,7 @@ function MobileNavItem({
       className={cn(
         "flex items-center rounded-full p-3 text-sm font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
         active
-          ? "bg-blue-500/85 text-white"
+          ? "bg-indigo-500/85 text-white"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
