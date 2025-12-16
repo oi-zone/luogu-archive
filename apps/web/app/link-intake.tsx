@@ -156,7 +156,7 @@ export function LinkIntake() {
           aria-live="polite"
           size="default"
         >
-          <span className="flex items-center justify-center gap-2">
+          <span className="flex items-center justify-center gap-2 pe-1.5">
             {icon}
             {buttonText}
           </span>
