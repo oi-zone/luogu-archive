@@ -326,10 +326,10 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
         mentionContext.relativeReplyId !== undefined;
 
       return (
-        <span className="ls-user-mention inline-flex items-center gap-0.25">
+        <span className="ls-user-mention inline-flex items-center">
           <AtSign
             className={cn(
-              "relative top-0.5 inline-block size-4 stroke-[1.75]",
+              "relative top-0.5 inline-block size-4 stroke-[1.5] text-muted-foreground",
               // `text-luogu-${userInfo.color.toLowerCase()}`,
             )}
           />

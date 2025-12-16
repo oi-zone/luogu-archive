@@ -81,6 +81,7 @@ const mentionRegexes = [
   /^luogu:\/\/user\/(\d+)$/,
   /^\/user\/(\d+)$/,
   /^\/space\/show\?uid=(\d+)$/,
+  /^https:\/\/www\.luogu\.com\.cn\/user\/(\d+)$/,
 ];
 
 const discussionRegexes = [
