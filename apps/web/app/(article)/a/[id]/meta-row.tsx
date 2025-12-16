@@ -53,7 +53,7 @@ const ArticleMetaRow = React.forwardRef<
         参与者&thinsp;{article.allParticipantsCount.toLocaleString("zh-CN")}
       </MetaItem>
       <MetaItem icon={MessageCircle} compact={compact}>
-        已保存回复&thinsp;{article.allRepliesCount.toLocaleString("zh-CN")}
+        已保存评论&thinsp;{article.allRepliesCount.toLocaleString("zh-CN")}
       </MetaItem>
     </>
   );

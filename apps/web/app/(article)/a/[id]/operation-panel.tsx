@@ -63,7 +63,7 @@ export default function ArticleOperationPanel({
 
       <dl className="mt-6 space-y-3 text-sm text-foreground">
         <StatRow
-          label="当前回复"
+          label="当前评论"
           value={`${article.replyCount.toLocaleString("zh-CN")}\u2009条`}
         />
         <StatRow
