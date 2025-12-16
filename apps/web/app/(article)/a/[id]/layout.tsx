@@ -123,10 +123,36 @@ export default function Layout({
     const target = document.getElementById(headingId);
     if (!target) return;
 
-    const offset = getHeadingViewportOffset();
-    const top = target.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top, behavior: "smooth" });
-    setIsMobileTocOpen(false);
+    const detailsAncestors: HTMLDetailsElement[] = [];
+    let node: HTMLElement | null = target.parentElement;
+    while (node) {
+      if (node.tagName.toLowerCase() === "details") {
+        detailsAncestors.push(node as HTMLDetailsElement);
+      }
+      node = node.parentElement;
+    }
+
+    let opened = false;
+    for (let i = detailsAncestors.length - 1; i >= 0; i -= 1) {
+      const details = detailsAncestors[i];
+      if (!details.open) {
+        details.open = true; // ensure nested details are expanded before scrolling
+        opened = true;
+      }
+    }
+
+    const performScroll = () => {
+      const offset = getHeadingViewportOffset();
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: "smooth" });
+      setIsMobileTocOpen(false);
+    };
+
+    if (opened) {
+      requestAnimationFrame(performScroll);
+    } else {
+      performScroll();
+    }
   }, []);
 
   React.useEffect(() => {
