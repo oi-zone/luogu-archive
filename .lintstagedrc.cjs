@@ -4,6 +4,6 @@ const prisma = "pnpm --filter db exec prisma format";
 
 module.exports = {
   "*.{js,mjs,cjs,jsx,ts,tsx}": [eslint, prettier],
-  "*.{md,html,css,scss,json,yml,yaml}": prettier,
+  "*.{md,mdx,html,css,scss,json,yml,yaml}": prettier,
   "*.prisma": prisma,
 };
