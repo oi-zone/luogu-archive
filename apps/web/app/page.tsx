@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { getFeedPage } from "@luogu-discussion-archive/query";
 
 import { FeedGrid } from "@/components/feed/feed-grid";
@@ -10,8 +12,6 @@ export const metadata = {};
 const INITIAL_FEED_LIMIT = 30;
 
 export default async function Page() {
-  const initialPage = await getFeedPage({ limit: INITIAL_FEED_LIMIT });
-
   return (
     <div className="flex flex-1 flex-col gap-8 px-4 pt-8 pb-12 sm:px-6">
       <div className="mt-10 mb-4">
@@ -27,7 +27,15 @@ export default async function Page() {
           </div>
         </div>
       </div>
-      <FeedGrid initialPage={initialPage} />
+      <Suspense>
+        <Feed />
+      </Suspense>
     </div>
+  );
+}
+
+async function Feed() {
+  return (
+    <FeedGrid initialPage={await getFeedPage({ limit: INITIAL_FEED_LIMIT })} />
   );
 }

@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import {
   getActiveEntries,
   resolveEntries,
@@ -15,9 +17,7 @@ export const metadata = {
   title: "探索",
 };
 
-export default async function Page() {
-  const entries = await resolveEntries(await getActiveEntries());
-
+export default function Page() {
   return (
     <Container>
       <BreadcrumbSetter
@@ -29,18 +29,30 @@ export default async function Page() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,3.5fr)] xl:grid-cols-[minmax(0,8fr)_minmax(0,3fr)] 2xl:grid-cols-[minmax(0,3fr)_minmax(0,8fr)_minmax(0,3fr)]">
         <aside className="hidden 2xl:flex 2xl:flex-col"></aside>
         <main className="order-1 flex flex-col gap-8 2xl:order-2">
-          <div className="space-y-5">
-            {entries.map((entry) => (
-              <div key={entry.type + "-" + entry.id}>
-                <TrendingEntry entry={entry} />
-              </div>
-            ))}
-          </div>
+          <Suspense>
+            <ActiveEntries />
+          </Suspense>
         </main>
         <aside className="order-2 hidden lg:order-2 lg:block 2xl:order-3">
-          <ActiveUsers />
+          <Suspense>
+            <ActiveUsers />
+          </Suspense>
         </aside>
       </div>
     </Container>
+  );
+}
+
+async function ActiveEntries() {
+  const entries = await resolveEntries(await getActiveEntries());
+
+  return (
+    <div className="space-y-5">
+      {entries.map((entry) => (
+        <div key={entry.type + "-" + entry.id}>
+          <TrendingEntry entry={entry} />
+        </div>
+      ))}
+    </div>
   );
 }
