@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -6,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/query/query-provider";
 import { Umami } from "@/components/umami";
+import UtmCleaner from "@/components/utm-cleaner";
 
 import "./globals.css";
 
@@ -51,6 +53,9 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
       {process.env.NODE_ENV === "production" && <Umami />}
+      <Suspense>
+        <UtmCleaner />
+      </Suspense>
     </html>
   );
 }
