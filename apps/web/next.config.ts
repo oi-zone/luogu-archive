@@ -1,5 +1,5 @@
-import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
+import createMDX from "@next/mdx";
 
 const { UMAMI_SCRIPT_URL } = process.env;
 

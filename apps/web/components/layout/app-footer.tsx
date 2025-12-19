@@ -1,5 +1,5 @@
-import { Github, Scale, Users } from "lucide-react";
 import Link from "next/link";
+import { Github, Scale, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 

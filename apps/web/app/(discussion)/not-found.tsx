@@ -1,11 +1,11 @@
 "use client";
 
-import { enqueueDiscussionRefresh } from "@/server-actions/queue-jobs";
-import { MessageSquareX } from "lucide-react";
 import { useParams } from "next/navigation";
+import { MessageSquareX } from "lucide-react";
 
 import { NotFoundTemplate } from "@/components/error/not-found-template";
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
+import { enqueueDiscussionRefresh } from "@/server-actions/queue-jobs";
 
 export default function NotFound() {
   const params = useParams();

@@ -2,12 +2,6 @@
 
 import * as React from "react";
 import {
-  enqueueArticleRefresh,
-  enqueueDiscussionRefresh,
-  enqueueJudgementRefresh,
-  enqueuePasteRefresh,
-} from "@/server-actions/queue-jobs";
-import {
   LoaderCircle,
   RefreshCcw,
   SquareCheckBig,
@@ -23,6 +17,12 @@ import {
 } from "@/lib/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  enqueueArticleRefresh,
+  enqueueDiscussionRefresh,
+  enqueueJudgementRefresh,
+  enqueuePasteRefresh,
+} from "@/server-actions/queue-jobs";
 
 type Detected =
   | { kind: "article"; id: string; label: string }

@@ -1,10 +1,10 @@
-import { getUserProfileBundleCache } from "@/app/(user)/u/[id]/data-cache";
 import { Metadata } from "next/dist/lib/metadata/types/metadata-interface";
 import { notFound } from "next/navigation";
 
 import { BreadcrumbSetter } from "@/components/layout/breadcrumb-context";
 import { UserInfoCard } from "@/components/user/user-info-card";
 import { UserRecommendations } from "@/components/user/user-recommendations";
+import { getUserProfileBundleCache } from "@/app/(user)/u/[id]/data-cache";
 
 import { UserTimeline } from "./user-timeline";
 import { UsernameHistoryCard } from "./username-history-card";

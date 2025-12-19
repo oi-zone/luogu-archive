@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { enqueueJudgementRefresh } from "@/server-actions/queue-jobs";
-import { Reply, SquareArrowOutUpRight, SquareCheckBig } from "lucide-react";
 import Link from "next/link";
+import { Reply, SquareArrowOutUpRight, SquareCheckBig } from "lucide-react";
 
 import type { OstrakonStat } from "@luogu-discussion-archive/query";
 
@@ -11,6 +10,7 @@ import { useClipboard } from "@/hooks/use-clipboard";
 import { Button } from "@/components/ui/button";
 import { QueueJobButton } from "@/components/operation-panel/queue-job-button";
 import StatRow from "@/components/operation-panel/stat-row";
+import { enqueueJudgementRefresh } from "@/server-actions/queue-jobs";
 
 export default function OperationPanel({
   stat,

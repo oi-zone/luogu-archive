@@ -1,8 +1,7 @@
-import { LinkIntake } from "@/app/link-intake";
-
 import { getFeedPage } from "@luogu-discussion-archive/query";
 
 import { FeedGrid } from "@/components/feed/feed-grid";
+import { LinkIntake } from "@/app/link-intake";
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { enqueuePasteRefresh } from "@/server-actions/queue-jobs";
+import Link from "next/link";
 import {
   ClipboardCheck,
   ClipboardCopy,
@@ -10,7 +10,6 @@ import {
   SquareArrowOutUpRight,
   SquareCheckBig,
 } from "lucide-react";
-import Link from "next/link";
 
 import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -18,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { QueueJobButton } from "@/components/operation-panel/queue-job-button";
 import StatRow from "@/components/operation-panel/stat-row";
 import type { UserBasicInfo } from "@/components/user/user-inline-link";
+import { enqueuePasteRefresh } from "@/server-actions/queue-jobs";
 
 export default function PasteOperationPanel({
   paste,

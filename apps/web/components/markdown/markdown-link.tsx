@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import luoguSvg from "@/app/luogu.svg";
+import Image from "next/image";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   AtSign,
@@ -16,8 +17,6 @@ import {
   Swords,
   ThumbsUp,
 } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
 
 import { Entry, EntryRef } from "@luogu-discussion-archive/query";
 
@@ -31,6 +30,7 @@ import {
   userRegexes,
 } from "@/lib/link";
 import { cn } from "@/lib/utils";
+import luoguSvg from "@/app/luogu.svg";
 
 import FeedCardTemplate from "../feed/feed-card-template";
 import { ForumDisplayShort } from "../forum/forum-display";

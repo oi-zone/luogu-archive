@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import {
   ClipboardList,
@@ -12,7 +13,6 @@ import {
   Newspaper,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 
 import { getPermissionNames } from "@/lib/judgement";
 import { formatRelativeTime } from "@/lib/time";
