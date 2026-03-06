@@ -26,7 +26,7 @@ export const cn = new RequestClient({
   baseUrl: "https://www.luogu.com.cn",
   headers: {
     cookie,
-    "x-lentille-request": "content-only",
+    Accept: "application/json",
     "user-agent": userAgent,
   },
 });

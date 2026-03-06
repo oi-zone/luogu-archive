@@ -1,3 +1,5 @@
+import type { RouteResponse } from "@lgjs/types";
+
 import { db, schema, sql } from "@luogu-discussion-archive/db";
 
 import { cn } from "./client.js";
@@ -5,21 +7,24 @@ import { HttpError } from "./error.js";
 import { saveUserSnapshots } from "./user.js";
 
 export async function fetchJudgement() {
+  // Here we don't have the server time, so just use local time
+  const now = new Date();
+
   const res = await cn.get("judgement");
-  const { status, data, time } = await res.json().catch((err: unknown) => {
+  const { logs } = await (
+    res.json() as Promise<RouteResponse["judgement"]["data"]>
+  ).catch((err: unknown) => {
     throw res.ok ? err : new HttpError(res);
   });
-  if (status !== 200) throw new HttpError(res);
 
-  const now = new Date(time * 1000);
   await saveUserSnapshots(
-    data.logs.map((log) => log.user),
+    logs.map((log) => log.user),
     now,
   );
   return db
     .insert(schema.Judgement)
     .values(
-      data.logs.map((log) => ({
+      logs.map((log) => ({
         userId: log.user.uid,
         reason: log.reason,
         revokedPermission: log.revokedPermission,
