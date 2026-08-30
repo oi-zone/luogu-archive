@@ -277,19 +277,42 @@ async function getUserStats(userId: number) {
         favorites: sum(schema.Article.favorCount),
       })
       .from(schema.Article)
-      .where(eq(schema.Article.authorId, userId)),
+      .where(
+        and(
+          eq(schema.Article.authorId, userId),
+          eq(schema.Article.public, true),
+        ),
+      ),
     db
       .select({ total: countDistinct(schema.PostSnapshot.postId) })
       .from(schema.PostSnapshot)
-      .where(eq(schema.PostSnapshot.authorId, userId)),
+      .innerJoin(schema.Post, eq(schema.PostSnapshot.postId, schema.Post.id))
+      .where(
+        and(
+          eq(schema.PostSnapshot.authorId, userId),
+          eq(schema.Post.public, true),
+        ),
+      ),
     db
       .select({ total: count() })
       .from(schema.ArticleReply)
-      .where(eq(schema.ArticleReply.authorId, userId)),
+      .innerJoin(
+        schema.Article,
+        eq(schema.ArticleReply.articleId, schema.Article.lid),
+      )
+      .where(
+        and(
+          eq(schema.ArticleReply.authorId, userId),
+          eq(schema.Article.public, true),
+        ),
+      ),
     db
       .select({ total: count() })
       .from(schema.Reply)
-      .where(eq(schema.Reply.authorId, userId)),
+      .innerJoin(schema.Post, eq(schema.Reply.postId, schema.Post.id))
+      .where(
+        and(eq(schema.Reply.authorId, userId), eq(schema.Post.public, true)),
+      ),
     db
       .select({ total: count() })
       .from(schema.Judgement)
@@ -316,8 +339,12 @@ async function getUserTimelineEntries(
   before?: Date | null,
 ): Promise<TimelineEntry[]> {
   const articleWhere = before
-    ? and(eq(schema.Article.authorId, userId), lte(schema.Article.time, before))
-    : eq(schema.Article.authorId, userId);
+    ? and(
+        eq(schema.Article.authorId, userId),
+        eq(schema.Article.public, true),
+        lte(schema.Article.time, before),
+      )
+    : and(eq(schema.Article.authorId, userId), eq(schema.Article.public, true));
 
   const articlePromise = db.query.Article.findMany({
     where: articleWhere,
@@ -337,6 +364,7 @@ async function getUserTimelineEntries(
       FROM "PostSnapshot" ps
       JOIN "Post" p ON p."id" = ps."postId"
       WHERE ps."authorId" = ${userId}
+        AND p."public" = TRUE
         ${before ? sql`AND p."time" <= ${before}` : sql``}
       GROUP BY ps."postId"
       ORDER BY MAX(p."time") DESC
@@ -349,9 +377,15 @@ async function getUserTimelineEntries(
     : undefined;
   const postWhere = before
     ? postWhereBase
-      ? and(postWhereBase, lte(schema.Post.time, before))
-      : lte(schema.Post.time, before)
-    : postWhereBase;
+      ? and(
+          postWhereBase,
+          eq(schema.Post.public, true),
+          lte(schema.Post.time, before),
+        )
+      : and(eq(schema.Post.public, true), lte(schema.Post.time, before))
+    : postWhereBase
+      ? and(postWhereBase, eq(schema.Post.public, true))
+      : eq(schema.Post.public, true);
 
   const postsPromise = postIds.length
     ? db.query.Post.findMany({
@@ -412,8 +446,12 @@ async function getUserTimelineEntries(
 
   const pastesPromise = db.query.Paste.findMany({
     where: before
-      ? and(eq(schema.Paste.userId, userId), lte(schema.Paste.time, before))
-      : eq(schema.Paste.userId, userId),
+      ? and(
+          eq(schema.Paste.userId, userId),
+          eq(schema.Paste.public, true),
+          lte(schema.Paste.time, before),
+        )
+      : and(eq(schema.Paste.userId, userId), eq(schema.Paste.public, true)),
     orderBy: desc(schema.Paste.time),
     limit,
     with: {
@@ -476,14 +514,17 @@ async function getUserTimelineEntries(
   }
 
   for (const reply of articleReplies) {
+    if (!reply.article.public) continue;
     entries.push(mapArticleReplyToTimeline(reply));
   }
 
   for (const reply of discussionReplies) {
+    if (!reply.post.public) continue;
     entries.push(mapDiscussionReplyToTimeline(reply));
   }
 
   for (const paste of pastes) {
+    if (!paste.public || !paste.snapshots[0]?.public) continue;
     entries.push(mapPasteToTimeline(paste));
   }
 
@@ -654,8 +695,18 @@ export function parseUserTimelineCursor(
 
   const timestampPart = cursor.slice(0, separatorIndex);
   const idPart = cursor.slice(separatorIndex + 1);
+  if (
+    !/^[0-9a-z]{1,16}$/.test(timestampPart) ||
+    !/^[a-z][a-z0-9-]{0,127}$/.test(idPart)
+  ) {
+    return null;
+  }
   const millis = Number.parseInt(timestampPart, 36);
-  if (!Number.isFinite(millis) || millis <= 0) {
+  if (
+    !Number.isSafeInteger(millis) ||
+    millis <= 0 ||
+    Number.isNaN(new Date(millis).getTime())
+  ) {
     return null;
   }
 

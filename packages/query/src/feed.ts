@@ -63,7 +63,7 @@ export interface DiscussionFeedEntry extends FeedEntryBase {
 
 export interface PasteFeedEntry extends FeedEntryBase {
   kind: "paste";
-  pasteId: number;
+  pasteId: string;
   title: string;
   preview: string;
   isAuthorPrivileged: boolean;
@@ -149,7 +149,7 @@ interface DiscussionRow extends Record<string, unknown> {
 }
 
 interface PasteRow extends Record<string, unknown> {
-  pasteId: number;
+  pasteId: string;
   time: Date;
   preview: string | null;
   authorId: number | null;
@@ -233,9 +233,16 @@ export function parseFeedCursor(raw: string): FeedCursor | null {
     ) as Partial<FeedCursor>;
     if (
       typeof payload.seed !== "string" ||
+      !/^[a-f0-9]{16}$/.test(payload.seed) ||
       typeof payload.score !== "number" ||
+      !Number.isFinite(payload.score) ||
+      payload.score <= 0 ||
       typeof payload.timestamp !== "number" ||
-      typeof payload.key !== "string"
+      !Number.isSafeInteger(payload.timestamp) ||
+      payload.timestamp <= 0 ||
+      Number.isNaN(new Date(payload.timestamp).getTime()) ||
+      typeof payload.key !== "string" ||
+      !/^[a-z]+:[A-Za-z0-9_-]{1,128}$/.test(payload.key)
     ) {
       return null;
     }
@@ -359,14 +366,14 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
     });
     if (baseline <= 0) continue;
 
-    const key = `paste:${row.pasteId.toString()}`;
+    const key = `paste:${row.pasteId}`;
     const entry: PasteFeedEntry = {
       kind: "paste",
       key,
       timestamp: timestamp.toISOString(),
       author,
       pasteId: row.pasteId,
-      title: `云剪贴板 ${row.pasteId.toString()}`,
+      title: `云剪贴板 ${row.pasteId}`,
       preview: row.preview?.trim() ?? "暂无内容",
       isAuthorPrivileged: isPrivileged,
     };
@@ -616,10 +623,7 @@ async function fetchArticleRows() {
     }
 
     skipArticleCopraJoin = true;
-    console.warn(
-      "[feed] ArticleCopra join disabled after schema error",
-      error instanceof Error ? error.message : error,
-    );
+    console.warn("[feed] ArticleCopra join disabled after schema error");
 
     return executeArticleRowsQuery({ since, recentSince, includeCopra: false });
   }
@@ -712,7 +716,8 @@ async function executeArticleRowsQuery({
     LEFT JOIN recent_article_replies rar ON rar."articleId" = a."lid"
     LEFT JOIN latest_user au ON au."userId" = a."authorId"
     ${copraJoin}
-    WHERE a."updatedAt" >= ${since}
+    WHERE a."public" = TRUE
+      AND a."updatedAt" >= ${since}
     ORDER BY a."updatedAt" DESC
     LIMIT ${ARTICLE_CANDIDATE_LIMIT}
   `);
@@ -783,7 +788,8 @@ async function fetchDiscussionRows() {
     LEFT JOIN recent_reply_counts rdr ON rdr."postId" = p."id"
     LEFT JOIN latest_user au ON au."userId" = lps."authorId"
     LEFT JOIN "PostTakedown" pt ON pt."postId" = p."id"
-    WHERE pt."postId" IS NULL
+    WHERE p."public" = TRUE
+      AND pt."postId" IS NULL
       AND p."updatedAt" >= ${since}
     ORDER BY p."updatedAt" DESC
     LIMIT ${DISCUSSION_CANDIDATE_LIMIT}
@@ -813,6 +819,7 @@ async function fetchPasteRows() {
     latest_paste_snapshot AS (
       SELECT DISTINCT ON ("pasteId")
         "pasteId",
+        "public",
         btrim(regexp_replace(COALESCE("data", ''), '\\s+', ' ', 'g')) AS "preview"
       FROM "PasteSnapshot"
       ORDER BY "pasteId", "capturedAt" DESC
@@ -840,6 +847,8 @@ async function fetchPasteRows() {
     LEFT JOIN latest_user au ON au."userId" = pst."userId"
     LEFT JOIN ever_privileged ep ON ep."userId" = pst."userId"
     WHERE pst."time" >= ${since}
+      AND pst."public" = TRUE
+      AND lps."public" = TRUE
     ORDER BY pst."time" DESC
     LIMIT ${PASTE_CANDIDATE_LIMIT}
   `);

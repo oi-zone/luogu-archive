@@ -17,9 +17,18 @@ import {
 import type { ForumDto, PostDto } from "./dto.js";
 import { getLuoguAvatar } from "./user-profile.js";
 
+async function isPostPublic(id: number) {
+  const [post] = await db
+    .select({ id: schema.Post.id })
+    .from(schema.Post)
+    .where(and(eq(schema.Post.id, id), eq(schema.Post.public, true)))
+    .limit(1);
+  return Boolean(post);
+}
+
 export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
   const post = await db.query.Post.findFirst({
-    where: eq(schema.Post.id, id),
+    where: and(eq(schema.Post.id, id), eq(schema.Post.public, true)),
     with: {
       snapshots: {
         orderBy: desc(schema.PostSnapshot.capturedAt),
@@ -58,7 +67,9 @@ export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
     },
   });
 
-  if (!post) throw new Error("Post not found");
+  if (!post?.snapshots[0]?.author.snapshots[0]) {
+    return null;
+  }
 
   const [replyCountRow] = await db
     .select({ total: count() })
@@ -74,7 +85,7 @@ export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
     .from(schema.Reply)
     .where(eq(schema.Reply.postId, id));
 
-  const postAuthorId = post.snapshots[0]?.authorId;
+  const postAuthorId = post.snapshots[0].authorId;
   const [authorReplyRow] = postAuthorId
     ? await db
         .select({ total: count() })
@@ -104,10 +115,10 @@ export async function getPostBasicInfo(id: number) {
       id: schema.Post.id,
     })
     .from(schema.Post)
-    .where(eq(schema.Post.id, id))
+    .where(and(eq(schema.Post.id, id), eq(schema.Post.public, true)))
     .limit(1);
 
-  if (!post) throw new Error("Post not found");
+  if (!post) return null;
 
   const [replyCountRow] = await db
     .select({ total: count() })
@@ -147,6 +158,8 @@ export async function getPostRepliesWithLatestSnapshot(
     skip: 0,
   },
 ) {
+  if (!(await isPostPublic(postId))) return [];
+
   const orderExpressions =
     orderBy === "time_asc"
       ? [asc(schema.Reply.time), asc(schema.Reply.id)]
@@ -374,6 +387,14 @@ export async function getPostUserReplyInference({
   cursorReplyId?: number;
   relativeToReplyId?: number;
 }) {
+  if (!(await isPostPublic(postId))) {
+    return {
+      current: null,
+      previousReplyId: null,
+      nextReplyId: null,
+    } as const;
+  }
+
   const cursor = await resolveReplyCursor({
     postId,
     authorId: userId,
@@ -468,7 +489,9 @@ export async function getPostSnapshotsTimeline(
   items: PostSnapshotTimelineResult[];
   hasMore: boolean;
   nextCursor: Date | null;
-}> {
+} | null> {
+  if (!(await isPostPublic(postId))) return null;
+
   const snapshots = await db.query.PostSnapshot.findMany({
     where: cursorCapturedAt
       ? and(
@@ -600,12 +623,13 @@ export async function getReplyWithLatestSnapshot(replyId: number) {
       post: {
         columns: {
           id: true,
+          public: true,
         },
       },
     },
   });
 
-  if (!reply) {
+  if (!reply?.post.public) {
     return null;
   }
 
@@ -623,8 +647,10 @@ export async function getReplyWithLatestSnapshot(replyId: number) {
 }
 
 export async function getPostEntries(ids: number[]): Promise<PostDto[]> {
+  if (ids.length === 0) return [];
+
   const posts = await db.query.Post.findMany({
-    where: inArray(schema.Post.id, ids),
+    where: and(inArray(schema.Post.id, ids), eq(schema.Post.public, true)),
     with: {
       snapshots: {
         orderBy: desc(schema.PostSnapshot.capturedAt),

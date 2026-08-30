@@ -17,9 +17,18 @@ import {
 import type { ArticleDto } from "./dto.js";
 import { getLuoguAvatar } from "./user-profile.js";
 
+async function isArticlePublic(lid: string) {
+  const [article] = await db
+    .select({ lid: schema.Article.lid })
+    .from(schema.Article)
+    .where(and(eq(schema.Article.lid, lid), eq(schema.Article.public, true)))
+    .limit(1);
+  return Boolean(article);
+}
+
 export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
   const article = await db.query.Article.findFirst({
-    where: eq(schema.Article.lid, lid),
+    where: and(eq(schema.Article.lid, lid), eq(schema.Article.public, true)),
     with: {
       snapshots: {
         orderBy: desc(schema.ArticleSnapshot.capturedAt),
@@ -54,7 +63,9 @@ export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
     },
   });
 
-  if (!article) throw new Error("Article not found");
+  if (!article?.snapshots[0] || !article.author.snapshots[0]) {
+    return null;
+  }
 
   const [replyCountRow] = await db
     .select({ total: count() })
@@ -103,10 +114,10 @@ export async function getArticleBasicInfo(lid: string) {
       authorId: schema.Article.authorId,
     })
     .from(schema.Article)
-    .where(eq(schema.Article.lid, lid))
+    .where(and(eq(schema.Article.lid, lid), eq(schema.Article.public, true)))
     .limit(1);
 
-  if (!article) throw new Error("Article not found");
+  if (!article) return null;
 
   const [replyCountRow] = await db
     .select({ total: count() })
@@ -139,6 +150,8 @@ export async function getArticleComments(
     skip: 0,
   },
 ) {
+  if (!(await isArticlePublic(articleId))) return [];
+
   const orderExpressions =
     orderBy === "time_asc"
       ? [asc(schema.ArticleReply.time), asc(schema.ArticleReply.id)]
@@ -204,7 +217,7 @@ export async function getArticleComments(
 }
 
 export async function getArticleComment(commentId: number) {
-  return db.query.ArticleReply.findFirst({
+  const comment = await db.query.ArticleReply.findFirst({
     where: eq(schema.ArticleReply.id, commentId),
     with: {
       author: {
@@ -217,6 +230,8 @@ export async function getArticleComment(commentId: number) {
       },
     },
   });
+  if (!comment || !(await isArticlePublic(comment.articleId))) return null;
+  return comment;
 }
 
 type ArticleSnapshotChangedField =
@@ -262,7 +277,9 @@ export async function getArticleSnapshotsTimeline(
   items: ArticleSnapshotTimelineResult[];
   hasMore: boolean;
   nextCursor: Date | null;
-}> {
+} | null> {
+  if (!(await isArticlePublic(articleId))) return null;
+
   const snapshots = await db.query.ArticleSnapshot.findMany({
     where: cursorCapturedAt
       ? and(
@@ -374,8 +391,13 @@ export async function getArticleSnapshotsTimeline(
 }
 
 export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
+  if (ids.length === 0) return [];
+
   const articles = await db.query.Article.findMany({
-    where: inArray(schema.Article.lid, ids),
+    where: and(
+      inArray(schema.Article.lid, ids),
+      eq(schema.Article.public, true),
+    ),
     with: {
       author: {
         with: {

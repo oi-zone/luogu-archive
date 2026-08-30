@@ -12,8 +12,22 @@ import {
 
 import type { PasteDto } from "./dto.js";
 import { getLuoguAvatar } from "./user-profile.js";
+import { canExposePaste } from "./visibility.js";
 
 export async function getPasteWithSnapshot(id: string, capturedAt?: Date) {
+  const current = await db.query.Paste.findFirst({
+    columns: { public: true },
+    where: eq(schema.Paste.id, id),
+    with: {
+      snapshots: {
+        columns: { public: true },
+        orderBy: desc(schema.PasteSnapshot.capturedAt),
+        limit: 1,
+      },
+    },
+  });
+  if (!canExposePaste(current?.public, current?.snapshots[0]?.public)) return null;
+
   const paste = await db.query.Paste.findFirst({
     where: eq(schema.Paste.id, id),
     with: {
@@ -21,7 +35,12 @@ export async function getPasteWithSnapshot(id: string, capturedAt?: Date) {
         orderBy: desc(schema.PasteSnapshot.capturedAt),
         limit: 1,
         ...(capturedAt
-          ? { where: eq(schema.PasteSnapshot.capturedAt, capturedAt) }
+          ? {
+              where: and(
+                eq(schema.PasteSnapshot.capturedAt, capturedAt),
+                eq(schema.PasteSnapshot.public, true),
+              ),
+            }
           : {}),
       },
       user: {
@@ -35,12 +54,17 @@ export async function getPasteWithSnapshot(id: string, capturedAt?: Date) {
     },
   });
 
-  if (!paste) throw new Error("Paste not found");
+  if (!paste?.snapshots[0] || !paste.user.snapshots[0]) return null;
 
   const [snapshotCountRow] = await db
     .select({ snapshotCount: count() })
     .from(schema.PasteSnapshot)
-    .where(eq(schema.PasteSnapshot.pasteId, id));
+    .where(
+      and(
+        eq(schema.PasteSnapshot.pasteId, id),
+        eq(schema.PasteSnapshot.public, true),
+      ),
+    );
   const snapshotCount = snapshotCountRow?.snapshotCount ?? 0;
 
   return {
@@ -74,14 +98,31 @@ export async function getPasteSnapshotsTimeline(
   items: PasteSnapshotTimelineResult[];
   hasMore: boolean;
   nextCursor: Date | null;
-}> {
+} | null> {
+  const current = await db.query.Paste.findFirst({
+    columns: { public: true },
+    where: eq(schema.Paste.id, pasteId),
+    with: {
+      snapshots: {
+        columns: { public: true },
+        orderBy: desc(schema.PasteSnapshot.capturedAt),
+        limit: 1,
+      },
+    },
+  });
+  if (!canExposePaste(current?.public, current?.snapshots[0]?.public)) return null;
+
   const snapshots = await db.query.PasteSnapshot.findMany({
     where: cursorCapturedAt
       ? and(
           eq(schema.PasteSnapshot.pasteId, pasteId),
+          eq(schema.PasteSnapshot.public, true),
           lt(schema.PasteSnapshot.capturedAt, cursorCapturedAt),
         )
-      : eq(schema.PasteSnapshot.pasteId, pasteId),
+      : and(
+          eq(schema.PasteSnapshot.pasteId, pasteId),
+          eq(schema.PasteSnapshot.public, true),
+        ),
     orderBy: desc(schema.PasteSnapshot.capturedAt),
     limit: take + 1,
   });
@@ -132,8 +173,13 @@ export async function getPasteSnapshotsTimeline(
 }
 
 export async function getPasteEntries(ids: string[]): Promise<PasteDto[]> {
+  if (ids.length === 0) return [];
+
   const pastes = await db.query.Paste.findMany({
-    where: inArray(schema.Paste.id, ids),
+    where: and(
+      inArray(schema.Paste.id, ids),
+      eq(schema.Paste.public, true),
+    ),
     with: {
       snapshots: {
         orderBy: desc(schema.PasteSnapshot.capturedAt),
@@ -163,18 +209,20 @@ export async function getPasteEntries(ids: string[]): Promise<PasteDto[]> {
 
   return pastes.flatMap((paste) =>
     paste.snapshots.flatMap((snapshot) =>
-      paste.user.snapshots.map((userSnapshot) => ({
-        id: paste.id,
-        data: snapshot.data ?? "",
-        time: paste.time.getTime() / 1000,
-        public: snapshot.public,
-        user: {
-          ...userSnapshot,
-          uid: userSnapshot.userId,
-          avatar: getLuoguAvatar(userSnapshot.userId),
-        },
-        snapshotCount: paste.snapshotCount,
-      })),
+      canExposePaste(paste.public, snapshot.public)
+        ? paste.user.snapshots.map((userSnapshot) => ({
+            id: paste.id,
+            data: snapshot.data ?? "",
+            time: paste.time.getTime() / 1000,
+            public: snapshot.public,
+            user: {
+              ...userSnapshot,
+              uid: userSnapshot.userId,
+              avatar: getLuoguAvatar(userSnapshot.userId),
+            },
+            snapshotCount: paste.snapshotCount,
+          }))
+        : [],
     ),
   );
 }

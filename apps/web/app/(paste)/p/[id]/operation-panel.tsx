@@ -14,10 +14,8 @@ import {
 import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { Button } from "@/components/ui/button";
-import { QueueJobButton } from "@/components/operation-panel/queue-job-button";
 import StatRow from "@/components/operation-panel/stat-row";
 import type { UserBasicInfo } from "@/components/user/user-inline-link";
-import { enqueuePasteRefresh } from "@/server-actions/queue-jobs";
 
 export default function PasteOperationPanel({
   paste,
@@ -49,10 +47,6 @@ export default function PasteOperationPanel({
   const archiveLink = `https://luogu.store/p/${paste.id}`;
   const archiveSnapshotLink = `https://luogu.store/p/${paste.id}@${snapshotToken}`;
   const sourceMarkdown = paste.content ?? "";
-  const triggerRefresh = React.useCallback(
-    () => enqueuePasteRefresh(paste.id),
-    [paste.id],
-  );
 
   return (
     <div className={className}>
@@ -100,7 +94,6 @@ export default function PasteOperationPanel({
         >
           <History className="size-4" aria-hidden="true" /> 时光机
         </Button>
-        <QueueJobButton onTrigger={triggerRefresh} idleText="更新云剪贴板" />
         <Button
           variant="outline"
           className="cursor-pointer justify-start gap-2 rounded-2xl py-2"

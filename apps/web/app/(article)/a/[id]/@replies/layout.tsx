@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import { getArticleBasicInfo } from "@luogu-discussion-archive/query";
 
 import ArticleComments from "../comments";
@@ -10,6 +12,7 @@ export default async function Layout({
   const { id } = await params;
 
   const article = await getArticleBasicInfo(id);
+  if (!article) notFound();
 
   return (
     <ArticleComments

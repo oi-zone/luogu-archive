@@ -1,16 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import {
-  QueueJobButton,
-  type QueueJobButtonProps,
-} from "@/components/operation-panel/queue-job-button";
 
 type NotFoundTemplateProps = {
   Icon: LucideIcon;
   title: string;
   hint: string;
-  queueJobButtonProps?: QueueJobButtonProps;
   className?: string;
 };
 
@@ -18,7 +13,6 @@ export function NotFoundTemplate({
   Icon,
   title,
   hint,
-  queueJobButtonProps,
   className,
 }: NotFoundTemplateProps) {
   return (
@@ -37,11 +31,6 @@ export function NotFoundTemplate({
             <h1 className="text-3xl font-semibold text-foreground">{title}</h1>
             <p className="leading-relaxed text-muted-foreground">{hint}</p>
           </div>
-          {queueJobButtonProps ? (
-            <div>
-              <QueueJobButton {...queueJobButtonProps} />
-            </div>
-          ) : null}
         </div>
       </div>
     </div>
