@@ -1,59 +1,90 @@
-import type { DeduplicationOptions, JobsOptions } from "bullmq";
+import type { JobsOptions } from "bullmq";
 
-import { BACKFILL_DUPLICATION_TTL, BACKFILL_PRIORITY } from "./config.js";
-import { queue } from "./queue.js";
+import { DEFAULT_JOB_OPTIONS } from "./config.js";
+import {
+  backfillQueue,
+  hasBackfillCapacity,
+  hasRefreshCapacity,
+  refreshQueue,
+} from "./queue.js";
 
-export type Job =
-  | { type: "listDiscuss"; forum?: string; page?: number }
-  | { type: "listArticles"; collection?: string; page?: number }
-  | { type: "discuss"; id: number; page?: number }
-  | { type: "article"; lid: string }
-  | { type: "articleReplies"; lid: string; after?: number }
-  | { type: "paste"; id: string }
-  | { type: "judgement" };
+interface RateLimitState {
+  rateLimitCount?: number;
+}
 
-export function queueJob(job: Job, priority?: number) {
-  const deduplication: DeduplicationOptions = { id: "" };
+export type RefreshJob = RateLimitState &
+  (
+    | { type: "listDiscuss"; forum?: string; page?: number }
+    | { type: "listArticles"; collection?: string; page?: number }
+    | { type: "discuss"; id: number; page?: number; reopenBackfill?: boolean }
+    | { type: "article"; lid: string; reopenBackfill?: boolean }
+    | { type: "paste"; id: string }
+    | { type: "judgement" }
+  );
+
+export type BackfillEntityType = "discussionReplies" | "articleReplies";
+
+export type BackfillJob = RateLimitState & {
+  type: "backfill";
+  entityType: BackfillEntityType;
+  entityId: string;
+  direction: "older";
+  cursor: string;
+  version: number;
+};
+
+export type Job = RefreshJob | BackfillJob;
+
+function refreshDeduplicationId(job: RefreshJob) {
   switch (job.type) {
     case "listDiscuss":
-      deduplication.id = `listDiscuss:${job.forum ?? "all"}:${String(job.page ?? 1)}`;
-      break;
-
+      return `listDiscuss-${job.forum ?? "all"}-${String(job.page ?? 1)}`;
     case "listArticles":
-      deduplication.id = `listArticles:${
-        job.collection ?? "all"
-      }:${String(job.page ?? 1)}`;
-      break;
-
+      return `listArticles-${job.collection ?? "all"}-${String(job.page ?? 1)}`;
     case "discuss":
-      deduplication.id = `discuss:${String(job.id)}:${String(job.page ?? 1)}`;
-      break;
-
+      return `discuss-${String(job.id)}-${String(job.page ?? "current")}`;
     case "article":
-      deduplication.id = `article:${job.lid}`;
-      break;
-
-    case "articleReplies":
-      deduplication.id = `articleReplies:${job.lid}:${String(job.after)}`;
-      break;
-
+      return `article-${job.lid}`;
     case "paste":
-      deduplication.id = `paste:${job.id}`;
-      break;
-
+      return `paste-${job.id}`;
     case "judgement":
-      deduplication.id = "judgement";
-      break;
-
-    default:
+      return "judgement";
   }
-  if (priority === BACKFILL_PRIORITY) {
-    deduplication.ttl = BACKFILL_DUPLICATION_TTL;
-    deduplication.id += ":backfill";
+}
+
+function safeJobSegment(value: string) {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(value)) {
+    throw new Error("Unsafe BullMQ job identifier segment");
   }
+  return value;
+}
 
-  const opts: JobsOptions = { deduplication };
-  if (priority) opts.priority = priority;
+export function backfillJobId(job: BackfillJob) {
+  return [
+    "bf",
+    job.entityType,
+    safeJobSegment(job.entityId),
+    `v${String(job.version)}`,
+    `c${safeJobSegment(job.cursor)}`,
+  ].join("-");
+}
 
-  return queue.add(job.type, job, opts);
+export async function queueRefreshJob(
+  job: RefreshJob,
+  options: { critical?: boolean } = {},
+) {
+  if (!options.critical && !(await hasRefreshCapacity())) return null;
+  return refreshQueue.add(job.type, job, {
+    ...DEFAULT_JOB_OPTIONS,
+    deduplication: { id: refreshDeduplicationId(job) },
+  });
+}
+
+export async function queueBackfillJob(job: BackfillJob) {
+  if (!(await hasBackfillCapacity())) return null;
+  const options: JobsOptions = {
+    ...DEFAULT_JOB_OPTIONS,
+    jobId: backfillJobId(job),
+  };
+  return backfillQueue.add(job.type, job, options);
 }

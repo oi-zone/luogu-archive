@@ -1,4 +1,4 @@
-import { queue } from "@luogu-discussion-archive/queue";
+import { refreshQueue } from "@luogu-discussion-archive/queue";
 
 const discuss: { name: string; page: number; pattern: string }[] = [
   { name: "1-daytime", page: 1, pattern: "* 7-23,0 * * *" },
@@ -9,16 +9,6 @@ const discuss: { name: string; page: number; pattern: string }[] = [
   { name: "20", page: 20, pattern: "*/5 8-23 * * *" },
 ];
 
-await Promise.all(
-  discuss.map(({ name, page, pattern }) =>
-    queue.upsertJobScheduler(
-      `list-discuss-${name}`,
-      { pattern },
-      { name: "listDiscuss", data: { type: "listDiscuss", page } },
-    ),
-  ),
-);
-
 const articles: { page: number; pattern: string }[] = Array.from(
   { length: 30 },
   (_, i) => ({
@@ -27,18 +17,30 @@ const articles: { page: number; pattern: string }[] = Array.from(
   }),
 );
 
-await Promise.all(
-  articles.map(({ page, pattern }) =>
-    queue.upsertJobScheduler(
-      `list-articles-page-${String(page)}`,
-      { pattern },
-      { name: "listArticles", data: { type: "listArticles", page } },
+export async function configureSchedulers() {
+  await Promise.all(
+    discuss.map(({ name, page, pattern }) =>
+      refreshQueue.upsertJobScheduler(
+        `list-discuss-${name}`,
+        { pattern },
+        { name: "listDiscuss", data: { type: "listDiscuss", page } },
+      ),
     ),
-  ),
-);
+  );
 
-await queue.upsertJobScheduler(
-  "fetch-judgement",
-  { pattern: "* * * * *" },
-  { name: "judgement", data: { type: "judgement" } },
-);
+  await Promise.all(
+    articles.map(({ page, pattern }) =>
+      refreshQueue.upsertJobScheduler(
+        `list-articles-page-${String(page)}`,
+        { pattern },
+        { name: "listArticles", data: { type: "listArticles", page } },
+      ),
+    ),
+  );
+
+  await refreshQueue.upsertJobScheduler(
+    "fetch-judgement",
+    { pattern: "* * * * *" },
+    { name: "judgement", data: { type: "judgement" } },
+  );
+}
