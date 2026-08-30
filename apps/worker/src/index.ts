@@ -87,8 +87,7 @@ async function shutdown(reason: string, error?: unknown) {
           { event: "worker_shutdown_complete" },
           "Worker queues closed",
         );
-        closeLogger();
-        return Promise.resolve();
+        return closeLogger();
       },
       closeSentry: () => Sentry.close(5_000),
       closeDatabase: () =>

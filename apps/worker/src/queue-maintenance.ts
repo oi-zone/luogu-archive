@@ -15,6 +15,9 @@ import {
 const args = new Set(process.argv.slice(2));
 const repair = args.has("--repair");
 const apply = repair && args.has("--apply");
+const retireLegacy = args.has("--retire-legacy");
+const retireApply = retireLegacy && args.has("--apply");
+const confirmedOldWorkerStopped = args.has("--confirm-old-worker-stopped");
 const BATCH_SIZE = 500;
 const REMOVE_CONCURRENCY = 50;
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -83,6 +86,96 @@ async function scanLegacyBackfills() {
   return { matched, olderThanOneHour, oldest, removed };
 }
 
+const RETIRE_STATES = [
+  "wait",
+  "prioritized",
+  "delayed",
+  "failed",
+  "completed",
+] as const;
+
+async function retireLegacyQueue(
+  initialCounts: Awaited<ReturnType<typeof getQueueCounts>>,
+) {
+  if (!retireLegacy) return null;
+  const planned = Object.fromEntries(
+    RETIRE_STATES.map((state) => [state, initialCounts[state]]),
+  );
+  if (!retireApply) {
+    return {
+      mode: "dry-run",
+      planned,
+      active: initialCounts.active,
+      removed: {},
+      obliterated: false,
+    };
+  }
+  if (!confirmedOldWorkerStopped) {
+    throw new Error(
+      "Legacy retirement requires --confirm-old-worker-stopped with --apply",
+    );
+  }
+  const current = await getQueueCounts(legacyQueue);
+  if (current.active !== 0) {
+    throw new Error(
+      `Refusing legacy retirement while ${String(current.active)} active job(s) remain`,
+    );
+  }
+
+  for (;;) {
+    const schedulers = await legacyQueue.getJobSchedulers(
+      0,
+      BATCH_SIZE - 1,
+      true,
+    );
+    if (schedulers.length === 0) break;
+    for (const scheduler of schedulers) {
+      await legacyQueue.removeJobScheduler(scheduler.key);
+    }
+  }
+  for (;;) {
+    // Old BullMQ repeat metadata predates Job Schedulers and is part of the
+    // legacy queue retirement surface.
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const repeatable = await legacyQueue.getRepeatableJobs(
+      0,
+      BATCH_SIZE - 1,
+      true,
+    );
+    if (repeatable.length === 0) break;
+    for (const repeat of repeatable) {
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      await legacyQueue.removeRepeatableByKey(repeat.key);
+    }
+  }
+
+  const removed: Record<string, number> = {};
+  for (const state of RETIRE_STATES) {
+    let stateRemoved = 0;
+    for (;;) {
+      const jobs = await legacyQueue.clean(0, BATCH_SIZE, state);
+      stateRemoved += jobs.length;
+      if (jobs.length < BATCH_SIZE) break;
+    }
+    removed[state] = stateRemoved;
+  }
+
+  const beforeObliterate = await getQueueCounts(legacyQueue);
+  if (beforeObliterate.active !== 0) {
+    throw new Error(
+      "Active legacy job appeared during retirement; refusing obliterate",
+    );
+  }
+  await legacyQueue.obliterate({ force: false });
+  return {
+    mode: "apply",
+    planned,
+    active: 0,
+    removed,
+    obliterated: true,
+  };
+}
+
 function parseRedisMemory(info: string) {
   const allowed = new Set([
     "used_memory",
@@ -116,6 +209,8 @@ try {
     legacySchedulers,
     cursorSummary,
     cursorSamples,
+    backfillResumeState,
+    visibilityScanState,
     redisInfo,
   ] = await Promise.all([
     getQueueCounts(refreshQueue),
@@ -163,10 +258,21 @@ try {
       ORDER BY "updatedAt" ASC
       LIMIT 100
     `),
+    db.execute(sql`
+      SELECT "name", "afterUpdatedAt", "afterEntityType", "afterEntityId", "updatedAt"
+      FROM "BackfillResumeState"
+      ORDER BY "name"
+    `),
+    db.execute(sql`
+      SELECT "entityType", "afterId", "cycle", "lastCompletedAt", "updatedAt"
+      FROM "VisibilityScanState"
+      ORDER BY "entityType"
+    `),
     refreshQueue.client.then((client) => client.info("memory")),
   ]);
 
   const legacy = await scanLegacyBackfills();
+  const retirement = await retireLegacyQueue(legacyCounts);
   const now = Date.now();
   const age = (timestamp: number | null) =>
     timestamp === null ? null : Math.max(0, now - timestamp);
@@ -174,7 +280,7 @@ try {
   process.stdout.write(
     `${JSON.stringify(
       {
-        mode: apply ? "apply" : "dry-run",
+        mode: apply || retireApply ? "apply" : "dry-run",
         repairRequested: repair,
         queues: {
           refresh: {
@@ -196,6 +302,7 @@ try {
           oldestAgeMs: age(legacy.oldest),
           removed: legacy.removed,
         },
+        legacyRetirement: retirement,
         schedulers: {
           refresh: refreshSchedulers.map((scheduler) => ({
             id: scheduler.key,
@@ -211,6 +318,8 @@ try {
         cursors: {
           summary: cursorSummary.rows,
           oldestIncompleteSamples: cursorSamples.rows,
+          resumeScan: backfillResumeState.rows,
+          visibilityScan: visibilityScanState.rows,
         },
         redisMemory: parseRedisMemory(redisInfo),
       },

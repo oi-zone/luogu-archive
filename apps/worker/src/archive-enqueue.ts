@@ -73,6 +73,6 @@ try {
 } finally {
   await closeQueues();
   await closeDb();
-  closeLogger();
+  await closeLogger();
 }
 process.exitCode = exitCode;

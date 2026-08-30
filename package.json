@@ -5,13 +5,16 @@
   "scripts": {
     "prepare": "husky",
     "build": "turbo build",
-    "lint": "pnpm --filter web lint && eslint apps/worker/src packages/crawler/src packages/database/src packages/logging/src packages/query/src packages/queue/src --ignore-pattern '**/generated/**'",
+    "lint": "pnpm --filter @luogu-discussion-archive/db db:generate && pnpm --filter web lint && eslint apps/worker/src packages/crawler/src packages/database/src packages/logging/src packages/query/src packages/queue/src --ignore-pattern '**/generated/**'",
     "typecheck": "pnpm --filter @luogu-discussion-archive/db db:generate && turbo typecheck",
-    "test": "turbo build --filter=!web && node --test packages/remark-lda-lfm/tests/*.test.mjs tests/*.test.mjs",
+    "test": "turbo build --filter=!web && node --test --test-concurrency=1 packages/remark-lda-lfm/tests/*.test.mjs tests/*.test.mjs",
     "archive:enqueue": "turbo build --filter=@luogu-discussion-archive/worker... && node apps/worker/dist/archive-enqueue.js",
     "queue:doctor": "turbo build --filter=@luogu-discussion-archive/worker... && node apps/worker/dist/queue-maintenance.js",
     "queue:repair": "turbo build --filter=@luogu-discussion-archive/worker... && node apps/worker/dist/queue-maintenance.js --repair",
-    "privacy:audit": "turbo build --filter=@luogu-discussion-archive/worker... && node apps/worker/dist/privacy-audit.js"
+    "queue:retire": "turbo build --filter=@luogu-discussion-archive/worker... && node apps/worker/dist/queue-maintenance.js --retire-legacy",
+    "privacy:audit": "turbo build --filter=@luogu-discussion-archive/worker... && node apps/worker/dist/privacy-audit.js",
+    "visibility:audit": "turbo build --filter=@luogu-discussion-archive/worker... && node apps/worker/dist/visibility-audit.js",
+    "visibility:revalidate": "turbo build --filter=@luogu-discussion-archive/worker... && node apps/worker/dist/visibility-revalidate.js"
   },
   "packageManager": "pnpm@10.25.0",
   "devDependencies": {
