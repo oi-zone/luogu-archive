@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
-import { canExposePaste } from "../packages/query/dist/visibility.js";
+import {
+  canExposeEntity,
+  canExposeSnapshot,
+} from "../packages/query/dist/visibility.js";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -47,23 +50,40 @@ test("cursor table enforces one chain per entity key", () => {
   assert.equal(migration.includes("TTL"), false);
 });
 
-test("paste query gates current and historical access by current visibility", () => {
-  const pasteQuery = read("../packages/query/src/paste.ts");
-  assert.match(pasteQuery, /canExposePaste\(current\?\.public/);
-  assert.match(pasteQuery, /eq\(schema\.PasteSnapshot\.public, true\)/);
-});
-
-test("private paste policy denies main, snapshot and entries exposure", () => {
-  assert.equal(canExposePaste(false), false, "main page");
-  assert.equal(canExposePaste(false, true), false, "old public snapshot");
-  assert.equal(canExposePaste(false, false), false, "private snapshot");
+test("entity and snapshot provenance fail closed", () => {
+  const now = new Date();
+  const entity = {
+    visibilityState: "public",
+    visibilityCheckedAt: now,
+    visibilitySource: "anonymous_upstream",
+  };
+  const snapshot = {
+    exposureState: "public",
+    verifiedPublicAt: now,
+    verifiedSource: "anonymous_upstream",
+  };
+  assert.equal(canExposeEntity("public", now, "anonymous_upstream", now), true);
+  assert.equal(canExposeSnapshot(entity, snapshot, now), true);
   assert.equal(
-    canExposePaste(undefined),
+    canExposeSnapshot(
+      entity,
+      { ...snapshot, exposureState: "unverified" },
+      now,
+    ),
     false,
-    "entries without current state",
   );
-  assert.equal(canExposePaste(true, false), false, "private historical state");
-  assert.equal(canExposePaste(true, true), true);
+  assert.equal(
+    canExposeSnapshot(
+      { ...entity, visibilityState: "restricted" },
+      snapshot,
+      now,
+    ),
+    false,
+  );
+  assert.equal(
+    canExposeSnapshot({ ...entity, visibilitySource: "legacy" }, snapshot, now),
+    false,
+  );
 });
 
 test("judgement resolves one latest snapshot per page user in PostgreSQL", () => {

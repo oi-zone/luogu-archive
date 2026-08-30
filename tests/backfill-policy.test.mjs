@@ -41,7 +41,7 @@ test("deduplication does not depend on a one-hour TTL", () => {
 test("backfill stops at archived overlap and explicit safety boundary", () => {
   assert.equal(progressingCursor("42", "42"), null);
   assert.equal(progressingCursor("42", "41"), "41");
-  assert.equal(
+  assert.deepEqual(
     discussionNextCursor({
       page: 99,
       numReplies: 10,
@@ -49,9 +49,9 @@ test("backfill stops at archived overlap and explicit safety boundary", () => {
       pagesProcessed: 0,
       maximumPages: 1_000,
     }),
-    null,
+    { state: "completed" },
   );
-  assert.equal(
+  assert.deepEqual(
     discussionNextCursor({
       page: 99,
       numReplies: 10,
@@ -59,9 +59,9 @@ test("backfill stops at archived overlap and explicit safety boundary", () => {
       pagesProcessed: 999,
       maximumPages: 1_000,
     }),
-    null,
+    { state: "paused", nextCursor: "98", reason: "page_limit" },
   );
-  assert.equal(
+  assert.deepEqual(
     articleRepliesNextCursor({
       lastReplyId: 123,
       lastReplySaved: true,
@@ -70,7 +70,7 @@ test("backfill stops at archived overlap and explicit safety boundary", () => {
       pagesProcessed: 0,
       maximumPages: 1_000,
     }),
-    null,
+    { state: "completed" },
   );
 });
 

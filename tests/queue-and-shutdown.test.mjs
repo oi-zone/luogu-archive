@@ -6,6 +6,7 @@ import {
   COMPLETED_RETENTION,
   DEFAULT_JOB_OPTIONS,
   FAILED_RETENTION,
+  runnablePressureDepth,
 } from "../packages/queue/dist/config.js";
 
 test("completed and failed job retention have age and count bounds", () => {
@@ -16,6 +17,20 @@ test("completed and failed job retention have age and count bounds", () => {
   assert.ok(DEFAULT_JOB_OPTIONS.attempts >= 1);
   assert.equal(DEFAULT_JOB_OPTIONS.backoff.type, "exponential");
   assert.ok(DEFAULT_JOB_OPTIONS.backoff.jitter > 0);
+});
+
+test("failed and completed retention do not count as runnable pressure", () => {
+  assert.equal(
+    runnablePressureDepth({
+      wait: 1,
+      active: 2,
+      delayed: 3,
+      prioritized: 4,
+      failed: 5_000,
+      completed: 10_000,
+    }),
+    10,
+  );
 });
 
 test("shutdown closes resources in the required order", async () => {
