@@ -7,6 +7,7 @@ import {
   redisConnection,
   REFRESH_QUEUE_MAX_DEPTH,
   REFRESH_QUEUE_NAME,
+  runnablePressureDepth,
 } from "./config.js";
 import type { BackfillJob, RefreshJob } from "./jobs.js";
 
@@ -62,16 +63,6 @@ export async function getQueueCounts(queue: Queue): Promise<QueueCounts> {
   };
 }
 
-function pressureDepth(counts: QueueCounts) {
-  return (
-    counts.wait +
-    counts.active +
-    counts.delayed +
-    counts.prioritized +
-    counts.failed
-  );
-}
-
 export async function hasQueueCapacity(
   queue: Queue,
   maximumDepth: number,
@@ -84,7 +75,7 @@ export async function hasQueueCapacity(
     return true;
   }
 
-  const depth = pressureDepth(await getQueueCounts(queue));
+  const depth = runnablePressureDepth(await getQueueCounts(queue));
   admissionState.set(queue, { checkedAt: now, depth: depth + 1 });
   return depth < maximumDepth;
 }

@@ -19,6 +19,15 @@ export type RefreshJob = RateLimitState &
     | { type: "discuss"; id: number; page?: number; reopenBackfill?: boolean }
     | { type: "article"; lid: string; reopenBackfill?: boolean }
     | { type: "paste"; id: string }
+    | {
+        type: "visibilityScan";
+        entityType: "article" | "discussion" | "paste";
+      }
+    | {
+        type: "visibilityRevalidate";
+        entityType: "article" | "discussion" | "paste";
+        entityId: string;
+      }
     | { type: "judgement" }
   );
 
@@ -47,6 +56,10 @@ function refreshDeduplicationId(job: RefreshJob) {
       return `article-${job.lid}`;
     case "paste":
       return `paste-${job.id}`;
+    case "visibilityScan":
+      return `visibility-scan-${job.entityType}`;
+    case "visibilityRevalidate":
+      return `visibility-${job.entityType}-${safeJobSegment(job.entityId)}`;
     case "judgement":
       return "judgement";
   }
@@ -69,6 +82,16 @@ export function backfillJobId(job: BackfillJob) {
   ].join("-");
 }
 
+export type QueueBackfillResult =
+  | { state: "added"; jobId: string }
+  | { state: "already_live"; jobId: string }
+  | { state: "blocked_by_capacity"; jobId: string }
+  | {
+      state: "terminal_conflict";
+      jobId: string;
+      jobState: "completed" | "failed";
+    };
+
 export async function queueRefreshJob(
   job: RefreshJob,
   options: { critical?: boolean } = {},
@@ -80,11 +103,34 @@ export async function queueRefreshJob(
   });
 }
 
-export async function queueBackfillJob(job: BackfillJob) {
-  if (!(await hasBackfillCapacity())) return null;
+export async function queueBackfillJob(
+  job: BackfillJob,
+): Promise<QueueBackfillResult> {
+  const jobId = backfillJobId(job);
+  let existing = await backfillQueue.getJob(jobId);
+  if (existing) {
+    const state = await existing.getState();
+    if (state === "completed" || state === "failed") {
+      return { state: "terminal_conflict", jobId, jobState: state };
+    }
+    if (state !== "unknown") return { state: "already_live", jobId };
+    await existing.remove().catch(() => undefined);
+    existing = undefined;
+  }
+
+  if (!(await hasBackfillCapacity())) {
+    return { state: "blocked_by_capacity", jobId };
+  }
   const options: JobsOptions = {
     ...DEFAULT_JOB_OPTIONS,
-    jobId: backfillJobId(job),
+    jobId,
   };
-  return backfillQueue.add(job.type, job, options);
+  const added = await backfillQueue.add(job.type, job, options);
+  const state = await added.getState();
+  if (state === "completed" || state === "failed") {
+    return { state: "terminal_conflict", jobId, jobState: state };
+  }
+  return existing
+    ? { state: "already_live", jobId }
+    : { state: "added", jobId };
 }

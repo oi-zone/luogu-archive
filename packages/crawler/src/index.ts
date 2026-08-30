@@ -1,4 +1,5 @@
 export {
+  ARTICLE_REPLIES_PER_PAGE,
   fetchArticle,
   fetchReplies as fetchArticleReplies,
   listArticles,

@@ -43,4 +43,15 @@ export async function configureSchedulers() {
     { pattern: "* * * * *" },
     { name: "judgement", data: { type: "judgement" } },
   );
+
+  for (const entityType of ["article", "discussion", "paste"] as const) {
+    await refreshQueue.upsertJobScheduler(
+      `visibility-scan-${entityType}`,
+      { pattern: "*/10 * * * *" },
+      {
+        name: "visibilityScan",
+        data: { type: "visibilityScan", entityType },
+      },
+    );
+  }
 }

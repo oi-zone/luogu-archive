@@ -160,6 +160,12 @@ async function runJob<T extends WorkerJob>(
     }
 
     const errorType = error instanceof Error ? error.name : "UnknownError";
+    const maximumAttempts =
+      typeof job.opts.attempts === "number" ? job.opts.attempts : 1;
+    const isFinalAttempt = job.attemptsMade + 1 >= maximumAttempts;
+    if (job.data.type === "backfill" && isFinalAttempt) {
+      await pauseBackfill(job.data, error);
+    }
     const reportKey = `${queueName}:${job.data.type}:${errorType}`;
     if (shouldReportHighFrequencyError(reportKey)) {
       log.error(
@@ -231,3 +237,19 @@ for (const worker of [refreshWorker, backfillWorker]) {
     if (job) recordJob(job.data.type, true);
   });
 }
+
+backfillWorker.on("failed", (job, error) => {
+  if (!job) return;
+  const maximumAttempts =
+    typeof job.opts.attempts === "number" ? job.opts.attempts : 1;
+  if (job.attemptsMade < maximumAttempts) return;
+  void pauseBackfill(job.data, error).catch(() => {
+    logger.error(
+      {
+        event: "backfill_terminal_reconcile_failed",
+        entityType: job.data.entityType,
+      },
+      "Failed to reconcile terminal backfill cursor",
+    );
+  });
+});

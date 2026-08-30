@@ -9,11 +9,13 @@ export {
   REFRESH_QUEUE_NAME,
   boundedInteger,
   redisConnection,
+  runnablePressureDepth,
 } from "./config.js";
 export {
   backfillJobId,
   queueBackfillJob,
   queueRefreshJob,
+  type QueueBackfillResult,
   type BackfillEntityType,
   type BackfillJob,
   type Job,

@@ -11,6 +11,11 @@ export const REOPENABLE_BACKFILL_STATUSES: BackfillStatus[] = [
   "paused",
 ];
 
+export type BackfillPageResult =
+  | { state: "continue"; nextCursor: string }
+  | { state: "completed" }
+  | { state: "paused"; nextCursor: string; reason: "page_limit" };
+
 export function progressingCursor(current: string, next: string | null) {
   return next === current ? null : next;
 }
@@ -54,16 +59,19 @@ export function discussionNextCursor(options: {
   numNewReplies: number;
   pagesProcessed: number;
   maximumPages: number;
-}) {
+}): BackfillPageResult {
   if (
     options.page <= 1 ||
     options.numReplies === 0 ||
-    options.numNewReplies === 0 ||
-    options.pagesProcessed + 1 >= options.maximumPages
+    options.numNewReplies < options.numReplies
   ) {
-    return null;
+    return { state: "completed" };
   }
-  return String(options.page - 1);
+  const nextCursor = String(options.page - 1);
+  if (options.pagesProcessed + 1 >= options.maximumPages) {
+    return { state: "paused", nextCursor, reason: "page_limit" };
+  }
+  return { state: "continue", nextCursor };
 }
 
 export function articleRepliesNextCursor(options: {
@@ -73,15 +81,18 @@ export function articleRepliesNextCursor(options: {
   newReplyCount: number;
   pagesProcessed: number;
   maximumPages: number;
-}) {
+}): BackfillPageResult {
   if (
     !options.lastReplyId ||
     options.lastReplySaved ||
     options.replyCount === 0 ||
-    options.newReplyCount === 0 ||
-    options.pagesProcessed + 1 >= options.maximumPages
+    options.newReplyCount < options.replyCount
   ) {
-    return null;
+    return { state: "completed" };
   }
-  return String(options.lastReplyId);
+  const nextCursor = String(options.lastReplyId);
+  if (options.pagesProcessed + 1 >= options.maximumPages) {
+    return { state: "paused", nextCursor, reason: "page_limit" };
+  }
+  return { state: "continue", nextCursor };
 }

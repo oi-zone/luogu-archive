@@ -1,5 +1,6 @@
 import {
   AccessError,
+  ARTICLE_REPLIES_PER_PAGE,
   fetchArticle,
   fetchArticleReplies,
   fetchDiscuss,
@@ -28,6 +29,7 @@ import {
   pauseBackfill,
   releaseBackfill,
 } from "./backfill.js";
+import { scanVisibilityBatch } from "./visibility.js";
 
 const MAX_BACKFILL_PAGES_PER_ENTITY = boundedInteger(
   "BACKFILL_MAX_PAGES_PER_ENTITY",
@@ -97,7 +99,13 @@ export async function processRefreshJob(job: RefreshJob) {
         entityType: "discussionReplies",
         entityId: String(id),
         initialCursor: result.numPages > 1 ? String(result.numPages - 1) : null,
-        ...(job.reopenBackfill ? { reopen: true } : {}),
+        ...(job.reopenBackfill
+          ? { reopen: "explicit" as const }
+          : result.numPages > 1 &&
+              result.numNewReplies >=
+                Math.min(REPLIES_PER_PAGE, result.numReplies)
+            ? { reopen: "delta" as const }
+            : {}),
       });
 
       break;
@@ -107,14 +115,24 @@ export async function processRefreshJob(job: RefreshJob) {
       await fetchArticle(job.lid);
       const replies = await fetchArticleReplies(job.lid);
       const initialCursor =
-        replies.lastReplyId && (!replies.lastReplySaved || job.reopenBackfill)
+        replies.lastReplyId &&
+        (!replies.lastReplySaved || job.reopenBackfill) &&
+        (job.reopenBackfill ||
+          (replies.replyCount >= ARTICLE_REPLIES_PER_PAGE &&
+            replies.newReplyCount === replies.replyCount))
           ? String(replies.lastReplyId)
           : null;
       await ensureBackfill({
         entityType: "articleReplies",
         entityId: job.lid,
         initialCursor,
-        ...(job.reopenBackfill ? { reopen: true } : {}),
+        ...(job.reopenBackfill
+          ? { reopen: "explicit" as const }
+          : initialCursor &&
+              replies.replyCount >= ARTICLE_REPLIES_PER_PAGE &&
+              replies.newReplyCount === replies.replyCount
+            ? { reopen: "delta" as const }
+            : {}),
       });
       break;
     }
@@ -122,6 +140,32 @@ export async function processRefreshJob(job: RefreshJob) {
     case "paste":
       await fetchPaste(job.id);
       break;
+
+    case "visibilityScan":
+      await scanVisibilityBatch(job.entityType);
+      break;
+
+    case "visibilityRevalidate": {
+      if (job.entityType === "discussion") {
+        const id = Number(job.entityId);
+        if (!Number.isSafeInteger(id) || id <= 0) {
+          throw new Error("Invalid persisted discussion visibility ID");
+        }
+        await fetchDiscuss(id);
+      } else if (job.entityType === "article") {
+        if (!/^[a-z0-9]{8}$/.test(job.entityId)) {
+          throw new Error("Invalid persisted article visibility ID");
+        }
+        await fetchArticle(job.entityId);
+        await fetchArticleReplies(job.entityId);
+      } else {
+        if (!/^[a-z0-9]{8}$/.test(job.entityId)) {
+          throw new Error("Invalid persisted paste visibility ID");
+        }
+        await fetchPaste(job.entityId);
+      }
+      break;
+    }
 
     case "judgement":
       await fetchJudgement();

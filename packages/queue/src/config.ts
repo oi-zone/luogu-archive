@@ -1,8 +1,16 @@
 import type { ConnectionOptions, JobsOptions } from "bullmq";
 
-export const REFRESH_QUEUE_NAME = "luogu-refresh";
-export const BACKFILL_QUEUE_NAME = "luogu-backfill";
-export const LEGACY_QUEUE_NAME = "luogu-crawler";
+const queueNamePrefix = (() => {
+  const value = process.env.QUEUE_NAME_PREFIX ?? "";
+  if (value && !/^[A-Za-z0-9_-]{1,64}$/.test(value)) {
+    throw new Error("QUEUE_NAME_PREFIX contains unsafe characters");
+  }
+  return value;
+})();
+
+export const REFRESH_QUEUE_NAME = `${queueNamePrefix}luogu-refresh`;
+export const BACKFILL_QUEUE_NAME = `${queueNamePrefix}luogu-backfill`;
+export const LEGACY_QUEUE_NAME = `${queueNamePrefix}luogu-crawler`;
 
 export function boundedInteger(
   name: string,
@@ -29,6 +37,15 @@ export const BACKFILL_QUEUE_MAX_DEPTH = boundedInteger(
   100,
   1_000_000,
 );
+
+export function runnablePressureDepth(counts: {
+  wait: number;
+  active: number;
+  delayed: number;
+  prioritized: number;
+}) {
+  return counts.wait + counts.active + counts.delayed + counts.prioritized;
+}
 
 export const COMPLETED_RETENTION = {
   age: boundedInteger("QUEUE_COMPLETED_RETENTION_SECONDS", 3_600, 60, 86_400),
