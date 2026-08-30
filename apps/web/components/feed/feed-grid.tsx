@@ -48,6 +48,7 @@ export function FeedGrid({ initialPage }: FeedGridProps) {
     initialPageParam: null,
     getNextPageParam: (lastPage) =>
       lastPage.hasMore && lastPage.nextCursor ? lastPage.nextCursor : undefined,
+    maxPages: 5,
     initialData: {
       pages: [initialPage],
       pageParams: [null],

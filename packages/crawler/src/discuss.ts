@@ -17,14 +17,90 @@ import {
   sql,
 } from "@luogu-discussion-archive/db";
 
-import { clientLentille } from "./client.js";
+import { publicLentille } from "./client.js";
 import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";
+import {
+  expectArray,
+  expectFiniteNumber,
+  expectPositiveInteger,
+  expectRecord,
+  validateBoundedPayload,
+} from "./http.js";
 import { PgAdvisoryLock } from "./locks.js";
+import {
+  validatePost,
+  validatePostDetails,
+  validateReply,
+} from "./payload-validation.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
 import { deduplicate } from "./utils.js";
 
 export const REPLIES_PER_PAGE = 10;
+const MAX_DISCUSSION_RESPONSE_BYTES = 4 * 1024 * 1024;
+const MAX_DISCUSSION_LIST_BYTES = 2 * 1024 * 1024;
+const MAX_DISCUSSION_REPLIES = 200;
+const MAX_DISCUSSION_LIST_ITEMS = 100;
+const ANONYMOUS_SOURCE = "anonymous_upstream";
+
+function validateDiscussionResponse(value: unknown) {
+  const root = expectRecord(value, "discuss.show");
+  const status = expectFiniteNumber(root.status, "discuss.show.status");
+  if (status !== 200) {
+    return { status, time: 0, data: null };
+  }
+  validateBoundedPayload(value, "discuss.show");
+  const data = expectRecord(root.data, "discuss.show");
+  const post = validatePostDetails(data.post, "discuss.show.post");
+  const replies = expectRecord(data.replies, "discuss.show");
+  const result = expectArray<unknown>(
+    replies.result,
+    "discuss.show.replies",
+    MAX_DISCUSSION_REPLIES,
+  ).map((reply, index) =>
+    validateReply(reply, `discuss.show.replies[${String(index)}]`),
+  );
+  const time = expectFiniteNumber(root.time, "discuss.show.time");
+  expectPositiveInteger(post.id, "discuss.show.post.id");
+  if (!Number.isSafeInteger(replies.count) || (replies.count as number) < 0)
+    throw new Error("Invalid discuss.show.replies.count");
+  expectPositiveInteger(replies.perPage, "discuss.show.replies.perPage");
+  return {
+    status,
+    time,
+    data: {
+      post,
+      replies: {
+        result,
+        count: replies.count as number,
+        perPage: replies.perPage as number,
+      },
+    },
+  };
+}
+
+function validateDiscussionListResponse(value: unknown) {
+  validateBoundedPayload(value, "discuss.list");
+  const root = expectRecord(value, "discuss.list");
+  const data = expectRecord(root.data, "discuss.list");
+  const postsContainer = expectRecord(data.posts, "discuss.list");
+  const posts = expectArray<unknown>(
+    postsContainer.result,
+    "discuss.list.posts",
+    MAX_DISCUSSION_LIST_ITEMS,
+  ).map((post, index) =>
+    validatePost(post, `discuss.list.posts[${String(index)}]`),
+  );
+  expectFiniteNumber(root.status, "discuss.list.status");
+  expectFiniteNumber(root.time, "discuss.list.time");
+  for (const post of posts)
+    expectPositiveInteger(post.id, "discuss.list.post.id");
+  return {
+    status: root.status as number,
+    time: root.time as number,
+    data: { posts: { result: posts } },
+  };
+}
 
 async function saveForums(forums: Forum[], now: Date) {
   const deduplicatedForums = deduplicate(forums, (forum) => forum.slug);
@@ -98,7 +174,12 @@ const saveReplySnapshot = async (reply: Reply, now: Date) =>
 
     const { rowCount } = await tx
       .update(schema.ReplySnapshot)
-      .set({ lastSeenAt: now })
+      .set({
+        lastSeenAt: now,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
+      })
       .where(
         and(
           eq(schema.ReplySnapshot.replyId, reply.id),
@@ -112,6 +193,9 @@ const saveReplySnapshot = async (reply: Reply, now: Date) =>
       return tx.insert(schema.ReplySnapshot).values({
         replyId: reply.id,
         content: reply.content,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
         capturedAt: now,
         lastSeenAt: now,
       });
@@ -130,6 +214,10 @@ async function savePosts(posts: Post[], now: Date) {
         replyCount: post.replyCount,
         topped: post.topped,
         locked: post.locked,
+        public: true,
+        visibilityState: "public",
+        visibilityCheckedAt: now,
+        visibilitySource: ANONYMOUS_SOURCE,
         updatedAt: now,
       })),
     )
@@ -138,6 +226,16 @@ async function savePosts(posts: Post[], now: Date) {
       set: {
         time: sql.raw(`excluded."${schema.Post.time.name}"`),
         replyCount: sql.raw(`excluded."${schema.Post.replyCount.name}"`),
+        public: sql.raw(`excluded."${schema.Post.public.name}"`),
+        visibilityState: sql.raw(
+          `excluded."${schema.Post.visibilityState.name}"`,
+        ),
+        visibilityCheckedAt: sql.raw(
+          `excluded."${schema.Post.visibilityCheckedAt.name}"`,
+        ),
+        visibilitySource: sql.raw(
+          `excluded."${schema.Post.visibilitySource.name}"`,
+        ),
         updatedAt: sql.raw(`excluded."${schema.Post.updatedAt.name}"`),
       },
     });
@@ -158,7 +256,12 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
 
     const { rowCount } = await tx
       .update(schema.PostSnapshot)
-      .set({ lastSeenAt: now })
+      .set({
+        lastSeenAt: now,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
+      })
       .where(
         and(
           eq(schema.PostSnapshot.postId, post.id),
@@ -185,6 +288,9 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
         topped: post.topped,
         locked: post.locked,
         content: post.content,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
         pinnedReplyId: post.pinnedReply?.id ?? null,
         capturedAt: now,
         lastSeenAt: now,
@@ -192,20 +298,62 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
   });
 }
 
+async function restrictPost(id: number) {
+  await db
+    .update(schema.Post)
+    .set({
+      public: false,
+      visibilityState: "restricted",
+      visibilityCheckedAt: new Date(),
+      visibilitySource: ANONYMOUS_SOURCE,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.Post.id, id));
+}
+
 export async function fetchDiscuss(id: number, page?: number) {
-  const res = await clientLentille.get("discuss.show", {
-    params: { id },
-    query: page ? { page } : {},
-  });
-  const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res);
-  });
-  if (status === 403 || status === 404) throw new AccessError(res.url, status);
+  let response: Awaited<
+    ReturnType<
+      typeof publicLentille.getJson<
+        ReturnType<typeof validateDiscussionResponse>
+      >
+    >
+  >;
+  try {
+    response = await publicLentille.getJson(
+      "discuss.show",
+      { params: { id }, query: page ? { page } : {} },
+      {
+        endpoint: "discuss.show",
+        timeoutMs: 30_000,
+        maxBytes: MAX_DISCUSSION_RESPONSE_BYTES,
+        validate: validateDiscussionResponse,
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof HttpError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      await restrictPost(id);
+      throw new AccessError(error.url, error.status);
+    }
+    throw error;
+  }
+  const { data: envelope, url } = response;
+  const { status, data, time } = envelope;
+  if (status === 403 || status === 404) {
+    await restrictPost(id);
+    throw new AccessError(url, status);
+  }
   if (status !== 200)
-    throw new UnexpectedStatusError("Unexpected status", res.url, status);
+    throw new UnexpectedStatusError("Unexpected status", url, status);
+  if (!data)
+    throw new UnexpectedStatusError("Missing discussion data", url, status);
 
   const now = new Date(time * 1000);
-  const replies = data.replies.result as Reply[];
+  const paginatedReplyCount = data.replies.result.length;
+  const replies = data.replies.result;
   if (data.post.pinnedReply) replies.push(data.post.pinnedReply);
 
   await Promise.all([
@@ -219,44 +367,43 @@ export async function fetchDiscuss(id: number, page?: number) {
     ),
   ]);
 
+  const replySummaries: ReplySummary[] = [
+    ...replies,
+    ...(data.post.recentReply ? [data.post.recentReply] : []),
+  ];
   await saveReplies(
-    (replies as ReplySummary[])
-      .concat(data.post.recentReply ? data.post.recentReply : [])
-      .map((reply) => ({ postId: data.post.id, reply })),
+    replySummaries.map((reply) => ({ postId: data.post.id, reply })),
   );
   const [replySnapshots] = await Promise.all([
     Promise.all(replies.map((reply) => saveReplySnapshot(reply, now))),
     savePostSnapshot(data.post, now),
   ]);
 
-  const { recentReply } = data.post;
   return {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    numPages: Math.ceil(data.replies.count / data.replies.perPage!),
-    numReplies: replies.length,
-    numNewReplies: replySnapshots.filter(Boolean).length,
-    recentReply,
-    recentReplySnapshot: recentReply
-      ? await db.query.ReplySnapshot.findFirst({
-          columns: { capturedAt: true },
-          where: eq(schema.ReplySnapshot.replyId, recentReply.id),
-        })
-      : undefined,
+    numPages: Math.ceil(data.replies.count / data.replies.perPage),
+    numReplies: paginatedReplyCount,
+    numNewReplies: replySnapshots.slice(0, paginatedReplyCount).filter(Boolean)
+      .length,
   };
 }
 
 export async function listDiscuss(forum: string | null = null, page?: number) {
-  const res = await clientLentille.get("discuss.list", {
-    query: { ...(forum ? { forum } : {}), ...(page ? { page } : {}) },
-  });
-  const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res);
-  });
+  const { data: envelope, url } = await publicLentille.getJson(
+    "discuss.list",
+    { query: { ...(forum ? { forum } : {}), ...(page ? { page } : {}) } },
+    {
+      endpoint: "discuss.list",
+      timeoutMs: 20_000,
+      maxBytes: MAX_DISCUSSION_LIST_BYTES,
+      validate: validateDiscussionListResponse,
+    },
+  );
+  const { status, data, time } = envelope;
   if (status !== 200)
-    throw new UnexpectedStatusError("Unexpected status", res.url, status);
+    throw new UnexpectedStatusError("Unexpected status", url, status);
 
   const now = new Date(time * 1000);
-  const posts = data.posts.result as Post[];
+  const posts = data.posts.result;
   await Promise.all([
     saveForums(
       posts.map((post) => post.forum),

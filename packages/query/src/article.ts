@@ -14,19 +14,36 @@ import {
   sql,
 } from "@luogu-discussion-archive/db";
 
-import type { ArticleDto } from "./dto.js";
+import type { ArticleEntryPreviewDto } from "./dto.js";
 import { getLuoguAvatar } from "./user-profile.js";
+import {
+  publicArticleCondition,
+  verifiedArticleReplyCondition,
+  verifiedArticleSnapshotCondition,
+} from "./visibility.js";
+
+async function isArticlePublic(lid: string) {
+  const [article] = await db
+    .select({ lid: schema.Article.lid })
+    .from(schema.Article)
+    .where(and(eq(schema.Article.lid, lid), publicArticleCondition()))
+    .limit(1);
+  return Boolean(article);
+}
 
 export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
   const article = await db.query.Article.findFirst({
-    where: eq(schema.Article.lid, lid),
+    where: and(eq(schema.Article.lid, lid), publicArticleCondition()),
     with: {
       snapshots: {
         orderBy: desc(schema.ArticleSnapshot.capturedAt),
         limit: 1,
-        ...(capturedAt
-          ? { where: eq(schema.ArticleSnapshot.capturedAt, capturedAt) }
-          : {}),
+        where: capturedAt
+          ? and(
+              eq(schema.ArticleSnapshot.capturedAt, capturedAt),
+              verifiedArticleSnapshotCondition(),
+            )
+          : verifiedArticleSnapshotCondition(),
         with: {
           solutionFor: {
             columns: {
@@ -54,21 +71,38 @@ export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
     },
   });
 
-  if (!article) throw new Error("Article not found");
+  if (!article?.snapshots[0] || !article.author.snapshots[0]) {
+    return null;
+  }
 
   const [replyCountRow] = await db
     .select({ total: count() })
     .from(schema.ArticleReply)
-    .where(eq(schema.ArticleReply.articleId, lid));
+    .where(
+      and(
+        eq(schema.ArticleReply.articleId, lid),
+        verifiedArticleReplyCondition(),
+      ),
+    );
   const [snapshotCountRow] = await db
     .select({ total: count() })
     .from(schema.ArticleSnapshot)
-    .where(eq(schema.ArticleSnapshot.articleId, lid));
+    .where(
+      and(
+        eq(schema.ArticleSnapshot.articleId, lid),
+        verifiedArticleSnapshotCondition(),
+      ),
+    );
 
   const [participantRow] = await db
     .select({ participants: countDistinct(schema.ArticleReply.authorId) })
     .from(schema.ArticleReply)
-    .where(eq(schema.ArticleReply.articleId, lid));
+    .where(
+      and(
+        eq(schema.ArticleReply.articleId, lid),
+        verifiedArticleReplyCondition(),
+      ),
+    );
 
   const articleAuthorId = article.authorId;
   const [authorReplyRow] = articleAuthorId
@@ -79,6 +113,7 @@ export async function getArticleWithSnapshot(lid: string, capturedAt?: Date) {
           and(
             eq(schema.ArticleReply.articleId, lid),
             eq(schema.ArticleReply.authorId, articleAuthorId),
+            verifiedArticleReplyCondition(),
           ),
         )
     : [{ total: 0 }];
@@ -103,15 +138,20 @@ export async function getArticleBasicInfo(lid: string) {
       authorId: schema.Article.authorId,
     })
     .from(schema.Article)
-    .where(eq(schema.Article.lid, lid))
+    .where(and(eq(schema.Article.lid, lid), publicArticleCondition()))
     .limit(1);
 
-  if (!article) throw new Error("Article not found");
+  if (!article) return null;
 
   const [replyCountRow] = await db
     .select({ total: count() })
     .from(schema.ArticleReply)
-    .where(eq(schema.ArticleReply.articleId, lid));
+    .where(
+      and(
+        eq(schema.ArticleReply.articleId, lid),
+        verifiedArticleReplyCondition(),
+      ),
+    );
 
   return {
     ...article,
@@ -139,12 +179,17 @@ export async function getArticleComments(
     skip: 0,
   },
 ) {
+  if (!(await isArticlePublic(articleId))) return [];
+
   const orderExpressions =
     orderBy === "time_asc"
       ? [asc(schema.ArticleReply.time), asc(schema.ArticleReply.id)]
       : [desc(schema.ArticleReply.time), desc(schema.ArticleReply.id)];
 
-  let whereClause = eq(schema.ArticleReply.articleId, articleId);
+  let whereClause = and(
+    eq(schema.ArticleReply.articleId, articleId),
+    verifiedArticleReplyCondition(),
+  );
 
   if (takeAfterComment !== undefined) {
     const [cursorRow] = await db
@@ -153,7 +198,12 @@ export async function getArticleComments(
         time: schema.ArticleReply.time,
       })
       .from(schema.ArticleReply)
-      .where(eq(schema.ArticleReply.id, takeAfterComment))
+      .where(
+        and(
+          eq(schema.ArticleReply.id, takeAfterComment),
+          verifiedArticleReplyCondition(),
+        ),
+      )
       .limit(1);
 
     if (!cursorRow) {
@@ -204,8 +254,23 @@ export async function getArticleComments(
 }
 
 export async function getArticleComment(commentId: number) {
-  return db.query.ArticleReply.findFirst({
-    where: eq(schema.ArticleReply.id, commentId),
+  const [parent] = await db
+    .select({ articleId: schema.ArticleReply.articleId })
+    .from(schema.ArticleReply)
+    .where(
+      and(
+        eq(schema.ArticleReply.id, commentId),
+        verifiedArticleReplyCondition(),
+      ),
+    )
+    .limit(1);
+  if (!parent || !(await isArticlePublic(parent.articleId))) return null;
+
+  const comment = await db.query.ArticleReply.findFirst({
+    where: and(
+      eq(schema.ArticleReply.id, commentId),
+      verifiedArticleReplyCondition(),
+    ),
     with: {
       author: {
         with: {
@@ -217,6 +282,8 @@ export async function getArticleComment(commentId: number) {
       },
     },
   });
+  if (!comment) return null;
+  return comment;
 }
 
 type ArticleSnapshotChangedField =
@@ -262,14 +329,20 @@ export async function getArticleSnapshotsTimeline(
   items: ArticleSnapshotTimelineResult[];
   hasMore: boolean;
   nextCursor: Date | null;
-}> {
+} | null> {
+  if (!(await isArticlePublic(articleId))) return null;
+
   const snapshots = await db.query.ArticleSnapshot.findMany({
     where: cursorCapturedAt
       ? and(
           eq(schema.ArticleSnapshot.articleId, articleId),
           lt(schema.ArticleSnapshot.capturedAt, cursorCapturedAt),
+          verifiedArticleSnapshotCondition(),
         )
-      : eq(schema.ArticleSnapshot.articleId, articleId),
+      : and(
+          eq(schema.ArticleSnapshot.articleId, articleId),
+          verifiedArticleSnapshotCondition(),
+        ),
     orderBy: desc(schema.ArticleSnapshot.capturedAt),
     limit: take + 1,
     with: {
@@ -373,24 +446,67 @@ export async function getArticleSnapshotsTimeline(
   };
 }
 
-export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
+export async function getArticleEntries(
+  ids: string[],
+): Promise<ArticleEntryPreviewDto[]> {
+  if (ids.length === 0) return [];
+
   const articles = await db.query.Article.findMany({
-    where: inArray(schema.Article.lid, ids),
+    where: and(inArray(schema.Article.lid, ids), publicArticleCondition()),
     with: {
       author: {
         with: {
           snapshots: {
+            columns: {
+              name: false,
+              badge: false,
+              color: true,
+              ccfLevel: true,
+              xcpcLevel: true,
+            },
+            extras: {
+              name: sql<string>`left(${schema.UserSnapshot.name}, 128)`.as(
+                "entry_user_name",
+              ),
+              badge: sql<
+                string | null
+              >`left(${schema.UserSnapshot.badge}, 128)`.as("entry_user_badge"),
+            },
             orderBy: desc(schema.UserSnapshot.capturedAt),
             limit: 1,
           },
         },
       },
       snapshots: {
+        where: verifiedArticleSnapshotCondition(),
+        columns: {
+          content: false,
+          title: false,
+          adminNote: false,
+          exposureState: false,
+          verifiedPublicAt: false,
+          verifiedSource: false,
+        },
+        extras: {
+          title: sql<string>`left(${schema.ArticleSnapshot.title}, 512)`.as(
+            "entry_title",
+          ),
+          preview: sql<string>`left(${schema.ArticleSnapshot.content}, 512)`.as(
+            "entry_preview",
+          ),
+        },
         orderBy: desc(schema.ArticleSnapshot.capturedAt),
         limit: 1,
         with: { collection: true },
       },
-      copra: true,
+      copra: {
+        columns: { summary: false, tags: false },
+        extras: {
+          summary: sql<
+            string | null
+          >`left(${schema.ArticleCopra.summary}, 512)`.as("entry_summary"),
+        },
+      },
     },
     extras: {
       savedReplyCount: db
@@ -425,20 +541,24 @@ export async function getArticleEntries(ids: string[]): Promise<ArticleDto[]> {
         title: snapshot.title,
         time: article.time.getTime() / 1000,
         author: {
-          ...authorSnapshot,
-          uid: authorSnapshot.userId,
+          name: authorSnapshot.name,
+          badge: authorSnapshot.badge,
+          color: authorSnapshot.color,
+          ccfLevel: authorSnapshot.ccfLevel,
+          xcpcLevel: authorSnapshot.xcpcLevel,
+          uid: article.authorId,
           avatar: getLuoguAvatar(article.authorId),
         },
         upvote: article.upvote,
         replyCount: article.replyCount,
         favorCount: article.favorCount,
         category: snapshot.category,
-        content: snapshot.content,
+        preview: snapshot.preview,
 
         savedReplyCount: article.savedReplyCount,
         snapshotCount: article.snapshotCount,
         summary: article.copra[0]?.summary ?? null,
-        tags: (article.copra[0]?.tags as string[] | null) ?? null,
+        tags: null,
       })),
     ),
   );

@@ -32,7 +32,7 @@ export function FeedCard({
         typeof item.category === "number"
           ? getCategoryInfo(item.category).name
           : null;
-      const rawContent = item.content?.trim() || "";
+      const rawContent = item.preview?.trim() || "";
       const plainContent =
         rawContent.length > 0 ? renderMarkdownToPlainText(rawContent) : "";
       const summary = item.summary?.trim() || "";
@@ -62,7 +62,7 @@ export function FeedCard({
       );
     }
     case "discussion": {
-      const rawContent = item.content?.trim() || "";
+      const rawContent = item.preview?.trim() || "";
       const plainContent =
         rawContent.length > 0 ? renderMarkdownToPlainText(rawContent) : "";
       return (

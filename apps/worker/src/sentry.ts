@@ -1,10 +1,30 @@
 import * as Sentry from "@sentry/node";
 
+const DISABLED_INTEGRATIONS = new Set([
+  "Console",
+  "Http",
+  "LocalVariables",
+  "NodeFetch",
+  "OnUncaughtException",
+  "OnUnhandledRejection",
+  "Pino",
+  "RequestData",
+]);
+
 Sentry.init({
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  dsn: process.env.SENTRY_DSN!,
-  sendDefaultPii: true,
-  integrations: [Sentry.pinoIntegration()],
+  ...(process.env.SENTRY_DSN ? { dsn: process.env.SENTRY_DSN } : {}),
+  enabled: Boolean(process.env.SENTRY_DSN),
+  sendDefaultPii: false,
+  integrations: (integrations) =>
+    integrations.filter(
+      (integration) => !DISABLED_INTEGRATIONS.has(integration.name),
+    ),
+  beforeSend(event) {
+    delete event.request;
+    delete event.user;
+    delete event.breadcrumbs;
+    return event;
+  },
   tracesSampler: ({ inheritOrSampleWith, name }) => {
     if (name === "listDiscuss" || name === "listArticles") return 0.1;
 
@@ -15,5 +35,5 @@ Sentry.init({
 
     return inheritOrSampleWith(0.2);
   },
-  enableLogs: true,
+  enableLogs: false,
 });

@@ -10,6 +10,12 @@
 
 import { visit } from "unist-util-visit";
 
+import {
+  MARKDOWN_SECURITY_LIMITS,
+  parseHighlightRanges,
+  utf8ByteLengthExceeds,
+} from "./security-limits.js";
+
 /**
  * @typedef {import('mdast').Root} Root
  * @typedef {import('mdast').Code} Code
@@ -25,46 +31,34 @@ import { visit } from "unist-util-visit";
  *   ranges: { start: number, end: number }[]
  * }}
  */
-function parseMeta(meta) {
+function parseMeta(meta, actualLineCount) {
   const result = {
     lineNumbers: false,
     rawLinesSpec: null,
     ranges: [],
   };
 
-  if (!meta || typeof meta !== "string") return result;
+  if (
+    !meta ||
+    typeof meta !== "string" ||
+    meta.length > MARKDOWN_SECURITY_LIMITS.maxHighlightSpecLength
+  )
+    return result;
 
-  const tokens = meta.split(/\s+/).filter(Boolean);
-  for (const token of tokens) {
-    if (token === "line-numbers" || token === "line_numbers") {
-      result.lineNumbers = true;
-      continue;
-    }
+  result.lineNumbers = /(?:^|\s)line[-_]numbers(?:\s|$)/.test(meta);
+  const match = /(?:^|\s)lines=([^\s]+)/.exec(meta);
+  if (!match?.[1]) return result;
 
-    const m = /^lines=(.+)$/.exec(token);
-    if (m) {
-      const spec = m[1].trim();
-      if (!spec) continue;
-      result.rawLinesSpec = spec;
-
-      const parts = spec
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      for (const part of parts) {
-        const mm = /^(\d+)(?:-(\d+))?$/.exec(part);
-        if (!mm) continue;
-        const start = parseInt(mm[1], 10);
-        const end = mm[2] ? parseInt(mm[2], 10) : start;
-        if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
-        if (start <= 0 || end <= 0) continue;
-        result.ranges.push({
-          start: Math.min(start, end),
-          end: Math.max(start, end),
-        });
-      }
-    }
-  }
+  const ranges = parseHighlightRanges(match[1], actualLineCount);
+  if (ranges.length === 0) return result;
+  result.ranges = ranges;
+  result.rawLinesSpec = ranges
+    .map((range) =>
+      range.start === range.end
+        ? String(range.start)
+        : `${String(range.start)}-${String(range.end)}`,
+    )
+    .join(",");
 
   return result;
 }
@@ -92,18 +86,41 @@ function applyLangDefault(node) {
  * @param {Code} node
  */
 function applyCodeMeta(node) {
-  if (!node.meta) return;
-
-  const info = parseMeta(node.meta);
-  const hasHighlight = info.rawLinesSpec != null || info.lineNumbers;
-  if (!hasHighlight) return;
-
   /** @type {any} */
   const anyNode = node;
-
   if (!anyNode.data) anyNode.data = {};
   if (!anyNode.data.hProperties) anyNode.data.hProperties = {};
   const props = anyNode.data.hProperties;
+
+  if (
+    utf8ByteLengthExceeds(
+      node.value,
+      MARKDOWN_SECURITY_LIMITS.maxCodeBlockBytes,
+    )
+  ) {
+    node.value = `${node.value.slice(
+      0,
+      MARKDOWN_SECURITY_LIMITS.maxCodeBlockPreviewChars,
+    )}\n\n[代码块过大，已停止高亮并截断渲染预览]`;
+    node.meta = null;
+    props["data-ls-code-truncated"] = true;
+    return;
+  }
+
+  if (!node.meta) return;
+
+  let actualLineCount = 1;
+  for (let index = 0; index < node.value.length; index += 1) {
+    if (node.value.charCodeAt(index) === 10) actualLineCount += 1;
+  }
+  if (actualLineCount > MARKDOWN_SECURITY_LIMITS.maxCodeBlockLines) {
+    props["data-ls-line-numbers-disabled"] = true;
+    return;
+  }
+
+  const info = parseMeta(node.meta, actualLineCount);
+  const hasHighlight = info.rawLinesSpec != null || info.lineNumbers;
+  if (!hasHighlight) return;
 
   if (info.lineNumbers) {
     // 两套属性，方便前端/高亮器对接

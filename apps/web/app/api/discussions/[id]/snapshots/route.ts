@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 
 import { getPostSnapshotsTimeline } from "@luogu-discussion-archive/query";
 
+import {
+  parseBase36Millis,
+  parseBoundedLimit,
+  parsePositiveDecimal,
+  requestInputIsTooLarge,
+} from "@/lib/request-validation";
+
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
@@ -10,9 +17,12 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const postId = Number.parseInt(id, 10);
+  const postId = parsePositiveDecimal(id);
 
-  if (Number.isNaN(postId) || postId <= 0) {
+  if (requestInputIsTooLarge(request)) {
+    return NextResponse.json({ error: "Request too large" }, { status: 413 });
+  }
+  if (postId === null) {
     return NextResponse.json(
       { error: "Invalid discussion id" },
       { status: 400 },
@@ -23,22 +33,17 @@ export async function GET(
   const limitParam = url.searchParams.get("limit");
   const cursorParam = url.searchParams.get("cursor");
 
-  let take = DEFAULT_LIMIT;
-  if (limitParam) {
-    const parsed = Number.parseInt(limitParam, 10);
-    if (Number.isNaN(parsed) || parsed <= 0) {
-      return NextResponse.json({ error: "Invalid limit" }, { status: 400 });
-    }
-    take = Math.min(parsed, MAX_LIMIT);
-  }
+  const take = parseBoundedLimit(limitParam, DEFAULT_LIMIT, MAX_LIMIT);
+  if (take === null)
+    return NextResponse.json({ error: "Invalid limit" }, { status: 400 });
 
   let cursorCapturedAt: Date | undefined;
   if (cursorParam) {
-    const capturedAtMillis = Number.parseInt(cursorParam, 36);
-    if (Number.isNaN(capturedAtMillis) || capturedAtMillis <= 0) {
+    const parsed = parseBase36Millis(cursorParam);
+    if (!parsed) {
       return NextResponse.json({ error: "Invalid cursor" }, { status: 400 });
     }
-    cursorCapturedAt = new Date(capturedAtMillis);
+    cursorCapturedAt = parsed;
   }
 
   try {
@@ -46,6 +51,12 @@ export async function GET(
       cursorCapturedAt,
       take,
     });
+    if (!timeline) {
+      return NextResponse.json(
+        { error: "Discussion not found" },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json({
       items: timeline.items.map((item) => ({
@@ -72,8 +83,7 @@ export async function GET(
         ? timeline.nextCursor.getTime().toString(36)
         : null,
     });
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to load snapshot timeline" },
       { status: 500 },

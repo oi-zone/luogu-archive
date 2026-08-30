@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import { Reply, SquareArrowOutUpRight, SquareCheckBig } from "lucide-react";
 
@@ -8,9 +7,7 @@ import type { OstrakonStat } from "@luogu-discussion-archive/query";
 
 import { useClipboard } from "@/hooks/use-clipboard";
 import { Button } from "@/components/ui/button";
-import { QueueJobButton } from "@/components/operation-panel/queue-job-button";
 import StatRow from "@/components/operation-panel/stat-row";
-import { enqueueJudgementRefresh } from "@/server-actions/queue-jobs";
 
 export default function OperationPanel({
   stat,
@@ -22,7 +19,6 @@ export default function OperationPanel({
   const { copy: copyLink, copied: copiedLink } = useClipboard();
   const originalLink = "https://www.luogu.com.cn/judgement";
   const archiveLink = "https://luogu.store/judgement";
-  const triggerRefresh = React.useCallback(() => enqueueJudgementRefresh(), []);
 
   return (
     <div className={className}>
@@ -51,7 +47,6 @@ export default function OperationPanel({
             <Reply className="size-4" aria-hidden="true" /> 查看原页面
           </Link>
         </Button>
-        <QueueJobButton onTrigger={triggerRefresh} idleText="更新陶片放逐" />
         <Button
           variant="outline"
           className="cursor-pointer justify-start gap-2 rounded-2xl py-2"

@@ -12,6 +12,12 @@ type CommentCollectionResult<T> = {
   clear: () => void;
 };
 
+const MAX_COMMENT_COLLECTION_ITEMS = 500;
+
+function rebuildIdSet(items: CommentCardProps[]) {
+  return new Set(items.map((entry) => entry.comment.id));
+}
+
 // Maintains a deduplicated comment list mapped from DTO entries.
 export function useCommentCollection<T>(
   mapToComment: Mapper<T>,
@@ -27,8 +33,10 @@ export function useCommentCollection<T>(
         return;
       }
 
-      const mapped = entries.map(mapToComment);
-      idSetRef.current = new Set(mapped.map((entry) => entry.comment.id));
+      const mapped = entries
+        .map(mapToComment)
+        .slice(0, MAX_COMMENT_COLLECTION_ITEMS);
+      idSetRef.current = rebuildIdSet(mapped);
       setItems(mapped);
     },
     [mapToComment],
@@ -41,9 +49,11 @@ export function useCommentCollection<T>(
 
       setItems((prev) => {
         if (prev.length === 0) {
-          const mapped = entries.map(mapToComment);
+          const mapped = entries
+            .map(mapToComment)
+            .slice(-MAX_COMMENT_COLLECTION_ITEMS);
           appendedCount = mapped.length;
-          idSetRef.current = new Set(mapped.map((entry) => entry.comment.id));
+          idSetRef.current = rebuildIdSet(mapped);
           return mapped;
         }
 
@@ -61,8 +71,9 @@ export function useCommentCollection<T>(
         });
 
         if (appendedCount > 0) {
-          idSetRef.current = existingIds;
-          return next;
+          const bounded = next.slice(-MAX_COMMENT_COLLECTION_ITEMS);
+          idSetRef.current = rebuildIdSet(bounded);
+          return bounded;
         }
 
         return prev;
@@ -80,9 +91,11 @@ export function useCommentCollection<T>(
 
       setItems((prev) => {
         if (prev.length === 0) {
-          const mapped = entries.map(mapToComment);
+          const mapped = entries
+            .map(mapToComment)
+            .slice(0, MAX_COMMENT_COLLECTION_ITEMS);
           appendedCount = mapped.length;
-          idSetRef.current = new Set(mapped.map((entry) => entry.comment.id));
+          idSetRef.current = rebuildIdSet(mapped);
           return mapped;
         }
 
@@ -104,8 +117,12 @@ export function useCommentCollection<T>(
         }
 
         appendedCount = head.length;
-        idSetRef.current = existingIds;
-        return [...head, ...prev];
+        const bounded = [...head, ...prev].slice(
+          0,
+          MAX_COMMENT_COLLECTION_ITEMS,
+        );
+        idSetRef.current = rebuildIdSet(bounded);
+        return bounded;
       });
 
       return appendedCount;

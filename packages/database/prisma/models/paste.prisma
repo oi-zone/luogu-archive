@@ -1,12 +1,20 @@
 model Paste {
-  id   String   @id @db.Char(8)
-  time DateTime @db.Timestamp(0)
+  id     String   @id @db.Char(8)
+  time   DateTime @db.Timestamp(0)
+  public Boolean  @default(false)
+
+  visibilityState     String    @default("unverified")
+  visibilityCheckedAt DateTime?
+  visibilitySource    String?
+  visibilityVersion   Int       @default(1)
 
   user      User            @relation(fields: [userId], references: [id])
   userId    Int
   snapshots PasteSnapshot[]
 
   @@index([userId])
+  @@index([public, time(sort: Desc)])
+  @@index([visibilityCheckedAt, id], map: "Paste_visibility_revalidation_idx")
 }
 
 model PasteSnapshot {
@@ -15,6 +23,10 @@ model PasteSnapshot {
 
   public Boolean
   data   String?
+
+  exposureState    String    @default("unverified")
+  verifiedPublicAt DateTime?
+  verifiedSource   String?
 
   capturedAt DateTime @db.Timestamp(0)
   lastSeenAt DateTime @db.Timestamp(0)

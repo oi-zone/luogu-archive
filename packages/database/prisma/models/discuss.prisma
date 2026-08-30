@@ -2,6 +2,12 @@ model Post {
   id         Int      @id
   time       DateTime @db.Timestamp(0)
   replyCount Int
+  public     Boolean  @default(false)
+
+  visibilityState     String    @default("unverified")
+  visibilityCheckedAt DateTime?
+  visibilitySource    String?
+  visibilityVersion   Int       @default(1)
 
   updatedAt DateTime
 
@@ -12,6 +18,8 @@ model Post {
 
   @@index([time])
   @@index([replyCount(sort: Desc)])
+  @@index([public, updatedAt(sort: Desc)])
+  @@index([visibilityCheckedAt, id], map: "Post_visibility_revalidation_idx")
 }
 
 model PostSnapshot {
@@ -29,6 +37,10 @@ model PostSnapshot {
 
   content String @db.Text
 
+  exposureState    String    @default("unverified")
+  verifiedPublicAt DateTime?
+  verifiedSource   String?
+
   pinnedReply   Reply? @relation(fields: [pinnedReplyId], references: [id])
   pinnedReplyId Int?
 
@@ -39,6 +51,7 @@ model PostSnapshot {
   @@index([postId])
   @@index([authorId])
   @@index([postId, capturedAt(sort: Desc)])
+  @@index([postId, exposureState, capturedAt(sort: Desc)], map: "PostSnapshot_exposure_idx")
 }
 
 model PostTakedown {
@@ -78,12 +91,17 @@ model ReplySnapshot {
 
   content String @db.Text
 
+  exposureState    String    @default("unverified")
+  verifiedPublicAt DateTime?
+  verifiedSource   String?
+
   capturedAt DateTime
   lastSeenAt DateTime
 
   @@id([replyId, capturedAt])
   @@index([replyId])
   @@index([replyId, capturedAt(sort: Desc)])
+  @@index([replyId, exposureState, capturedAt(sort: Desc)], map: "ReplySnapshot_exposure_idx")
 }
 
 model ReplyTakedown {

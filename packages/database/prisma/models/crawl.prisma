@@ -1,0 +1,36 @@
+model CrawlCursor {
+  entityType String
+  entityId   String
+  direction  String @default("older")
+
+  nextCursor     String?
+  status         String
+  pagesProcessed Int     @default(0)
+
+  version     Int       @default(1)
+  claimedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+  lastError   String?   @db.Text
+
+  @@id([entityType, entityId])
+  @@index([status, updatedAt])
+}
+
+model VisibilityScanState {
+  entityType String  @id
+  afterId    String?
+  cycle      Int     @default(1)
+
+  lastCompletedAt DateTime?
+  updatedAt       DateTime  @updatedAt
+}
+
+model BackfillResumeState {
+  name String @id
+
+  afterUpdatedAt  DateTime?
+  afterEntityType String?
+  afterEntityId   String?
+  updatedAt       DateTime  @updatedAt
+}

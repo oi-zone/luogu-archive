@@ -5,6 +5,8 @@
  * - :::cute-table{tuack} / ::cute-table{tuack}：为下一张表格标记「Tuack 风格」。
  */
 
+import { MARKDOWN_SECURITY_LIMITS } from "./security-limits.js";
+
 /**
  * @typedef {import('mdast').Root} Root
  * @typedef {import('mdast').Parent} Parent
@@ -330,6 +332,16 @@ function applyTableMerges(table) {
   }
 }
 
+/** @param {Table} table */
+function tableExceedsLimits(table) {
+  const rows = table.children || [];
+  if (rows.length > MARKDOWN_SECURITY_LIMITS.maxTableRows) return true;
+  return rows.some(
+    (row) =>
+      (row.children || []).length > MARKDOWN_SECURITY_LIMITS.maxTableColumns,
+  );
+}
+
 /**
  * 在整个树上处理：
  * - cutetable directive（::cute-table{...}）
@@ -389,6 +401,19 @@ function transformInParent(parent) {
 
     // 2. 表格合并
     if (node && node.type === "table") {
+      if (tableExceedsLimits(/** @type {Table} */ (node))) {
+        children[index] = {
+          type: "paragraph",
+          children: [
+            {
+              type: "text",
+              value: "[表格过大，已停止富文本渲染]",
+            },
+          ],
+        };
+        index += 1;
+        continue;
+      }
       applyTableMerges(/** @type {Table} */ (node));
     }
 

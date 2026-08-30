@@ -76,6 +76,7 @@ import { visit } from "unist-util-visit";
 import { transformLuoguCode } from "./luogu-code.js";
 import { transformLuoguDirectives } from "./luogu-directives.js";
 import { transformLuoguTables } from "./luogu-tables.js";
+import { MARKDOWN_SECURITY_LIMITS } from "./security-limits.js";
 
 const mentionRegexes = [
   /^luogu:\/\/user\/(\d+)$/,
@@ -224,6 +225,14 @@ export default function remarkLuoguFlavor(options) {
    *   Nothing.
    */
   return (tree, file) => {
+    let enhancedNodeCount = 0;
+    const consumeEnhancedNodeBudget = () => {
+      if (enhancedNodeCount >= MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+        return false;
+      }
+      enhancedNodeCount += 1;
+      return true;
+    };
     transformLuoguDirectives(tree, self, file);
     transformLuoguCode(tree, self, file);
     transformLuoguTables(tree, self, file);
@@ -240,6 +249,7 @@ export default function remarkLuoguFlavor(options) {
         ) {
           const match = captureFromFirstMatch(mentionRegexes, child.url);
           if (!match) return;
+          if (!consumeEnhancedNodeBudget()) return;
           /** @type {import("mdast").UserMention} */
           const newNode = {
             type: "userMention",
@@ -266,6 +276,21 @@ export default function remarkLuoguFlavor(options) {
         if (child.type === "image" && child.url.startsWith("bilibili:")) {
           let videoId = child.url.replace("bilibili:", "");
           if (videoId.match(/^[0-9]/)) videoId = "av" + videoId;
+          if (!/^[A-Za-z0-9]{1,32}$/.test(videoId)) {
+            childNode[index] = {
+              type: "text",
+              value: "[无效视频链接]",
+            };
+            return;
+          }
+          if (!consumeEnhancedNodeBudget()) {
+            childNode[index] = {
+              type: "link",
+              url: `https://www.bilibili.com/video/${videoId}`,
+              children: [{ type: "text", value: `Bilibili ${videoId}` }],
+            };
+            return;
+          }
           /** @type {import("mdast").BilibiliVideo} */
           const newNode = {
             type: "bilibiliVideo",
@@ -288,12 +313,29 @@ export default function remarkLuoguFlavor(options) {
     });
     visit(tree, "link", (node) => {
       try {
+        const linkText = toString(node);
+        if (
+          node.url.length > MARKDOWN_SECURITY_LIMITS.maxLinkUrlLength ||
+          linkText.length > MARKDOWN_SECURITY_LIMITS.maxLinkLabelLength
+        ) {
+          node.url = "#";
+          node.children = [
+            {
+              type: "text",
+              value: `${linkText.slice(
+                0,
+                MARKDOWN_SECURITY_LIMITS.maxLinkLabelLength,
+              )}…`,
+            },
+          ];
+          return;
+        }
+
         const newUrl = new URL(node.url, linkOriginalUrl).href;
         let match;
         const hProperties = (node.data ||= {}).hProperties || {};
         node.data.hProperties = hProperties;
 
-        const linkText = toString(node);
         if (linkText) {
           hProperties["data-ls-link-text"] = linkText;
         }
@@ -308,36 +350,49 @@ export default function remarkLuoguFlavor(options) {
             node.position.start.offset,
             node.position.end.offset,
           );
-          hProperties["data-ls-link-source"] = raw;
+          hProperties["data-ls-link-source"] = raw.slice(
+            0,
+            MARKDOWN_SECURITY_LIMITS.maxLinkSourceLength,
+          );
         }
 
         match = captureFromFirstMatch(discussionRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-discuss"] = match[1];
+          if (consumeEnhancedNodeBudget()) {
+            hProperties["data-ls-discuss"] = match[1];
+          }
           return;
         }
 
         match = captureFromFirstMatch(articleRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-article"] = match[1];
+          if (consumeEnhancedNodeBudget()) {
+            hProperties["data-ls-article"] = match[1];
+          }
           return;
         }
 
         match = captureFromFirstMatch(userRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-user"] = match[1];
+          if (consumeEnhancedNodeBudget()) {
+            hProperties["data-ls-user"] = match[1];
+          }
           return;
         }
 
         match = captureFromFirstMatch(pasteRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-paste"] = match[1];
+          if (consumeEnhancedNodeBudget()) {
+            hProperties["data-ls-paste"] = match[1];
+          }
           return;
         }
 
         match = captureFromFirstMatch(problemRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-problem"] = match[1];
+          if (consumeEnhancedNodeBudget()) {
+            hProperties["data-ls-problem"] = match[1];
+          }
           return;
         }
 

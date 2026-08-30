@@ -459,7 +459,11 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
                 time={new Date(entry.data.time * 1000)}
                 metaTags={categoryName ? [categoryName] : undefined}
                 title={entry.data.title}
-                content={entry.data.summary?.trim() || undefined}
+                content={
+                  entry.data.summary?.trim() ||
+                  entry.data.preview.trim() ||
+                  undefined
+                }
                 tags={entry.data.tags?.length ? entry.data.tags : undefined}
                 metrics={[
                   {
@@ -517,7 +521,9 @@ export default function MarkdownLink(props: MarkdownLinkProps) {
                 kind="paste"
                 time={new Date(entry.data.time * 1000)}
                 title={`云剪贴板\u2009${entry.id}`}
-                content={entry.data.data.slice(0, 140).trim() || "（空剪贴板）"}
+                content={
+                  entry.data.preview.slice(0, 140).trim() || "（空剪贴板）"
+                }
                 contentMaxLines={7}
                 user={{ ...entry.data.user, id: entry.data.user.uid }}
               />

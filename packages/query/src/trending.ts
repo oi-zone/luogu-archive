@@ -1,7 +1,37 @@
-import { desc, eq, gt, sql, sum } from "drizzle-orm";
+import { and, desc, eq, exists, gt, notExists, sql, sum } from "drizzle-orm";
 import { unionAll, type PgColumn } from "drizzle-orm/pg-core";
 
 import { db, schema } from "@luogu-discussion-archive/db";
+
+import {
+  publicArticleCondition,
+  publicPostCondition,
+  verifiedArticleReplyCondition,
+  verifiedPostSnapshotCondition,
+  verifiedReplySnapshotCondition,
+} from "./visibility.js";
+
+function visibleReplyActivityCondition() {
+  return and(
+    notExists(
+      db
+        .select({ replyId: schema.ReplyTakedown.replyId })
+        .from(schema.ReplyTakedown)
+        .where(eq(schema.ReplyTakedown.replyId, schema.Reply.id)),
+    ),
+    exists(
+      db
+        .select({ replyId: schema.ReplySnapshot.replyId })
+        .from(schema.ReplySnapshot)
+        .where(
+          and(
+            eq(schema.ReplySnapshot.replyId, schema.Reply.id),
+            verifiedReplySnapshotCondition(),
+          ),
+        ),
+    ),
+  );
+}
 
 const DEFAULT_LIMIT = 30;
 
@@ -32,7 +62,12 @@ export const getHotEntries = async (limit = DEFAULT_LIMIT) =>
         rank: calculateRankSql(schema.Post),
       })
       .from(schema.Post)
-      .where(gt(schema.Post.time, sql`now() - ${HOT_DEFAULT_INTERVAL}`)),
+      .where(
+        and(
+          publicPostCondition(),
+          gt(schema.Post.time, sql`now() - ${HOT_DEFAULT_INTERVAL}`),
+        ),
+      ),
 
     db
       .select({
@@ -44,7 +79,12 @@ export const getHotEntries = async (limit = DEFAULT_LIMIT) =>
         ),
       })
       .from(schema.Article)
-      .where(gt(schema.Article.time, sql`now() - ${HOT_DEFAULT_INTERVAL}`)),
+      .where(
+        and(
+          publicArticleCondition(),
+          gt(schema.Article.time, sql`now() - ${HOT_DEFAULT_INTERVAL}`),
+        ),
+      ),
   )
     .orderBy(({ rank }) => desc(rank))
     .limit(limit);
@@ -65,7 +105,14 @@ export const getActiveEntries = async (limit = DEFAULT_LIMIT) =>
         score: calculateActivityScoreSql(schema.Reply.time),
       })
       .from(schema.Reply)
-      .where(gt(schema.Reply.time, sql`now() - interval '15 days'`))
+      .innerJoin(schema.Post, eq(schema.Reply.postId, schema.Post.id))
+      .where(
+        and(
+          publicPostCondition(),
+          visibleReplyActivityCondition(),
+          gt(schema.Reply.time, sql`now() - interval '15 days'`),
+        ),
+      )
       .groupBy(schema.Reply.postId),
 
     db
@@ -75,7 +122,17 @@ export const getActiveEntries = async (limit = DEFAULT_LIMIT) =>
         score: calculateActivityScoreSql(schema.ArticleReply.time),
       })
       .from(schema.ArticleReply)
-      .where(gt(schema.ArticleReply.time, sql`now() - interval '15 days'`))
+      .innerJoin(
+        schema.Article,
+        eq(schema.ArticleReply.articleId, schema.Article.lid),
+      )
+      .where(
+        and(
+          publicArticleCondition(),
+          verifiedArticleReplyCondition(),
+          gt(schema.ArticleReply.time, sql`now() - interval '15 days'`),
+        ),
+      )
       .groupBy(schema.ArticleReply.articleId),
   )
     .orderBy(({ score }) => desc(score))
@@ -93,7 +150,13 @@ export async function getActiveUsers(limit = DEFAULT_LIMIT) {
         schema.PostSnapshot,
         eq(schema.Post.id, schema.PostSnapshot.postId),
       )
-      .where(gt(schema.Post.time, sql`now() - interval '20 days'`))
+      .where(
+        and(
+          publicPostCondition(),
+          verifiedPostSnapshotCondition(),
+          gt(schema.Post.time, sql`now() - interval '20 days'`),
+        ),
+      )
       .orderBy(schema.Post.id, desc(schema.PostSnapshot.capturedAt)),
     db
       .select({
@@ -101,21 +164,43 @@ export async function getActiveUsers(limit = DEFAULT_LIMIT) {
         time: schema.Reply.time,
       })
       .from(schema.Reply)
-      .where(gt(schema.Reply.time, sql`now() - interval '20 days'`)),
+      .innerJoin(schema.Post, eq(schema.Reply.postId, schema.Post.id))
+      .where(
+        and(
+          publicPostCondition(),
+          visibleReplyActivityCondition(),
+          gt(schema.Reply.time, sql`now() - interval '20 days'`),
+        ),
+      ),
     db
       .select({
         authorId: schema.Article.authorId,
         time: schema.Article.time,
       })
       .from(schema.Article)
-      .where(gt(schema.Article.time, sql`now() - interval '20 days'`)),
+      .where(
+        and(
+          publicArticleCondition(),
+          gt(schema.Article.time, sql`now() - interval '20 days'`),
+        ),
+      ),
     db
       .select({
         authorId: schema.ArticleReply.authorId,
         time: schema.ArticleReply.time,
       })
       .from(schema.ArticleReply)
-      .where(gt(schema.ArticleReply.time, sql`now() - interval '20 days'`)),
+      .innerJoin(
+        schema.Article,
+        eq(schema.ArticleReply.articleId, schema.Article.lid),
+      )
+      .where(
+        and(
+          publicArticleCondition(),
+          verifiedArticleReplyCondition(),
+          gt(schema.ArticleReply.time, sql`now() - interval '20 days'`),
+        ),
+      ),
   ).as("all_activities");
 
   return db

@@ -4,10 +4,12 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@luogu-discussion-archive/crawler": "workspace:*",
+    "@luogu-discussion-archive/db": "workspace:*",
     "@luogu-discussion-archive/logging": "workspace:*",
     "@luogu-discussion-archive/queue": "workspace:*",
     "@sentry/node": "^10.30.0",

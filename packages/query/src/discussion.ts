@@ -6,27 +6,68 @@ import {
   db,
   desc,
   eq,
+  exists,
   gt,
   inArray,
   lt,
+  notExists,
   or,
   schema,
   sql,
 } from "@luogu-discussion-archive/db";
 
-import type { ForumDto, PostDto } from "./dto.js";
+import type { ForumDto, PostEntryPreviewDto } from "./dto.js";
 import { getLuoguAvatar } from "./user-profile.js";
+import {
+  publicPostCondition,
+  verifiedPostSnapshotCondition,
+  verifiedReplySnapshotCondition,
+} from "./visibility.js";
+
+function visibleReplyCondition() {
+  return and(
+    notExists(
+      db
+        .select({ replyId: schema.ReplyTakedown.replyId })
+        .from(schema.ReplyTakedown)
+        .where(eq(schema.ReplyTakedown.replyId, schema.Reply.id)),
+    ),
+    exists(
+      db
+        .select({ replyId: schema.ReplySnapshot.replyId })
+        .from(schema.ReplySnapshot)
+        .where(
+          and(
+            eq(schema.ReplySnapshot.replyId, schema.Reply.id),
+            verifiedReplySnapshotCondition(),
+          ),
+        ),
+    ),
+  );
+}
+
+async function isPostPublic(id: number) {
+  const [post] = await db
+    .select({ id: schema.Post.id })
+    .from(schema.Post)
+    .where(and(eq(schema.Post.id, id), publicPostCondition()))
+    .limit(1);
+  return Boolean(post);
+}
 
 export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
   const post = await db.query.Post.findFirst({
-    where: eq(schema.Post.id, id),
+    where: and(eq(schema.Post.id, id), publicPostCondition()),
     with: {
       snapshots: {
         orderBy: desc(schema.PostSnapshot.capturedAt),
         limit: 1,
-        ...(capturedAt
-          ? { where: eq(schema.PostSnapshot.capturedAt, capturedAt) }
-          : {}),
+        where: capturedAt
+          ? and(
+              eq(schema.PostSnapshot.capturedAt, capturedAt),
+              verifiedPostSnapshotCondition(),
+            )
+          : verifiedPostSnapshotCondition(),
         with: {
           author: {
             with: {
@@ -58,23 +99,27 @@ export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
     },
   });
 
-  if (!post) throw new Error("Post not found");
+  if (!post?.snapshots[0]?.author.snapshots[0]) {
+    return null;
+  }
 
   const [replyCountRow] = await db
     .select({ total: count() })
     .from(schema.Reply)
-    .where(eq(schema.Reply.postId, id));
+    .where(and(eq(schema.Reply.postId, id), visibleReplyCondition()));
   const [snapshotCountRow] = await db
     .select({ total: count() })
     .from(schema.PostSnapshot)
-    .where(eq(schema.PostSnapshot.postId, id));
+    .where(
+      and(eq(schema.PostSnapshot.postId, id), verifiedPostSnapshotCondition()),
+    );
 
   const [participantRow] = await db
     .select({ participants: countDistinct(schema.Reply.authorId) })
     .from(schema.Reply)
-    .where(eq(schema.Reply.postId, id));
+    .where(and(eq(schema.Reply.postId, id), visibleReplyCondition()));
 
-  const postAuthorId = post.snapshots[0]?.authorId;
+  const postAuthorId = post.snapshots[0].authorId;
   const [authorReplyRow] = postAuthorId
     ? await db
         .select({ total: count() })
@@ -83,6 +128,7 @@ export async function getPostWithSnapshot(id: number, capturedAt?: Date) {
           and(
             eq(schema.Reply.postId, id),
             eq(schema.Reply.authorId, postAuthorId),
+            visibleReplyCondition(),
           ),
         )
     : [{ total: 0 }];
@@ -104,20 +150,22 @@ export async function getPostBasicInfo(id: number) {
       id: schema.Post.id,
     })
     .from(schema.Post)
-    .where(eq(schema.Post.id, id))
+    .where(and(eq(schema.Post.id, id), publicPostCondition()))
     .limit(1);
 
-  if (!post) throw new Error("Post not found");
+  if (!post) return null;
 
   const [replyCountRow] = await db
     .select({ total: count() })
     .from(schema.Reply)
-    .where(eq(schema.Reply.postId, id));
+    .where(and(eq(schema.Reply.postId, id), visibleReplyCondition()));
 
   const authors = await db
     .select({ id: schema.PostSnapshot.authorId })
     .from(schema.PostSnapshot)
-    .where(eq(schema.PostSnapshot.postId, id))
+    .where(
+      and(eq(schema.PostSnapshot.postId, id), verifiedPostSnapshotCondition()),
+    )
     .groupBy(schema.PostSnapshot.authorId);
 
   return {
@@ -147,12 +195,17 @@ export async function getPostRepliesWithLatestSnapshot(
     skip: 0,
   },
 ) {
+  if (!(await isPostPublic(postId))) return [];
+
   const orderExpressions =
     orderBy === "time_asc"
       ? [asc(schema.Reply.time), asc(schema.Reply.id)]
       : [desc(schema.Reply.time), desc(schema.Reply.id)];
 
-  let whereClause = eq(schema.Reply.postId, postId);
+  let whereClause = and(
+    eq(schema.Reply.postId, postId),
+    visibleReplyCondition(),
+  );
 
   if (takeAfterReply !== undefined) {
     const [cursorRow] = await db
@@ -208,6 +261,7 @@ export async function getPostRepliesWithLatestSnapshot(
         },
       },
       snapshots: {
+        where: verifiedReplySnapshotCondition(),
         orderBy: desc(schema.ReplySnapshot.capturedAt),
         limit: 1,
       },
@@ -223,7 +277,12 @@ export async function getPostRepliesWithLatestSnapshot(
           total: count(),
         })
         .from(schema.ReplySnapshot)
-        .where(inArray(schema.ReplySnapshot.replyId, replyIds))
+        .where(
+          and(
+            inArray(schema.ReplySnapshot.replyId, replyIds),
+            verifiedReplySnapshotCondition(),
+          ),
+        )
         .groupBy(schema.ReplySnapshot.replyId)
     : [];
   const snapshotCountMap = new Map(
@@ -253,6 +312,7 @@ function buildBeforeCursorWhere(
   return and(
     eq(schema.Reply.postId, postId),
     eq(schema.Reply.authorId, authorId),
+    visibleReplyCondition(),
     or(
       lt(schema.Reply.time, cursor.time),
       and(eq(schema.Reply.time, cursor.time), lt(schema.Reply.id, cursor.id)),
@@ -268,6 +328,7 @@ function buildAfterCursorWhere(
   return and(
     eq(schema.Reply.postId, postId),
     eq(schema.Reply.authorId, authorId),
+    visibleReplyCondition(),
     or(
       gt(schema.Reply.time, cursor.time),
       and(eq(schema.Reply.time, cursor.time), gt(schema.Reply.id, cursor.id)),
@@ -297,7 +358,7 @@ async function resolveReplyCursor({
     const [cursor] = await db
       .select(baseSelect)
       .from(schema.Reply)
-      .where(eq(schema.Reply.id, cursorReplyId))
+      .where(and(eq(schema.Reply.id, cursorReplyId), visibleReplyCondition()))
       .limit(1);
 
     if (!cursor) {
@@ -315,7 +376,9 @@ async function resolveReplyCursor({
     const [relative] = await db
       .select(baseSelect)
       .from(schema.Reply)
-      .where(eq(schema.Reply.id, relativeToReplyId))
+      .where(
+        and(eq(schema.Reply.id, relativeToReplyId), visibleReplyCondition()),
+      )
       .limit(1);
 
     if (!relative) {
@@ -355,7 +418,11 @@ async function resolveReplyCursor({
     .select(baseSelect)
     .from(schema.Reply)
     .where(
-      and(eq(schema.Reply.postId, postId), eq(schema.Reply.authorId, authorId)),
+      and(
+        eq(schema.Reply.postId, postId),
+        eq(schema.Reply.authorId, authorId),
+        visibleReplyCondition(),
+      ),
     )
     .orderBy(desc(schema.Reply.time), desc(schema.Reply.id))
     .limit(1);
@@ -374,6 +441,14 @@ export async function getPostUserReplyInference({
   cursorReplyId?: number;
   relativeToReplyId?: number;
 }) {
+  if (!(await isPostPublic(postId))) {
+    return {
+      current: null,
+      previousReplyId: null,
+      nextReplyId: null,
+    } as const;
+  }
+
   const cursor = await resolveReplyCursor({
     postId,
     authorId: userId,
@@ -468,14 +543,20 @@ export async function getPostSnapshotsTimeline(
   items: PostSnapshotTimelineResult[];
   hasMore: boolean;
   nextCursor: Date | null;
-}> {
+} | null> {
+  if (!(await isPostPublic(postId))) return null;
+
   const snapshots = await db.query.PostSnapshot.findMany({
     where: cursorCapturedAt
       ? and(
           eq(schema.PostSnapshot.postId, postId),
           lt(schema.PostSnapshot.capturedAt, cursorCapturedAt),
+          verifiedPostSnapshotCondition(),
         )
-      : eq(schema.PostSnapshot.postId, postId),
+      : and(
+          eq(schema.PostSnapshot.postId, postId),
+          verifiedPostSnapshotCondition(),
+        ),
     orderBy: desc(schema.PostSnapshot.capturedAt),
     limit: take + 1,
     with: {
@@ -581,8 +662,15 @@ export async function getPostSnapshotsTimeline(
 }
 
 export async function getReplyWithLatestSnapshot(replyId: number) {
+  const [replyParent] = await db
+    .select({ postId: schema.Reply.postId })
+    .from(schema.Reply)
+    .where(and(eq(schema.Reply.id, replyId), visibleReplyCondition()))
+    .limit(1);
+  if (!replyParent || !(await isPostPublic(replyParent.postId))) return null;
+
   const reply = await db.query.Reply.findFirst({
-    where: eq(schema.Reply.id, replyId),
+    where: and(eq(schema.Reply.id, replyId), visibleReplyCondition()),
     with: {
       author: {
         with: {
@@ -593,6 +681,7 @@ export async function getReplyWithLatestSnapshot(replyId: number) {
         },
       },
       snapshots: {
+        where: verifiedReplySnapshotCondition(),
         orderBy: desc(schema.ReplySnapshot.capturedAt),
         limit: 1,
       },
@@ -600,19 +689,25 @@ export async function getReplyWithLatestSnapshot(replyId: number) {
       post: {
         columns: {
           id: true,
+          public: true,
         },
       },
     },
   });
 
-  if (!reply) {
+  if (!reply?.post.public || reply.takedown.length > 0 || !reply.snapshots[0]) {
     return null;
   }
 
   const [snapshotCountRow] = await db
     .select({ total: count() })
     .from(schema.ReplySnapshot)
-    .where(eq(schema.ReplySnapshot.replyId, replyId));
+    .where(
+      and(
+        eq(schema.ReplySnapshot.replyId, replyId),
+        verifiedReplySnapshotCondition(),
+      ),
+    );
 
   return {
     ...reply,
@@ -622,25 +717,76 @@ export async function getReplyWithLatestSnapshot(replyId: number) {
   };
 }
 
-export async function getPostEntries(ids: number[]): Promise<PostDto[]> {
+export async function getPostEntries(
+  ids: number[],
+): Promise<PostEntryPreviewDto[]> {
+  if (ids.length === 0) return [];
+
   const posts = await db.query.Post.findMany({
-    where: inArray(schema.Post.id, ids),
+    where: and(inArray(schema.Post.id, ids), publicPostCondition()),
     with: {
       snapshots: {
+        where: verifiedPostSnapshotCondition(),
+        columns: {
+          content: false,
+          title: false,
+          pinnedReplyId: false,
+          exposureState: false,
+          verifiedPublicAt: false,
+          verifiedSource: false,
+        },
+        extras: {
+          title: sql<string>`left(${schema.PostSnapshot.title}, 512)`.as(
+            "entry_title",
+          ),
+          preview: sql<string>`left(${schema.PostSnapshot.content}, 512)`.as(
+            "entry_preview",
+          ),
+        },
         orderBy: desc(schema.PostSnapshot.capturedAt),
         limit: 1,
         with: {
           author: {
             with: {
               snapshots: {
+                columns: {
+                  name: false,
+                  badge: false,
+                  color: true,
+                  ccfLevel: true,
+                  xcpcLevel: true,
+                },
+                extras: {
+                  name: sql<string>`left(${schema.UserSnapshot.name}, 128)`.as(
+                    "entry_user_name",
+                  ),
+                  badge: sql<
+                    string | null
+                  >`left(${schema.UserSnapshot.badge}, 128)`.as(
+                    "entry_user_badge",
+                  ),
+                },
                 orderBy: desc(schema.UserSnapshot.capturedAt),
                 limit: 1,
               },
             },
           },
           forum: {
+            columns: { slug: true, name: false },
+            extras: {
+              name: sql<string>`left(${schema.Forum.name}, 128)`.as(
+                "entry_forum_name",
+              ),
+            },
             with: {
-              problem: true,
+              problem: {
+                columns: { pid: true, title: false, difficulty: true },
+                extras: {
+                  title: sql<string>`left(${schema.Problem.title}, 512)`.as(
+                    "entry_problem_title",
+                  ),
+                },
+              },
             },
           },
         },
@@ -678,14 +824,18 @@ export async function getPostEntries(ids: number[]): Promise<PostDto[]> {
         id: post.id,
         title: snapshot.title,
         author: {
-          ...authorSnapshot,
-          uid: authorSnapshot.userId,
-          avatar: getLuoguAvatar(authorSnapshot.userId),
+          name: authorSnapshot.name,
+          badge: authorSnapshot.badge,
+          color: authorSnapshot.color,
+          ccfLevel: authorSnapshot.ccfLevel,
+          xcpcLevel: authorSnapshot.xcpcLevel,
+          uid: snapshot.authorId,
+          avatar: getLuoguAvatar(snapshot.authorId),
         },
         time: post.time.getTime() / 1000,
         forum: snapshot.forum,
         replyCount: post.replyCount,
-        content: snapshot.content,
+        preview: snapshot.preview,
 
         savedReplyCount: post.savedReplyCount,
         snapshotCount: post.snapshotCount,

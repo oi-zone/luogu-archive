@@ -152,6 +152,7 @@ export function WaybackModal<T extends WaybackTimelineItem>(
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) =>
       lastPage.hasMore && lastPage.nextCursor ? lastPage.nextCursor : undefined,
+    maxPages: 5,
     enabled: isOpen && enabled,
     staleTime: 0,
   });

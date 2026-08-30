@@ -1,34 +1,42 @@
-/* eslint-disable @typescript-eslint/no-namespace, @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-argument */
-import path = require("node:path");
+import { pino, type Logger as PinoLogger } from "pino";
 
-import pino = require("pino");
+export type Logger = PinoLogger;
 
-namespace logger {
-  export type Logger = pino.Logger;
+const logger = pino({
+  level:
+    process.env.LOG_LEVEL ??
+    (process.env.NODE_ENV === "production" ? "info" : "debug"),
+  base: null,
+  redact: {
+    paths: [
+      "cookie",
+      "authorization",
+      "headers.cookie",
+      "headers.authorization",
+      "req.headers.cookie",
+      "req.headers.authorization",
+      "job.data",
+      "data",
+      "content",
+      "body",
+      "response",
+    ],
+    censor: "[redacted]",
+  },
+  serializers: {
+    err(error: Error) {
+      return {
+        type: error.name,
+        message: error.message.slice(0, 256),
+      };
+    },
+  },
+});
+
+export async function closeLogger() {
+  // Pino's default destination writes synchronously to process.stdout. There
+  // is no application-owned file or remote transport to drain or close.
+  await Promise.resolve();
 }
 
-const production = process.env.NODE_ENV === "production";
-
-const logger = pino(
-  production ? { level: "info" } : { level: "debug" },
-  pino.transport(
-    production
-      ? {
-          targets: [
-            {
-              target: "pino/file",
-              options: { destination: path.join(process.cwd(), "server.log") },
-            },
-            {
-              target: "@logtail/pino",
-              options: {
-                sourceToken: process.env.LOGTAIL_SOURCE_TOKEN,
-                options: { endpoint: process.env.LOGTAIL_ENDPOINT },
-              },
-            },
-          ],
-        }
-      : { target: "pino-pretty" },
-  ),
-);
-export = logger;
+export default logger;

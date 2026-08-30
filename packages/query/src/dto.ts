@@ -1,13 +1,14 @@
-import type {
-  Article,
-  Forum,
-  Paste,
-  Post,
-  ProblemSummary,
-  UserSummary,
-} from "@lgjs/types";
+import type { Article, Forum, Paste, Post, ProblemSummary } from "@lgjs/types";
 
-export type UserDto = Omit<UserSummary, "isRoot">;
+export interface PublicUserPreviewDto {
+  uid: number;
+  name: string;
+  avatar: string;
+  badge: string | null;
+  color: string;
+  ccfLevel: number;
+  xcpcLevel: number;
+}
 
 export type ProblemDto = Omit<ProblemSummary, "type">;
 
@@ -15,24 +16,24 @@ export interface ForumDto extends Pick<Forum, "name" | "slug"> {
   problem: ProblemDto | null;
 }
 
-export interface PostDto extends Pick<
+export interface PostEntryPreviewDto extends Pick<
   Post,
   "id" | "title" | "time" | "replyCount"
 > {
-  author: UserDto;
+  author: PublicUserPreviewDto;
   forum: ForumDto;
-  content: string;
+  preview: string;
 
   savedReplyCount: number;
   snapshotCount: number;
 }
 
-export interface ArticleDto extends Pick<
+export interface ArticleEntryPreviewDto extends Pick<
   Article,
   "lid" | "title" | "time" | "upvote" | "replyCount" | "favorCount" | "category"
 > {
-  author: UserDto;
-  content: string;
+  author: PublicUserPreviewDto;
+  preview: string;
 
   savedReplyCount: number;
   snapshotCount: number;
@@ -40,11 +41,16 @@ export interface ArticleDto extends Pick<
   tags?: string[] | null;
 }
 
-export interface PasteDto extends Pick<
-  Paste,
-  "data" | "id" | "time" | "public"
-> {
-  user: UserDto;
+export interface PasteEntryPreviewDto extends Pick<Paste, "id" | "time"> {
+  user: PublicUserPreviewDto;
+  preview: string;
 
   snapshotCount: number;
 }
+
+export type EntryPreviewDto =
+  | PostEntryPreviewDto
+  | ArticleEntryPreviewDto
+  | PasteEntryPreviewDto
+  | PublicUserPreviewDto
+  | ProblemDto;

@@ -1,38 +1,74 @@
 ---
-name: Build artifacts
+name: CI and reproducible artifacts
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/luogu_archive_test
+      REDIS_URL: redis://127.0.0.1:6379/15
+      HARDENING_INTEGRATION: "1"
+      QUEUE_NAME_PREFIX: hardening-ci-
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: luogu_archive_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d luogu_archive_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install
-      - name: Create .env.local for apps/web
-        run: echo $ENV_LOCAL > apps/web/.env.local
-        env:
-          ENV_LOCAL: ${{ vars.ENV_LOCAL_WEB }}
-      - run: pnpm run build
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm --filter @luogu-discussion-archive/db db:deploy
+      - run: pnpm test
+      - run: pnpm build
 
-      - run: pnpm config set --location=project injectWorkspacePackages=true
-      - run: pnpm install --no-frozen-lockfile
-
-      - run: pnpm --filter worker --prod deploy out/worker/ && tar -cvf out/worker.tar -C out/worker/ .
-      - uses: actions/upload-artifact@v4
+      - run: pnpm --filter worker --prod deploy out/worker/
+      - run: tar -cvf out/worker.tar -C out/worker/ .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: worker
           path: out/worker.tar
           if-no-files-found: error
 
-      - run: pnpm --filter web --prod deploy out/web/ && tar -cvf out/web.tar -C out/web/ .
-      - uses: actions/upload-artifact@v4
+      - run: pnpm --filter web --prod deploy out/web/
+      - run: tar -cvf out/web.tar -C out/web/ .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: web
           path: out/web.tar

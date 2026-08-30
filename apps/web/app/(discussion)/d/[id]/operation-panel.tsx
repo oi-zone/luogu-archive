@@ -14,9 +14,7 @@ import {
 import { ABSOLUTE_DATE_FORMATTER, formatRelativeTime } from "@/lib/time";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { Button } from "@/components/ui/button";
-import { QueueJobButton } from "@/components/operation-panel/queue-job-button";
 import StatRow from "@/components/operation-panel/stat-row";
-import { enqueueDiscussionRefresh } from "@/server-actions/queue-jobs";
 
 export default function DiscussionOperationPanel({
   discussion,
@@ -47,10 +45,6 @@ export default function DiscussionOperationPanel({
   const archiveLink = `https://luogu.store/d/${discussion.id}`;
   const archiveSnapshotLink = `https://luogu.store/d/${discussion.id}@${snapshotToken}`;
   const topicMarkdown = discussion.content ?? "";
-  const triggerRefresh = React.useCallback(
-    () => enqueueDiscussionRefresh(discussion.id),
-    [discussion.id],
-  );
 
   return (
     <div className={className}>
@@ -100,7 +94,6 @@ export default function DiscussionOperationPanel({
         >
           <History className="size-4" aria-hidden="true" /> 时光机
         </Button>
-        <QueueJobButton onTrigger={triggerRefresh} idleText="更新帖子" />
         <Button
           variant="outline"
           className="cursor-pointer justify-start gap-2 rounded-2xl py-2"

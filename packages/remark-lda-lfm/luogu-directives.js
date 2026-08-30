@@ -24,6 +24,8 @@
 
 /// <reference types="mdast-util-directive" />
 
+import { MARKDOWN_SECURITY_LIMITS } from "./security-limits.js";
+
 /**
  * @typedef {import('mdast').Root} Root
  * @typedef {import('mdast').Content} Content
@@ -255,7 +257,7 @@ function toEpigraphBlock(node) {
  * @param {Parent} parent
  * @returns {void}
  */
-function transformInParent(parent) {
+function transformInParent(parent, directiveDepth = 0) {
   if (!parent || !Array.isArray(parent.children)) return;
 
   const children = parent.children;
@@ -266,6 +268,19 @@ function transformInParent(parent) {
     if (!node) continue;
 
     if (node.type === "containerDirective") {
+      if (directiveDepth >= MARKDOWN_SECURITY_LIMITS.maxDirectiveDepth) {
+        children[index] = {
+          type: "paragraph",
+          children: [
+            {
+              type: "text",
+              value: "[指令嵌套过深，已停止富文本渲染]",
+            },
+          ],
+        };
+        continue;
+      }
+
       const name = node.name || "";
 
       if (BOX_TYPES.has(name)) {
@@ -274,7 +289,7 @@ function transformInParent(parent) {
         );
         children[index] = replacement;
         // 新的 details 里可能还有嵌套指令，继续处理
-        transformInParent(replacement);
+        transformInParent(replacement, directiveDepth + 1);
         continue;
       }
 
@@ -283,7 +298,10 @@ function transformInParent(parent) {
           /** @type {ContainerDirective} */ (node),
         );
         children[index] = replacement;
-        transformInParent(/** @type {Parent} */ (replacement));
+        transformInParent(
+          /** @type {Parent} */ (replacement),
+          directiveDepth + 1,
+        );
         continue;
       }
 
@@ -292,12 +310,15 @@ function transformInParent(parent) {
           /** @type {ContainerDirective} */ (node),
         );
         children[index] = replacement;
-        transformInParent(/** @type {Parent} */ (replacement));
+        transformInParent(
+          /** @type {Parent} */ (replacement),
+          directiveDepth + 1,
+        );
         continue;
       }
 
       // 不认识的 directive，保持原样，但递归处理内部（以防里面还有可识别的嵌套指令）
-      transformInParent(/** @type {Parent} */ (node));
+      transformInParent(/** @type {Parent} */ (node), directiveDepth + 1);
       continue;
     }
 
@@ -306,7 +327,10 @@ function transformInParent(parent) {
       "children" in node &&
       Array.isArray(/** @type {any} */ (node).children)
     ) {
-      transformInParent(/** @type {Parent} */ (/** @type {any} */ (node)));
+      transformInParent(
+        /** @type {Parent} */ (/** @type {any} */ (node)),
+        directiveDepth,
+      );
     }
   }
 }

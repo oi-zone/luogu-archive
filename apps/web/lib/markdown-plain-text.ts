@@ -4,6 +4,10 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 
 import remarkLuoguFlavor from "@luogu-discussion-archive/remark-lda-lfm";
+import {
+  MARKDOWN_SECURITY_LIMITS,
+  utf8ByteLengthExceeds,
+} from "@luogu-discussion-archive/remark-lda-lfm/security-limits";
 
 const BLOCK_TYPES = new Set([
   "paragraph",
@@ -23,6 +27,15 @@ const BLOCK_TYPES = new Set([
  * links, images, and media are stripped; only readable text remains.
  */
 export function renderMarkdownToPlainText(markdown: string): string {
+  if (
+    utf8ByteLengthExceeds(markdown, MARKDOWN_SECURITY_LIMITS.maxDocumentBytes)
+  ) {
+    return markdown
+      .slice(0, MARKDOWN_SECURITY_LIMITS.maxPlainTextPreviewChars)
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   const processor = unified()
     .use(remarkParse)
     .use(remarkMath)
@@ -30,14 +43,16 @@ export function renderMarkdownToPlainText(markdown: string): string {
   const tree = processor.parse(markdown ?? "");
   const transformed = processor.runSync(tree);
 
-  const raw = flattenText(transformed);
+  const parts: string[] = [];
+  flattenText(transformed, parts);
+  const raw = parts.join(" ");
   const normalized = raw.replace(/\s+/g, " ");
   // Remove stray spaces that appear before punctuation (e.g., inline directive fallbacks).
   return normalized.replace(/\s+([:;,!?])/g, "$1").trim();
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function flattenText(node: any, parts: string[] = []): string {
+function flattenText(node: any, parts: string[]): void {
   switch (node?.type) {
     case "text":
     case "inlineCode":
@@ -69,8 +84,6 @@ function flattenText(node: any, parts: string[] = []): string {
       }
     }
   }
-
-  return parts.join(" ");
 }
 
 function renderLatexToText(latex: string): string {

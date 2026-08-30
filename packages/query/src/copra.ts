@@ -14,7 +14,8 @@ export function normalizeCopraTags(raw: unknown): string[] | null {
   }
 
   const tags = value
-    .map((item) => (typeof item === "string" ? item.trim() : null))
+    .slice(0, 16)
+    .map((item) => (typeof item === "string" ? item.trim().slice(0, 64) : null))
     .filter((item): item is string => Boolean(item?.length));
 
   return tags.length ? tags : null;

@@ -10,19 +10,26 @@ import {
   sql,
 } from "@luogu-discussion-archive/db";
 
-import type { PasteDto } from "./dto.js";
+import type { PasteEntryPreviewDto } from "./dto.js";
 import { getLuoguAvatar } from "./user-profile.js";
+import {
+  publicPasteCondition,
+  verifiedPasteSnapshotCondition,
+} from "./visibility.js";
 
 export async function getPasteWithSnapshot(id: string, capturedAt?: Date) {
   const paste = await db.query.Paste.findFirst({
-    where: eq(schema.Paste.id, id),
+    where: and(eq(schema.Paste.id, id), publicPasteCondition()),
     with: {
       snapshots: {
         orderBy: desc(schema.PasteSnapshot.capturedAt),
         limit: 1,
-        ...(capturedAt
-          ? { where: eq(schema.PasteSnapshot.capturedAt, capturedAt) }
-          : {}),
+        where: capturedAt
+          ? and(
+              eq(schema.PasteSnapshot.capturedAt, capturedAt),
+              verifiedPasteSnapshotCondition(),
+            )
+          : verifiedPasteSnapshotCondition(),
       },
       user: {
         with: {
@@ -35,12 +42,17 @@ export async function getPasteWithSnapshot(id: string, capturedAt?: Date) {
     },
   });
 
-  if (!paste) throw new Error("Paste not found");
+  if (!paste?.snapshots[0] || !paste.user.snapshots[0]) return null;
 
   const [snapshotCountRow] = await db
     .select({ snapshotCount: count() })
     .from(schema.PasteSnapshot)
-    .where(eq(schema.PasteSnapshot.pasteId, id));
+    .where(
+      and(
+        eq(schema.PasteSnapshot.pasteId, id),
+        verifiedPasteSnapshotCondition(),
+      ),
+    );
   const snapshotCount = snapshotCountRow?.snapshotCount ?? 0;
 
   return {
@@ -74,14 +86,25 @@ export async function getPasteSnapshotsTimeline(
   items: PasteSnapshotTimelineResult[];
   hasMore: boolean;
   nextCursor: Date | null;
-}> {
+} | null> {
+  const [current] = await db
+    .select({ id: schema.Paste.id })
+    .from(schema.Paste)
+    .where(and(eq(schema.Paste.id, pasteId), publicPasteCondition()))
+    .limit(1);
+  if (!current) return null;
+
   const snapshots = await db.query.PasteSnapshot.findMany({
     where: cursorCapturedAt
       ? and(
           eq(schema.PasteSnapshot.pasteId, pasteId),
+          verifiedPasteSnapshotCondition(),
           lt(schema.PasteSnapshot.capturedAt, cursorCapturedAt),
         )
-      : eq(schema.PasteSnapshot.pasteId, pasteId),
+      : and(
+          eq(schema.PasteSnapshot.pasteId, pasteId),
+          verifiedPasteSnapshotCondition(),
+        ),
     orderBy: desc(schema.PasteSnapshot.capturedAt),
     limit: take + 1,
   });
@@ -131,17 +154,48 @@ export async function getPasteSnapshotsTimeline(
   };
 }
 
-export async function getPasteEntries(ids: string[]): Promise<PasteDto[]> {
+export async function getPasteEntries(
+  ids: string[],
+): Promise<PasteEntryPreviewDto[]> {
+  if (ids.length === 0) return [];
+
   const pastes = await db.query.Paste.findMany({
-    where: inArray(schema.Paste.id, ids),
+    where: and(inArray(schema.Paste.id, ids), publicPasteCondition()),
     with: {
       snapshots: {
+        where: verifiedPasteSnapshotCondition(),
+        columns: {
+          data: false,
+          exposureState: false,
+          verifiedPublicAt: false,
+          verifiedSource: false,
+        },
+        extras: {
+          preview: sql<string>`left(${schema.PasteSnapshot.data}, 512)`.as(
+            "entry_preview",
+          ),
+        },
         orderBy: desc(schema.PasteSnapshot.capturedAt),
         limit: 1,
       },
       user: {
         with: {
           snapshots: {
+            columns: {
+              name: false,
+              badge: false,
+              color: true,
+              ccfLevel: true,
+              xcpcLevel: true,
+            },
+            extras: {
+              name: sql<string>`left(${schema.UserSnapshot.name}, 128)`.as(
+                "entry_user_name",
+              ),
+              badge: sql<
+                string | null
+              >`left(${schema.UserSnapshot.badge}, 128)`.as("entry_user_badge"),
+            },
             orderBy: desc(schema.UserSnapshot.capturedAt),
             limit: 1,
           },
@@ -165,13 +219,16 @@ export async function getPasteEntries(ids: string[]): Promise<PasteDto[]> {
     paste.snapshots.flatMap((snapshot) =>
       paste.user.snapshots.map((userSnapshot) => ({
         id: paste.id,
-        data: snapshot.data ?? "",
+        preview: snapshot.preview,
         time: paste.time.getTime() / 1000,
-        public: snapshot.public,
         user: {
-          ...userSnapshot,
-          uid: userSnapshot.userId,
-          avatar: getLuoguAvatar(userSnapshot.userId),
+          name: userSnapshot.name,
+          badge: userSnapshot.badge,
+          color: userSnapshot.color,
+          ccfLevel: userSnapshot.ccfLevel,
+          xcpcLevel: userSnapshot.xcpcLevel,
+          uid: paste.userId,
+          avatar: getLuoguAvatar(paste.userId),
         },
         snapshotCount: paste.snapshotCount,
       })),

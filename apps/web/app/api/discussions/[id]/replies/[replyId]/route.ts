@@ -2,22 +2,30 @@ import { NextResponse } from "next/server";
 
 import { getReplyWithLatestSnapshot } from "@luogu-discussion-archive/query";
 
+import {
+  parsePositiveDecimal,
+  requestInputIsTooLarge,
+} from "@/lib/request-validation";
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string; replyId: string }> },
 ) {
   const { id, replyId: replyIdParam } = await context.params;
-  const postId = Number.parseInt(id, 10);
-  const replyId = Number.parseInt(replyIdParam, 10);
+  const postId = parsePositiveDecimal(id);
+  const replyId = parsePositiveDecimal(replyIdParam);
 
-  if (Number.isNaN(postId) || postId <= 0) {
+  if (requestInputIsTooLarge(_request)) {
+    return NextResponse.json({ error: "Request too large" }, { status: 413 });
+  }
+  if (postId === null) {
     return NextResponse.json(
       { error: "Invalid discussion id" },
       { status: 400 },
     );
   }
 
-  if (Number.isNaN(replyId) || replyId <= 0) {
+  if (replyId === null) {
     return NextResponse.json({ error: "Invalid reply id" }, { status: 400 });
   }
 
@@ -48,8 +56,7 @@ export async function GET(
       },
       snapshotsCount: reply._count.snapshots,
     });
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to load reply" },
       { status: 500 },

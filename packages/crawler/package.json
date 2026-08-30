@@ -9,10 +9,10 @@
     }
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lgjs/request": "^0.1.1",
     "@luogu-discussion-archive/db": "workspace:*"
   },
   "devDependencies": {

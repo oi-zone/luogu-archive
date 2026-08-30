@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Check, Copy } from "lucide-react";
 
+import type { HighlightRange } from "@luogu-discussion-archive/remark-lda-lfm/security-limits";
+
 import { cn } from "@/lib/utils";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { Badge } from "@/components/ui/badge";
@@ -35,43 +37,24 @@ type MarkdownCodeBlockProps = {
   className?: string;
   language?: string;
   showLineNumbers: boolean;
-  highlightLines: Set<number>;
+  highlightRanges: HighlightRange[];
+  truncated?: boolean;
 };
 
 function computeLineNumbers(
-  children: React.ReactNode,
-  highlightLines: Set<number>,
-): Record<number, boolean> | undefined {
-  if (Array.isArray(children)) {
-    const lineNumbers: Record<number, boolean> = {};
-    let lineIndex = 1;
-
-    for (let k = 0; k < children.length; ++k) {
-      const child = children[k];
-      if (typeof child === "string") {
-        const numLines =
-          child.split("\n").length - (k === children.length - 1 ? 1 : 0);
-        for (let i = 0; i < numLines; ++i) {
-          if (highlightLines.has(lineIndex)) {
-            lineNumbers[lineIndex] = true;
-          } else {
-            lineNumbers[lineIndex] = false;
-          }
-          if (i < numLines - 1) ++lineIndex;
-        }
-      } else {
-        if (highlightLines.has(lineIndex)) {
-          lineNumbers[lineIndex] = true;
-        } else {
-          lineNumbers[lineIndex] = false;
-        }
-      }
-    }
-
-    return lineNumbers;
+  plainText: string,
+  highlightRanges: HighlightRange[],
+) {
+  let lineCount = plainText.length > 0 ? 1 : 0;
+  for (let index = 0; index < plainText.length; index += 1) {
+    if (plainText.charCodeAt(index) === 10) lineCount += 1;
   }
-
-  return undefined;
+  return Array.from({ length: lineCount }, (_, index) => ({
+    lineNumber: index + 1,
+    highlighted: highlightRanges.some(
+      (range) => index + 1 >= range.start && index + 1 <= range.end,
+    ),
+  }));
 }
 
 export default function MarkdownCodeBlock({
@@ -79,7 +62,8 @@ export default function MarkdownCodeBlock({
   className,
   language,
   showLineNumbers,
-  highlightLines,
+  highlightRanges,
+  truncated = false,
 }: MarkdownCodeBlockProps) {
   const plainText = React.useMemo(
     () => extractPlainText(children).trimEnd(),
@@ -100,14 +84,19 @@ export default function MarkdownCodeBlock({
 
   const lineNumbersMemo = React.useMemo(() => {
     if (showLineNumbers) {
-      return computeLineNumbers(children, highlightLines);
+      return computeLineNumbers(plainText, highlightRanges);
     }
     return undefined;
-  }, [children, highlightLines, showLineNumbers]);
+  }, [highlightRanges, plainText, showLineNumbers]);
   const lineNumbers = showLineNumbers ? lineNumbersMemo : undefined;
 
   return (
     <span className="markdown-code-block group relative block">
+      {truncated ? (
+        <span className="mb-2 block rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+          代码块过大，已停止语法高亮并只显示有界预览。
+        </span>
+      ) : null}
       {languageLabel && (
         <Badge className="pointer-events-none absolute right-3 bottom-3 z-10 bg-background/50 text-xs uppercase opacity-0 shadow ring-1 ring-border backdrop-blur-xs transition duration-120 group-focus-within:opacity-100 group-hover:opacity-100">
           {languageLabel}
@@ -129,12 +118,13 @@ export default function MarkdownCodeBlock({
         )}
       </Button>
       <span className="pointer-events-none absolute inset-0 m-0 my-[1em] overflow-hidden rounded-xl font-mono text-sm">
-        {[...highlightLines].map((lineNumber) => (
+        {highlightRanges.map((range) => (
           <span
-            key={lineNumber}
+            key={`${String(range.start)}-${String(range.end)}`}
             className={`absolute right-0 left-0 block h-[20] bg-gray-500/10`}
             style={{
-              top: `calc(20px * ${lineNumber - 1} + 1px)`,
+              top: `calc(20px * ${String(range.start - 1)} + 1px)`,
+              height: `calc(20px * ${String(range.end - range.start + 1)})`,
               left: "1px",
               right: "1px",
             }}
@@ -147,7 +137,7 @@ export default function MarkdownCodeBlock({
             className="ls-code-block-line-numbers block border-e-[1px] border-border py-[1em]"
             aria-hidden="true"
           >
-            {Object.entries(lineNumbers).map(([lineNumber, _isHighlighted]) => (
+            {lineNumbers.map(({ lineNumber }) => (
               <span
                 key={lineNumber}
                 className="block px-2 text-right text-sm text-muted-foreground/60 select-none"

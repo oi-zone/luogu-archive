@@ -5,16 +5,27 @@ import {
   parseUserTimelineCursor,
 } from "@luogu-discussion-archive/query";
 
+import {
+  isBoundedCursor,
+  parseBoundedLimit,
+  parsePositiveDecimal,
+  requestInputIsTooLarge,
+} from "@/lib/request-validation";
+
 const DEFAULT_LIMIT = 30;
+const MAX_LIMIT = 100;
 
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const userId = Number.parseInt(id, 10);
+  const userId = parsePositiveDecimal(id);
 
-  if (!Number.isFinite(userId) || userId <= 0) {
+  if (requestInputIsTooLarge(request)) {
+    return NextResponse.json({ error: "Request too large" }, { status: 413 });
+  }
+  if (userId === null) {
     return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
   }
 
@@ -22,17 +33,15 @@ export async function GET(
   const limitParam = url.searchParams.get("limit");
   const cursorParam = url.searchParams.get("cursor");
 
-  let limit = DEFAULT_LIMIT;
-  if (limitParam) {
-    const parsedLimit = Number.parseInt(limitParam, 10);
-    if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
-      return NextResponse.json({ error: "Invalid limit" }, { status: 400 });
-    }
-    limit = parsedLimit;
-  }
+  const limit = parseBoundedLimit(limitParam, DEFAULT_LIMIT, MAX_LIMIT);
+  if (limit === null)
+    return NextResponse.json({ error: "Invalid limit" }, { status: 400 });
 
   let cursor = null;
   if (cursorParam) {
+    if (!isBoundedCursor(cursorParam)) {
+      return NextResponse.json({ error: "Invalid cursor" }, { status: 400 });
+    }
     cursor = parseUserTimelineCursor(cursorParam);
     if (!cursor) {
       return NextResponse.json({ error: "Invalid cursor" }, { status: 400 });
@@ -50,8 +59,7 @@ export async function GET(
     }
 
     return NextResponse.json(page);
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to load timeline" },
       { status: 500 },

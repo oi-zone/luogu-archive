@@ -1,6 +1,6 @@
 import { MessageCircle, MessageCircleDashed } from "lucide-react";
 
-import { PostDto } from "@luogu-discussion-archive/query";
+import { PostEntryPreviewDto } from "@luogu-discussion-archive/query";
 
 import { renderMarkdownToPlainText } from "@/lib/markdown-plain-text";
 
@@ -10,9 +10,9 @@ import TrendingEntryTemplate from "./trending-entry-template";
 export default function TrendingEntryDiscussion({
   discussion,
 }: {
-  discussion: PostDto;
+  discussion: PostEntryPreviewDto;
 }) {
-  const rawContent = discussion.content?.trim() || "";
+  const rawContent = discussion.preview.trim();
   const plainContent =
     rawContent.length > 0 ? renderMarkdownToPlainText(rawContent) : "";
   return (
