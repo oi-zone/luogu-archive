@@ -225,7 +225,14 @@ export default function remarkLuoguFlavor(options) {
    *   Nothing.
    */
   return (tree, file) => {
-    let magicLinkCount = 0;
+    let enhancedNodeCount = 0;
+    const consumeEnhancedNodeBudget = () => {
+      if (enhancedNodeCount >= MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+        return false;
+      }
+      enhancedNodeCount += 1;
+      return true;
+    };
     transformLuoguDirectives(tree, self, file);
     transformLuoguCode(tree, self, file);
     transformLuoguTables(tree, self, file);
@@ -242,6 +249,7 @@ export default function remarkLuoguFlavor(options) {
         ) {
           const match = captureFromFirstMatch(mentionRegexes, child.url);
           if (!match) return;
+          if (!consumeEnhancedNodeBudget()) return;
           /** @type {import("mdast").UserMention} */
           const newNode = {
             type: "userMention",
@@ -268,6 +276,21 @@ export default function remarkLuoguFlavor(options) {
         if (child.type === "image" && child.url.startsWith("bilibili:")) {
           let videoId = child.url.replace("bilibili:", "");
           if (videoId.match(/^[0-9]/)) videoId = "av" + videoId;
+          if (!/^[A-Za-z0-9]{1,32}$/.test(videoId)) {
+            childNode[index] = {
+              type: "text",
+              value: "[无效视频链接]",
+            };
+            return;
+          }
+          if (!consumeEnhancedNodeBudget()) {
+            childNode[index] = {
+              type: "link",
+              url: `https://www.bilibili.com/video/${videoId}`,
+              children: [{ type: "text", value: `Bilibili ${videoId}` }],
+            };
+            return;
+          }
           /** @type {import("mdast").BilibiliVideo} */
           const newNode = {
             type: "bilibiliVideo",
@@ -335,45 +358,40 @@ export default function remarkLuoguFlavor(options) {
 
         match = captureFromFirstMatch(discussionRegexes, newUrl);
         if (match) {
-          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+          if (consumeEnhancedNodeBudget()) {
             hProperties["data-ls-discuss"] = match[1];
-            magicLinkCount += 1;
           }
           return;
         }
 
         match = captureFromFirstMatch(articleRegexes, newUrl);
         if (match) {
-          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+          if (consumeEnhancedNodeBudget()) {
             hProperties["data-ls-article"] = match[1];
-            magicLinkCount += 1;
           }
           return;
         }
 
         match = captureFromFirstMatch(userRegexes, newUrl);
         if (match) {
-          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+          if (consumeEnhancedNodeBudget()) {
             hProperties["data-ls-user"] = match[1];
-            magicLinkCount += 1;
           }
           return;
         }
 
         match = captureFromFirstMatch(pasteRegexes, newUrl);
         if (match) {
-          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+          if (consumeEnhancedNodeBudget()) {
             hProperties["data-ls-paste"] = match[1];
-            magicLinkCount += 1;
           }
           return;
         }
 
         match = captureFromFirstMatch(problemRegexes, newUrl);
         if (match) {
-          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+          if (consumeEnhancedNodeBudget()) {
             hProperties["data-ls-problem"] = match[1];
-            magicLinkCount += 1;
           }
           return;
         }

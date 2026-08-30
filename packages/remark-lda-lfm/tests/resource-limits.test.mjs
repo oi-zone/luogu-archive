@@ -62,3 +62,40 @@ test("magic-link decoration is capped", async () => {
     MARKDOWN_SECURITY_LIMITS.maxMagicLinks,
   );
 });
+
+test("mentions share the same enhanced-node budget", async () => {
+  const input = Array.from(
+    { length: MARKDOWN_SECURITY_LIMITS.maxMagicLinks + 20 },
+    (_, index) =>
+      `@[u${String(index)}](https://www.luogu.com.cn/user/${String(index + 1)})`,
+  ).join("\n\n");
+  const output = await render(input);
+  assert.equal(
+    (output.match(/data-ls-user-mention=/g) ?? []).length,
+    MARKDOWN_SECURITY_LIMITS.maxMagicLinks,
+  );
+  assert.equal((output.match(/data-ls-user=/g) ?? []).length, 0);
+});
+
+test("links mentions and embeds consume one document budget", async () => {
+  const third = Math.floor(MARKDOWN_SECURITY_LIMITS.maxMagicLinks / 3);
+  const links = Array.from(
+    { length: third },
+    (_, index) => `[d](https://www.luogu.com.cn/discuss/${String(index + 1)})`,
+  );
+  const mentions = Array.from(
+    { length: third },
+    (_, index) => `@[u](https://www.luogu.com.cn/user/${String(index + 1)})`,
+  );
+  const embeds = Array.from(
+    { length: MARKDOWN_SECURITY_LIMITS.maxMagicLinks },
+    (_, index) => `![v](bilibili:BV${String(index).padStart(8, "0")})`,
+  );
+  const output = await render([...links, ...mentions, ...embeds].join("\n\n"));
+  const enhanced =
+    (output.match(/data-ls-discuss=/g) ?? []).length +
+    (output.match(/data-ls-user-mention=/g) ?? []).length +
+    (output.match(/<iframe/g) ?? []).length;
+  assert.equal(enhanced, MARKDOWN_SECURITY_LIMITS.maxMagicLinks);
+  assert.ok((output.match(/<iframe/g) ?? []).length < embeds.length);
+});
