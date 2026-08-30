@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./security-limits": "./security-limits.js"
+  },
   "scripts": {
     "test": "node --test tests/*.test.mjs"
   },

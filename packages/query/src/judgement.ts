@@ -6,10 +6,10 @@ import {
   desc,
   eq,
   gt,
-  inArray,
   lt,
   or,
   schema,
+  sql,
 } from "@luogu-discussion-archive/db";
 
 import type { BasicUserSnapshot } from "./types.js";
@@ -88,26 +88,27 @@ export async function getGlobalOstrakonPage(options?: {
 
   const userIds = Array.from(new Set(judgements.map((item) => item.userId)));
   const snapshots = userIds.length
-    ? await db
-        .select({
-          userId: schema.UserSnapshot.userId,
-          name: schema.UserSnapshot.name,
-          badge: schema.UserSnapshot.badge,
-          color: schema.UserSnapshot.color,
-          ccfLevel: schema.UserSnapshot.ccfLevel,
-          xcpcLevel: schema.UserSnapshot.xcpcLevel,
-        })
-        .from(schema.UserSnapshot)
-        .where(inArray(schema.UserSnapshot.userId, userIds))
-        .orderBy(desc(schema.UserSnapshot.capturedAt))
+    ? (
+        await db.execute<{
+          userId: number;
+          name: string;
+          badge: string | null;
+          color: (typeof schema.Color.enumValues)[number];
+          ccfLevel: number;
+          xcpcLevel: number;
+        }>(sql`
+          SELECT DISTINCT ON ("userId")
+            "userId", "name", "badge", "color", "ccfLevel", "xcpcLevel"
+          FROM "UserSnapshot"
+          WHERE "userId" = ANY(${userIds})
+          ORDER BY "userId", "capturedAt" DESC
+        `)
+      ).rows
     : [];
 
-  const snapshotMap = new Map<number, (typeof snapshots)[number]>();
-  for (const snapshot of snapshots) {
-    if (!snapshotMap.has(snapshot.userId)) {
-      snapshotMap.set(snapshot.userId, snapshot);
-    }
-  }
+  const snapshotMap = new Map(
+    snapshots.map((snapshot) => [snapshot.userId, snapshot] as const),
+  );
 
   const entries = judgements.slice(0, clampedLimit).map((judgement) => {
     const cursorValue = encodeOstrakonCursor(judgement.time, judgement.userId);
@@ -168,15 +169,25 @@ export function parseOstrakonCursor(cursor: string): OstrakonCursor | null {
 
   const timestampPart = cursor.slice(0, separatorIndex);
   const userIdPart = cursor.slice(separatorIndex + 1);
+  if (
+    !/^[0-9a-z]{1,16}$/.test(timestampPart) ||
+    !/^[0-9a-z]{1,8}$/.test(userIdPart)
+  ) {
+    return null;
+  }
 
   const millis = Number.parseInt(timestampPart, 36);
   const userId = Number.parseInt(userIdPart, 36);
 
-  if (!Number.isFinite(millis) || millis <= 0) {
+  if (
+    !Number.isSafeInteger(millis) ||
+    millis <= 0 ||
+    Number.isNaN(new Date(millis).getTime())
+  ) {
     return null;
   }
 
-  if (!Number.isFinite(userId) || userId <= 0) {
+  if (!Number.isSafeInteger(userId) || userId <= 0 || userId > 2_147_483_647) {
     return null;
   }
 

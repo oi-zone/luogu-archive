@@ -76,6 +76,7 @@ import { visit } from "unist-util-visit";
 import { transformLuoguCode } from "./luogu-code.js";
 import { transformLuoguDirectives } from "./luogu-directives.js";
 import { transformLuoguTables } from "./luogu-tables.js";
+import { MARKDOWN_SECURITY_LIMITS } from "./security-limits.js";
 
 const mentionRegexes = [
   /^luogu:\/\/user\/(\d+)$/,
@@ -224,6 +225,7 @@ export default function remarkLuoguFlavor(options) {
    *   Nothing.
    */
   return (tree, file) => {
+    let magicLinkCount = 0;
     transformLuoguDirectives(tree, self, file);
     transformLuoguCode(tree, self, file);
     transformLuoguTables(tree, self, file);
@@ -288,12 +290,29 @@ export default function remarkLuoguFlavor(options) {
     });
     visit(tree, "link", (node) => {
       try {
+        const linkText = toString(node);
+        if (
+          node.url.length > MARKDOWN_SECURITY_LIMITS.maxLinkUrlLength ||
+          linkText.length > MARKDOWN_SECURITY_LIMITS.maxLinkLabelLength
+        ) {
+          node.url = "#";
+          node.children = [
+            {
+              type: "text",
+              value: `${linkText.slice(
+                0,
+                MARKDOWN_SECURITY_LIMITS.maxLinkLabelLength,
+              )}…`,
+            },
+          ];
+          return;
+        }
+
         const newUrl = new URL(node.url, linkOriginalUrl).href;
         let match;
         const hProperties = (node.data ||= {}).hProperties || {};
         node.data.hProperties = hProperties;
 
-        const linkText = toString(node);
         if (linkText) {
           hProperties["data-ls-link-text"] = linkText;
         }
@@ -308,36 +327,54 @@ export default function remarkLuoguFlavor(options) {
             node.position.start.offset,
             node.position.end.offset,
           );
-          hProperties["data-ls-link-source"] = raw;
+          hProperties["data-ls-link-source"] = raw.slice(
+            0,
+            MARKDOWN_SECURITY_LIMITS.maxLinkSourceLength,
+          );
         }
 
         match = captureFromFirstMatch(discussionRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-discuss"] = match[1];
+          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+            hProperties["data-ls-discuss"] = match[1];
+            magicLinkCount += 1;
+          }
           return;
         }
 
         match = captureFromFirstMatch(articleRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-article"] = match[1];
+          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+            hProperties["data-ls-article"] = match[1];
+            magicLinkCount += 1;
+          }
           return;
         }
 
         match = captureFromFirstMatch(userRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-user"] = match[1];
+          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+            hProperties["data-ls-user"] = match[1];
+            magicLinkCount += 1;
+          }
           return;
         }
 
         match = captureFromFirstMatch(pasteRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-paste"] = match[1];
+          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+            hProperties["data-ls-paste"] = match[1];
+            magicLinkCount += 1;
+          }
           return;
         }
 
         match = captureFromFirstMatch(problemRegexes, newUrl);
         if (match) {
-          hProperties["data-ls-problem"] = match[1];
+          if (magicLinkCount < MARKDOWN_SECURITY_LIMITS.maxMagicLinks) {
+            hProperties["data-ls-problem"] = match[1];
+            magicLinkCount += 1;
+          }
           return;
         }
 

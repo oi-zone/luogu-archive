@@ -6,6 +6,11 @@ import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 
 import remarkLuoguFlavor from "@luogu-discussion-archive/remark-lda-lfm";
+import {
+  MARKDOWN_SECURITY_LIMITS,
+  parseHighlightRanges,
+  utf8ByteLengthExceeds,
+} from "@luogu-discussion-archive/remark-lda-lfm/security-limits";
 
 import { cn } from "@/lib/utils";
 
@@ -109,30 +114,28 @@ function isIntrinsicElement(
   return React.isValidElement(node) && node.type === tag;
 }
 
-function lineSetFromDataAttribute(dataAttr?: string): Set<number> {
-  const lineSet = new Set<number>();
-  if (!dataAttr) return lineSet;
+function extractCodeText(node: React.ReactNode): string {
+  return React.Children.toArray(node)
+    .map((child) => {
+      if (typeof child === "string" || typeof child === "number") {
+        return String(child);
+      }
+      if (React.isValidElement(child)) {
+        return extractCodeText(
+          (child.props as { children?: React.ReactNode }).children,
+        );
+      }
+      return "";
+    })
+    .join("");
+}
 
-  const parts = dataAttr.split(",");
-  for (const part of parts) {
-    if (part.includes("-")) {
-      const [startStr, endStr] = part.split("-");
-      const start = parseInt(startStr, 10);
-      const end = parseInt(endStr, 10);
-      if (!isNaN(start) && !isNaN(end) && start <= end) {
-        for (let i = start; i <= end; i++) {
-          lineSet.add(i);
-        }
-      }
-    } else {
-      const lineNum = parseInt(part, 10);
-      if (!isNaN(lineNum)) {
-        lineSet.add(lineNum);
-      }
-    }
+function countLines(value: string) {
+  let count = 1;
+  for (let index = 0; index < value.length; index += 1) {
+    if (value.charCodeAt(index) === 10) count += 1;
   }
-
-  return lineSet;
+  return count;
 }
 
 export default function Markdown({
@@ -142,6 +145,26 @@ export default function Markdown({
   enableHeadingAnchors = false,
   mentionContext,
 }: MarkdownProps) {
+  if (
+    utf8ByteLengthExceeds(children, MARKDOWN_SECURITY_LIMITS.maxDocumentBytes)
+  ) {
+    const preview = children.slice(
+      0,
+      MARKDOWN_SECURITY_LIMITS.maxPlainTextPreviewChars,
+    );
+    return (
+      <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+        <p className="font-medium text-amber-700 dark:text-amber-300">
+          内容过大，已禁用富文本解析。
+        </p>
+        <pre className="max-h-80 overflow-auto text-sm break-words whitespace-pre-wrap text-muted-foreground">
+          {preview}
+          {children.length > preview.length ? "\n…（预览已截断）" : ""}
+        </pre>
+      </div>
+    );
+  }
+
   const headingSlugCounter: Record<string, number> = {};
 
   const createHeadingComponent = (level: (typeof HEADING_LEVELS)[number]) => {
@@ -240,19 +263,24 @@ export default function Markdown({
                 children.props as React.JSX.IntrinsicElements["code"] & {
                   "data-ls-line-numbers"?: boolean;
                   "data-ls-highlight-lines"?: string;
+                  "data-ls-code-truncated"?: boolean;
                 };
               const languageMatch = /language-([\w-]+)/.exec(
                 codeProps.className ?? "",
               );
               const language = languageMatch?.[1] ?? undefined;
+              const codeText = extractCodeText(codeProps.children);
+              const lineCount = countLines(codeText);
               return (
                 <MarkdownCodeBlock
                   className={codeProps.className}
                   language={language}
                   showLineNumbers={codeProps["data-ls-line-numbers"] === true}
-                  highlightLines={lineSetFromDataAttribute(
+                  highlightRanges={parseHighlightRanges(
                     codeProps["data-ls-highlight-lines"],
+                    lineCount,
                   )}
+                  truncated={codeProps["data-ls-code-truncated"] === true}
                 >
                   {codeProps.children}
                 </MarkdownCodeBlock>

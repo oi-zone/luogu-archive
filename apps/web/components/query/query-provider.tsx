@@ -1,12 +1,21 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import {
   focusManager,
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+const ReactQueryDevtools =
+  process.env.NODE_ENV === "development"
+    ? dynamic(() =>
+        import("@tanstack/react-query-devtools").then(
+          (module) => module.ReactQueryDevtools,
+        ),
+      )
+    : null;
 
 const DEFAULT_STALE_TIME = 3 * 60 * 1000; // 3 minutes
 const DEFAULT_GC_TIME = 15 * 60 * 1000; // 15 minutes
@@ -21,8 +30,8 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             gcTime: DEFAULT_GC_TIME,
             refetchOnWindowFocus: true,
             refetchOnReconnect: true,
-            refetchInterval: DEFAULT_STALE_TIME,
-            refetchIntervalInBackground: true,
+            refetchInterval: false,
+            refetchIntervalInBackground: false,
           },
         },
       }),
@@ -43,7 +52,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {ReactQueryDevtools ? <ReactQueryDevtools initialIsOpen={false} /> : null}
     </QueryClientProvider>
   );
 }

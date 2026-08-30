@@ -2,18 +2,27 @@ import { NextResponse } from "next/server";
 
 import { getArticleComment } from "@luogu-discussion-archive/query";
 
+import {
+  isArticleId,
+  parsePositiveDecimal,
+  requestInputIsTooLarge,
+} from "@/lib/request-validation";
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string; commentId: string }> },
 ) {
   const { id, commentId: commentIdParam } = await context.params;
-  const commentId = Number.parseInt(commentIdParam, 10);
+  const commentId = parsePositiveDecimal(commentIdParam);
 
-  if (!id || typeof id !== "string") {
+  if (requestInputIsTooLarge(request)) {
+    return NextResponse.json({ error: "Request too large" }, { status: 413 });
+  }
+  if (!isArticleId(id)) {
     return NextResponse.json({ error: "Invalid article id" }, { status: 400 });
   }
 
-  if (Number.isNaN(commentId) || commentId <= 0) {
+  if (commentId === null) {
     return NextResponse.json({ error: "Invalid comment id" }, { status: 400 });
   }
 
@@ -41,8 +50,7 @@ export async function GET(
         xcpcLevel: authorSnapshot?.xcpcLevel ?? 0,
       },
     });
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to load comment" },
       { status: 500 },

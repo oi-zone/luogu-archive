@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 
 import { getPostUserReplyInference } from "@luogu-discussion-archive/query";
 
+import {
+  parsePositiveDecimal,
+  requestInputIsTooLarge,
+} from "@/lib/request-validation";
+
 type ReplyPayload = {
   id: number;
   postId: number;
@@ -58,12 +63,7 @@ function mapReplyToPayload(
 }
 
 function parsePositiveInt(value: string): number | null {
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
+  return parsePositiveDecimal(value);
 }
 
 function parseOptionalPositiveInt(value: string | null): {
@@ -88,6 +88,10 @@ export async function GET(
   context: { params: Promise<{ id: string; userId: string }> },
 ) {
   const { id, userId } = await context.params;
+
+  if (requestInputIsTooLarge(request)) {
+    return NextResponse.json({ error: "Request too large" }, { status: 413 });
+  }
 
   const postId = parsePositiveInt(id);
   const targetUserId = parsePositiveInt(userId);
@@ -138,8 +142,7 @@ export async function GET(
     };
 
     return NextResponse.json(body);
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to infer replies" },
       { status: 500 },

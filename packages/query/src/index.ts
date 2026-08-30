@@ -49,6 +49,14 @@ export {
 export type { ForumBasicInfo, ForumProblemInfo } from "./types.js";
 export { getActiveEntries, getActiveUsers, getHotEntries } from "./trending.js";
 export { resolveEntries, type Entry, type EntryRef } from "./entries.js";
+export {
+  MAX_ENTRY_INPUT_BYTES,
+  MAX_ENTRY_REFS,
+  parseEntryRef,
+  uniqueEntryRefs,
+  validateEntryRequest,
+} from "./entry-validation.js";
+export { canExposePaste } from "./visibility.js";
 export type {
   ArticleDto,
   PostDto,

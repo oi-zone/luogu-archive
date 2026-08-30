@@ -7,6 +7,7 @@ import type {
   ProblemDto,
   UserDto,
 } from "./dto.js";
+import { MAX_ENTRY_REFS } from "./entry-validation.js";
 import { getPasteEntries } from "./paste.js";
 import { getProblemEntries } from "./problem.js";
 import { getUserEntries } from "./user.js";
@@ -19,6 +20,8 @@ interface EntryMap {
   paste: PasteDto;
 }
 
+export type EntryType = keyof EntryMap;
+
 export type EntryRef<K extends keyof EntryMap = keyof EntryMap> =
   K extends unknown ? { type: K; id: string } : never;
 
@@ -29,21 +32,34 @@ export type Entry<K extends keyof EntryMap = keyof EntryMap> = K extends unknown
 export async function resolveEntries<K extends keyof EntryMap>(
   refs: EntryRef<K>[],
 ): Promise<Entry<K>[]> {
-  const users = await getUserEntries(
+  if (refs.length > MAX_ENTRY_REFS) {
+    throw new Error("Entry batch exceeds the configured query limit");
+  }
+
+  const uniqueIds = <T>(values: T[]) => Array.from(new Set(values));
+  const userIds = uniqueIds(
     refs.filter(({ type }) => type === "user").map(({ id }) => Number(id)),
   );
-  const posts = await getPostEntries(
+  const postIds = uniqueIds(
     refs.filter(({ type }) => type === "discuss").map(({ id }) => Number(id)),
   );
-  const articles = await getArticleEntries(
+  const articleIds = uniqueIds(
     refs.filter(({ type }) => type === "article").map(({ id }) => id),
   );
-  const problems = await getProblemEntries(
+  const problemIds = uniqueIds(
     refs.filter(({ type }) => type === "problem").map(({ id }) => id),
   );
-  const pastes = await getPasteEntries(
+  const pasteIds = uniqueIds(
     refs.filter(({ type }) => type === "paste").map(({ id }) => id),
   );
+
+  const [users, posts, articles, problems, pastes] = await Promise.all([
+    userIds.length ? getUserEntries(userIds) : [],
+    postIds.length ? getPostEntries(postIds) : [],
+    articleIds.length ? getArticleEntries(articleIds) : [],
+    problemIds.length ? getProblemEntries(problemIds) : [],
+    pasteIds.length ? getPasteEntries(pasteIds) : [],
+  ]);
 
   const mapping: {
     [K in keyof EntryMap]: Record<EntryRef<K>["id"], EntryMap[K]>;

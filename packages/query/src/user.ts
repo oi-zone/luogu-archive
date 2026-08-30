@@ -4,6 +4,8 @@ import type { UserDto } from "./dto.js";
 import { getLuoguAvatar } from "./user-profile.js";
 
 export async function getUserEntries(ids: number[]): Promise<UserDto[]> {
+  if (ids.length === 0) return [];
+
   const users = await db.query.User.findMany({
     with: {
       snapshots: {

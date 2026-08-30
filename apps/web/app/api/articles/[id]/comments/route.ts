@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 
 import { getArticleComments } from "@luogu-discussion-archive/query";
 
+import {
+  isArticleId,
+  parseBoundedLimit,
+  parseNonNegativeDecimal,
+  parsePositiveDecimal,
+  requestInputIsTooLarge,
+} from "@/lib/request-validation";
+
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 10;
 
@@ -58,17 +66,9 @@ function mapCommentToResponse(
   };
 }
 
-function parseLimit(limitParam: string | null): number {
-  if (!limitParam) return DEFAULT_LIMIT;
-  const parsed = Number.parseInt(limitParam, 10);
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    return DEFAULT_LIMIT;
-  }
-  return Math.min(parsed, MAX_LIMIT);
-}
-
-function parseOrder(orderParam: string | null): OrderParam {
-  return orderParam === "newest" ? "newest" : "oldest";
+function parseOrder(orderParam: string | null): OrderParam | null {
+  if (orderParam === null || orderParam === "oldest") return "oldest";
+  return orderParam === "newest" ? "newest" : null;
 }
 
 export async function GET(
@@ -78,16 +78,32 @@ export async function GET(
   const { id } = await context.params;
   const articleId = id;
 
-  if (!articleId || typeof articleId !== "string") {
+  if (requestInputIsTooLarge(request)) {
+    return NextResponse.json({ error: "Request too large" }, { status: 413 });
+  }
+  if (!isArticleId(articleId)) {
     return NextResponse.json({ error: "Invalid article id" }, { status: 400 });
   }
 
   const url = new URL(request.url);
   const orderParam = parseOrder(url.searchParams.get("order"));
+  if (!orderParam) {
+    return NextResponse.json({ error: "Invalid order" }, { status: 400 });
+  }
   const orderBy = ORDER_MAP[orderParam];
-  const limit = parseLimit(url.searchParams.get("limit"));
+  const limit = parseBoundedLimit(
+    url.searchParams.get("limit"),
+    DEFAULT_LIMIT,
+    MAX_LIMIT,
+  );
+  if (limit === null) {
+    return NextResponse.json({ error: "Invalid limit" }, { status: 400 });
+  }
   const skipParam = url.searchParams.get("skip");
-  const skip = skipParam ? Math.max(0, Number.parseInt(skipParam, 10) || 0) : 0;
+  const skip = skipParam ? parseNonNegativeDecimal(skipParam) : 0;
+  if (skip === null) {
+    return NextResponse.json({ error: "Invalid skip" }, { status: 400 });
+  }
 
   const beforeParam = url.searchParams.get("before");
   const afterParam = url.searchParams.get("after");
@@ -101,8 +117,8 @@ export async function GET(
 
   try {
     if (beforeParam) {
-      const beforeId = Number.parseInt(beforeParam, 10);
-      if (Number.isNaN(beforeId) || beforeId <= 0) {
+      const beforeId = parsePositiveDecimal(beforeParam);
+      if (beforeId === null) {
         return NextResponse.json(
           { error: "Invalid before cursor" },
           { status: 400 },
@@ -131,8 +147,8 @@ export async function GET(
     }
 
     if (afterParam) {
-      const afterId = Number.parseInt(afterParam, 10);
-      if (Number.isNaN(afterId) || afterId <= 0) {
+      const afterId = parsePositiveDecimal(afterParam);
+      if (afterId === null) {
         return NextResponse.json(
           { error: "Invalid after cursor" },
           { status: 400 },
@@ -174,8 +190,7 @@ export async function GET(
     };
 
     return NextResponse.json(body);
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to load comments" },
       { status: 500 },
