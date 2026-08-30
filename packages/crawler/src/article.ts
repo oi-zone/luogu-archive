@@ -8,17 +8,84 @@ import {
   and,
   db,
   eq,
+  inArray,
   isNull,
   max,
   schema,
   sql,
 } from "@luogu-discussion-archive/db";
 
-import { clientLentille } from "./client.js";
+import { publicLentille } from "./client.js";
 import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";
+import {
+  expectArray,
+  expectFiniteNumber,
+  expectRecord,
+  expectString,
+} from "./http.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
 import { deduplicate } from "./utils.js";
+
+const MAX_ARTICLE_RESPONSE_BYTES = 8 * 1024 * 1024;
+const MAX_ARTICLE_LIST_BYTES = 2 * 1024 * 1024;
+const MAX_ARTICLE_REPLIES_BYTES = 4 * 1024 * 1024;
+const MAX_ARTICLE_LIST_ITEMS = 100;
+const MAX_ARTICLE_REPLIES = 100;
+
+function validateArticleEnvelope(value: unknown) {
+  const root = expectRecord(value, "article.show");
+  const status = expectFiniteNumber(root.status, "article.show.status");
+  if (status !== 200) {
+    return { status, time: 0, data: null };
+  }
+  const data = expectRecord(root.data, "article.show");
+  const article = expectRecord(
+    data.article,
+    "article.show",
+  ) as unknown as ArticleDetails;
+  const time = expectFiniteNumber(root.time, "article.show.time");
+  expectString(article.lid, "article.show.article.lid", 8);
+  return {
+    status,
+    time,
+    data: { article },
+  };
+}
+
+function validateArticleListEnvelope(value: unknown) {
+  const root = expectRecord(value, "article.list");
+  const data = expectRecord(root.data, "article.list");
+  const container = expectRecord(data.articles, "article.list");
+  const articles = expectArray<Article>(
+    container.result,
+    "article.list.articles",
+    MAX_ARTICLE_LIST_ITEMS,
+  );
+  expectFiniteNumber(root.status, "article.list.status");
+  expectFiniteNumber(root.time, "article.list.time");
+  for (const article of articles)
+    expectString(article.lid, "article.list.article.lid", 8);
+  return {
+    status: root.status as number,
+    time: root.time as number,
+    data: { articles: { result: articles } },
+  };
+}
+
+function validateArticleReplies(value: unknown) {
+  const root = expectRecord(value, "article.replies");
+  return {
+    replySlice: expectArray<
+      Parameters<typeof saveUserSnapshots>[0][number] & {
+        id: number;
+        time: number;
+        content: string;
+        author: Parameters<typeof saveUserSnapshots>[0][number];
+      }
+    >(root.replySlice, "article.replies", MAX_ARTICLE_REPLIES),
+  };
+}
 
 function saveCollections(collections: ArticleCollectionSummary[]) {
   const deduplicatedCollections = deduplicate(
@@ -62,6 +129,7 @@ async function saveArticles(articles: Article[], now: Date) {
         upvote: article.upvote,
         replyCount: article.replyCount,
         favorCount: article.favorCount,
+        public: article.status === 2,
         updatedAt: now,
       })),
     )
@@ -73,12 +141,20 @@ async function saveArticles(articles: Article[], now: Date) {
         upvote: sql.raw(`excluded."${schema.Article.upvote.name}"`),
         replyCount: sql.raw(`excluded."${schema.Article.replyCount.name}"`),
         favorCount: sql.raw(`excluded."${schema.Article.favorCount.name}"`),
+        public: sql.raw(`excluded."${schema.Article.public.name}"`),
         updatedAt: sql.raw(`excluded."${schema.Article.updatedAt.name}"`),
       },
     });
 }
 
 async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
+  // Hidden/deleted article payloads are never persisted as new public
+  // snapshots. The entity-level flag revokes every historical public path.
+  if (article.status !== 2) {
+    await saveArticles([article], now);
+    return;
+  }
+
   await Promise.all([
     saveArticles([article], now),
     saveProblems(article.solutionFor ? [article.solutionFor] : [], now),
@@ -137,14 +213,50 @@ async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
   });
 }
 
+async function restrictArticle(lid: string) {
+  await db
+    .update(schema.Article)
+    .set({ public: false, updatedAt: new Date() })
+    .where(eq(schema.Article.lid, lid));
+}
+
 export async function fetchArticle(lid: string) {
-  const res = await clientLentille.get("article.show", { params: { lid } });
-  const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res);
-  });
-  if (status === 403 || status === 404) throw new AccessError(res.url, status);
+  let response: Awaited<
+    ReturnType<
+      typeof publicLentille.getJson<ReturnType<typeof validateArticleEnvelope>>
+    >
+  >;
+  try {
+    response = await publicLentille.getJson(
+      "article.show",
+      { params: { lid } },
+      {
+        endpoint: "article.show",
+        timeoutMs: 30_000,
+        maxBytes: MAX_ARTICLE_RESPONSE_BYTES,
+        validate: validateArticleEnvelope,
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof HttpError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      await restrictArticle(lid);
+      throw new AccessError(error.url, error.status);
+    }
+    throw error;
+  }
+  const { data: envelope, url } = response;
+  const { status, data, time } = envelope;
+  if (status === 403 || status === 404) {
+    await restrictArticle(lid);
+    throw new AccessError(url, status);
+  }
   if (status !== 200)
-    throw new UnexpectedStatusError("Unexpected status", res.url, status);
+    throw new UnexpectedStatusError("Unexpected status", url, status);
+  if (!data)
+    throw new UnexpectedStatusError("Missing article data", url, status);
 
   const now = new Date(time * 1000);
   return saveArticleSnapshot(data.article, now);
@@ -154,21 +266,34 @@ export async function listArticles(
   collection: number | null = null,
   page?: number,
 ) {
-  const res = await (collection
-    ? clientLentille.get("article.collection", {
-        params: { id: collection },
-        ...(page ? { query: { page } } : {}),
-      })
-    : clientLentille.get("article.list", page ? { query: { page } } : {}));
-  const { status, data, time } = await res.json().catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res);
-  });
-  if (status === 403 || status === 404) throw new AccessError(res.url, status);
+  const request = collection
+    ? publicLentille.getJson(
+        "article.collection",
+        {
+          params: { id: collection },
+          ...(page ? { query: { page } } : {}),
+        },
+        {
+          endpoint: "article.collection",
+          timeoutMs: 20_000,
+          maxBytes: MAX_ARTICLE_LIST_BYTES,
+          validate: validateArticleListEnvelope,
+        },
+      )
+    : publicLentille.getJson("article.list", page ? { query: { page } } : {}, {
+        endpoint: "article.list",
+        timeoutMs: 20_000,
+        maxBytes: MAX_ARTICLE_LIST_BYTES,
+        validate: validateArticleListEnvelope,
+      });
+  const { data: envelope, url } = await request;
+  const { status, data, time } = envelope;
+  if (status === 403 || status === 404) throw new AccessError(url, status);
   if (status !== 200)
-    throw new UnexpectedStatusError("Unexpected status", res.url, status);
+    throw new UnexpectedStatusError("Unexpected status", url, status);
 
   const now = new Date(time * 1000);
-  const articles = data.articles.result as Article[];
+  const articles = data.articles.result;
   await Promise.all([
     saveArticles(articles, now),
     saveCollections(articles.flatMap((article) => article.collection ?? [])),
@@ -184,17 +309,58 @@ export async function fetchReplies(lid: string, after?: number) {
   // Here we don't have the server time, so just use local time
   const now = new Date();
 
-  const res = await clientLentille.get("article.replies", {
-    params: { lid },
-    query: { sort: "time-d", ...(after ? { after } : {}) },
-  });
-  if (res.status === 403 || res.status === 404)
-    throw new AccessError(res.url, res.status);
-  if (!res.ok) throw new HttpError(res);
-  const { replySlice } = await res.json();
+  let response: Awaited<
+    ReturnType<
+      typeof publicLentille.getJson<ReturnType<typeof validateArticleReplies>>
+    >
+  >;
+  try {
+    response = await publicLentille.getJson(
+      "article.replies",
+      {
+        params: { lid },
+        query: { sort: "time-d", ...(after ? { after } : {}) },
+      },
+      {
+        endpoint: "article.replies",
+        timeoutMs: 20_000,
+        maxBytes: MAX_ARTICLE_REPLIES_BYTES,
+        validate: validateArticleReplies,
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof HttpError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      await restrictArticle(lid);
+      throw new AccessError(error.url, error.status);
+    }
+    throw error;
+  }
+  const { data, url } = response;
+  void url;
+  const { replySlice } = data;
 
   const lastReplyId = replySlice[replySlice.length - 1]?.id;
-  if (!lastReplyId) return { lastReplyId: null, lastReplySaved: null };
+  if (!lastReplyId)
+    return {
+      lastReplyId: null,
+      lastReplySaved: null,
+      replyCount: 0,
+      newReplyCount: 0,
+    };
+
+  const existingReplies = await db
+    .select({ id: schema.ArticleReply.id })
+    .from(schema.ArticleReply)
+    .where(
+      inArray(
+        schema.ArticleReply.id,
+        replySlice.map((reply) => reply.id),
+      ),
+    );
+  const existingIds = new Set(existingReplies.map(({ id }) => id));
 
   const lastReplySaved = await db.query.ArticleReply.findFirst({
     columns: { updatedAt: true },
@@ -228,5 +394,11 @@ export async function fetchReplies(lid: string, after?: number) {
       },
     });
 
-  return { lastReplyId, lastReplySaved };
+  return {
+    lastReplyId,
+    lastReplySaved,
+    replyCount: replySlice.length,
+    newReplyCount: replySlice.filter((reply) => !existingIds.has(reply.id))
+      .length,
+  };
 }

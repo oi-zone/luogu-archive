@@ -7,4 +7,10 @@ export { fetchDiscuss, listDiscuss, REPLIES_PER_PAGE } from "./discuss.js";
 export { fetchJudgement } from "./judgement.js";
 export { fetchPaste } from "./paste.js";
 
-export { AccessError, HttpError, UnexpectedStatusError } from "./error.js";
+export {
+  AccessError,
+  HttpError,
+  UnexpectedStatusError,
+  UpstreamPayloadError,
+} from "./error.js";
+export { parseRetryAfter, requestJson } from "./http.js";

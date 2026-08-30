@@ -2,6 +2,7 @@ model Post {
   id         Int      @id
   time       DateTime @db.Timestamp(0)
   replyCount Int
+  public     Boolean  @default(false)
 
   updatedAt DateTime
 
@@ -12,6 +13,7 @@ model Post {
 
   @@index([time])
   @@index([replyCount(sort: Desc)])
+  @@index([public, updatedAt(sort: Desc)])
 }
 
 model PostSnapshot {

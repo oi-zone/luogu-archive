@@ -2,20 +2,36 @@ import type { RouteResponse } from "@lgjs/types";
 
 import { db, schema, sql } from "@luogu-discussion-archive/db";
 
-import { cn } from "./client.js";
-import { HttpError } from "./error.js";
+import { publicCn } from "./client.js";
+import { expectArray, expectRecord } from "./http.js";
 import { saveUserSnapshots } from "./user.js";
 
 export async function fetchJudgement() {
   // Here we don't have the server time, so just use local time
   const now = new Date();
 
-  const res = await cn.get("judgement");
-  const { logs } = await (
-    res.json() as Promise<RouteResponse["judgement"]["data"]>
-  ).catch((err: unknown) => {
-    throw res.ok ? err : new HttpError(res);
-  });
+  const { data } = await publicCn.getJson(
+    "judgement",
+    {},
+    {
+      endpoint: "judgement",
+      timeoutMs: 20_000,
+      maxBytes: 2 * 1024 * 1024,
+      validate(value) {
+        const root = expectRecord(value, "judgement");
+        const payload =
+          "data" in root ? expectRecord(root.data, "judgement") : root;
+        return {
+          logs: expectArray<RouteResponse["judgement"]["data"]["logs"][number]>(
+            payload.logs,
+            "judgement.logs",
+            500,
+          ),
+        };
+      },
+    },
+  );
+  const { logs } = data;
 
   await saveUserSnapshots(
     logs.map((log) => log.user),
