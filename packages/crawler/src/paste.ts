@@ -12,10 +12,16 @@ import {
 
 import { publicClient } from "./client.js";
 import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";
-import { expectFiniteNumber, expectRecord, expectString } from "./http.js";
+import {
+  expectFiniteNumber,
+  expectRecord,
+  validateBoundedPayload,
+} from "./http.js";
+import { validatePaste } from "./payload-validation.js";
 import { saveUserSnapshots } from "./user.js";
 
 const MAX_PASTE_RESPONSE_BYTES = 2 * 1024 * 1024;
+const ANONYMOUS_SOURCE = "anonymous_upstream";
 
 function validatePasteResponse(value: unknown) {
   const root = expectRecord(value, "paste.show");
@@ -23,18 +29,13 @@ function validatePasteResponse(value: unknown) {
   if (code !== 200) {
     return { code, currentTime: 0, currentData: null };
   }
+  validateBoundedPayload(value, "paste.show");
   const currentData = expectRecord(root.currentData, "paste.show");
-  const paste = expectRecord(
-    currentData.paste,
-    "paste.show",
-  ) as unknown as Paste;
+  const paste = validatePaste(currentData.paste, "paste.show.paste");
   const currentTime = expectFiniteNumber(
     root.currentTime,
     "paste.show.currentTime",
   );
-  expectString(paste.id, "paste.show.paste.id", 8);
-  if (typeof paste.public !== "boolean")
-    throw new Error("Invalid paste visibility");
   return {
     code,
     currentTime,
@@ -52,6 +53,9 @@ async function savePaste(paste: Paste, now: Date) {
       time: new Date(paste.time * 1000),
       userId: paste.user.uid,
       public: paste.public,
+      visibilityState: paste.public ? "public" : "restricted",
+      visibilityCheckedAt: now,
+      visibilitySource: ANONYMOUS_SOURCE,
     })
     .onConflictDoUpdate({
       target: [schema.Paste.id],
@@ -59,6 +63,15 @@ async function savePaste(paste: Paste, now: Date) {
         time: sql.raw(`excluded."${schema.Paste.time.name}"`),
         userId: sql.raw(`excluded."${schema.Paste.userId.name}"`),
         public: sql.raw(`excluded."${schema.Paste.public.name}"`),
+        visibilityState: sql.raw(
+          `excluded."${schema.Paste.visibilityState.name}"`,
+        ),
+        visibilityCheckedAt: sql.raw(
+          `excluded."${schema.Paste.visibilityCheckedAt.name}"`,
+        ),
+        visibilitySource: sql.raw(
+          `excluded."${schema.Paste.visibilitySource.name}"`,
+        ),
       },
     });
 }
@@ -82,7 +95,12 @@ async function savePasteSnapshot(paste: Paste, now: Date) {
 
     const { rowCount } = await tx
       .update(schema.PasteSnapshot)
-      .set({ lastSeenAt: now })
+      .set({
+        lastSeenAt: now,
+        exposureState: paste.public ? "public" : "restricted",
+        verifiedPublicAt: paste.public ? now : null,
+        verifiedSource: ANONYMOUS_SOURCE,
+      })
       .where(
         and(
           eq(schema.PasteSnapshot.pasteId, paste.id),
@@ -107,6 +125,9 @@ async function savePasteSnapshot(paste: Paste, now: Date) {
         pasteId: paste.id,
         public: paste.public,
         data: safeData,
+        exposureState: paste.public ? "public" : "restricted",
+        verifiedPublicAt: paste.public ? now : null,
+        verifiedSource: ANONYMOUS_SOURCE,
         capturedAt: now,
         lastSeenAt: now,
       });
@@ -118,11 +139,16 @@ async function restrictPaste(id: string) {
   await db.transaction(async (tx) => {
     await tx
       .update(schema.Paste)
-      .set({ public: false })
+      .set({
+        public: false,
+        visibilityState: "restricted",
+        visibilityCheckedAt: new Date(),
+        visibilitySource: ANONYMOUS_SOURCE,
+      })
       .where(eq(schema.Paste.id, id));
     await tx
       .update(schema.PasteSnapshot)
-      .set({ data: null })
+      .set({ data: null, exposureState: "restricted" })
       .where(eq(schema.PasteSnapshot.pasteId, id));
   });
 }

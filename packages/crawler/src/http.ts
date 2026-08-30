@@ -199,6 +199,116 @@ export function expectFiniteNumber(value: unknown, endpoint: string) {
   return value;
 }
 
+export function expectPositiveInteger(value: unknown, endpoint: string) {
+  if (!Number.isSafeInteger(value) || (value as number) <= 0) {
+    throw new UpstreamPayloadError(endpoint, "expected a positive integer");
+  }
+  return value as number;
+}
+
+const SHORT_STRING_KEYS = new Set([
+  "title",
+  "name",
+  "username",
+  "badge",
+  "slug",
+  "pid",
+  "lid",
+  "tag",
+]);
+const BODY_STRING_KEYS = new Set(["content", "data", "description", "slogan"]);
+const POSITIVE_INTEGER_KEYS = new Set([
+  "id",
+  "uid",
+  "userId",
+  "replyId",
+  "page",
+  "perPage",
+  "time",
+  "timestamp",
+  "currentTime",
+]);
+const NON_NEGATIVE_INTEGER_KEYS = new Set([
+  "count",
+  "replyCount",
+  "upvote",
+  "favorCount",
+]);
+
+export function validateBoundedPayload(value: unknown, endpoint: string) {
+  const stack: { value: unknown; key: string; depth: number }[] = [
+    { value, key: "root", depth: 0 },
+  ];
+  let visited = 0;
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) break;
+    visited += 1;
+    if (visited > 50_000 || current.depth > 32) {
+      throw new UpstreamPayloadError(
+        endpoint,
+        "payload structure is too large",
+      );
+    }
+    if (typeof current.value === "string") {
+      const maximum = BODY_STRING_KEYS.has(current.key)
+        ? 2 * 1024 * 1024
+        : SHORT_STRING_KEYS.has(current.key)
+          ? current.key === "title"
+            ? 512
+            : 128
+          : 4_096;
+      if (current.value.length > maximum) {
+        throw new UpstreamPayloadError(endpoint, "nested string is too long");
+      }
+      continue;
+    }
+    if (typeof current.value === "number") {
+      if (
+        POSITIVE_INTEGER_KEYS.has(current.key) &&
+        (!Number.isSafeInteger(current.value) || current.value <= 0)
+      ) {
+        throw new UpstreamPayloadError(endpoint, "invalid positive integer");
+      }
+      if (
+        NON_NEGATIVE_INTEGER_KEYS.has(current.key) &&
+        (!Number.isSafeInteger(current.value) || current.value < 0)
+      ) {
+        throw new UpstreamPayloadError(
+          endpoint,
+          "invalid non-negative integer",
+        );
+      }
+      continue;
+    }
+    if (Array.isArray(current.value)) {
+      if (current.value.length > 1_000) {
+        throw new UpstreamPayloadError(endpoint, "nested array is too large");
+      }
+      for (let index = current.value.length - 1; index >= 0; index -= 1) {
+        stack.push({
+          value: current.value[index],
+          key: current.key === "tags" ? "tag" : current.key,
+          depth: current.depth + 1,
+        });
+      }
+      continue;
+    }
+    if (current.value && typeof current.value === "object") {
+      const entries = Object.entries(current.value as Record<string, unknown>);
+      if (entries.length > 256) {
+        throw new UpstreamPayloadError(endpoint, "object has too many fields");
+      }
+      for (let index = entries.length - 1; index >= 0; index -= 1) {
+        const entry = entries[index];
+        if (!entry) continue;
+        const [key, nested] = entry;
+        stack.push({ value: nested, key, depth: current.depth + 1 });
+      }
+    }
+  }
+}
+
 export function expectString(
   value: unknown,
   endpoint: string,

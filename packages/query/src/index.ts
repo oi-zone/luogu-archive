@@ -56,11 +56,17 @@ export {
   uniqueEntryRefs,
   validateEntryRequest,
 } from "./entry-validation.js";
-export { canExposePaste } from "./visibility.js";
+export {
+  canExposeEntity,
+  canExposeSnapshot,
+  VISIBILITY_TTL_MS,
+} from "./visibility.js";
 export type {
-  ArticleDto,
-  PostDto,
-  UserDto,
+  ArticleEntryPreviewDto,
+  PostEntryPreviewDto,
+  PasteEntryPreviewDto,
+  EntryPreviewDto,
+  PublicUserPreviewDto,
   ProblemDto,
   ForumDto,
 } from "./dto.js";

@@ -1,5 +1,6 @@
 import type { Config, Route } from "@lgjs/types";
 
+import { UpstreamPayloadError } from "./error.js";
 import {
   expectRecord,
   expectString,
@@ -65,13 +66,17 @@ async function getConfig(baseUrl: string) {
   return pending;
 }
 
-class PublicRequestClient {
+export class PublicRequestClient {
+  private readonly origin: string;
+
   constructor(
     private readonly options: {
       baseUrl: string;
       headers: Record<string, string>;
     },
-  ) {}
+  ) {
+    this.origin = new URL(options.baseUrl).origin;
+  }
 
   async getJson<T>(
     routeName: Route,
@@ -83,6 +88,12 @@ class PublicRequestClient {
     if (!template) throw new Error(`Unknown upstream route ${routeName}`);
     const path = expandTemplate(template, options.params ?? {});
     const url = new URL(path, this.options.baseUrl);
+    if (url.origin !== this.origin) {
+      throw new UpstreamPayloadError(
+        policy.endpoint,
+        "route config attempted a cross-origin request",
+      );
+    }
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== null && value !== undefined)
         url.searchParams.set(key, String(value));

@@ -22,7 +22,13 @@ import {
   expectFiniteNumber,
   expectRecord,
   expectString,
+  validateBoundedPayload,
 } from "./http.js";
+import {
+  validateArticle,
+  validateArticleDetails,
+  validateReply,
+} from "./payload-validation.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
 import { deduplicate } from "./utils.js";
@@ -32,6 +38,8 @@ const MAX_ARTICLE_LIST_BYTES = 2 * 1024 * 1024;
 const MAX_ARTICLE_REPLIES_BYTES = 4 * 1024 * 1024;
 const MAX_ARTICLE_LIST_ITEMS = 100;
 const MAX_ARTICLE_REPLIES = 100;
+export const ARTICLE_REPLIES_PER_PAGE = 20;
+const ANONYMOUS_SOURCE = "anonymous_upstream";
 
 function validateArticleEnvelope(value: unknown) {
   const root = expectRecord(value, "article.show");
@@ -39,11 +47,9 @@ function validateArticleEnvelope(value: unknown) {
   if (status !== 200) {
     return { status, time: 0, data: null };
   }
+  validateBoundedPayload(value, "article.show");
   const data = expectRecord(root.data, "article.show");
-  const article = expectRecord(
-    data.article,
-    "article.show",
-  ) as unknown as ArticleDetails;
+  const article = validateArticleDetails(data.article, "article.show.article");
   const time = expectFiniteNumber(root.time, "article.show.time");
   expectString(article.lid, "article.show.article.lid", 8);
   return {
@@ -54,13 +60,16 @@ function validateArticleEnvelope(value: unknown) {
 }
 
 function validateArticleListEnvelope(value: unknown) {
+  validateBoundedPayload(value, "article.list");
   const root = expectRecord(value, "article.list");
   const data = expectRecord(root.data, "article.list");
   const container = expectRecord(data.articles, "article.list");
-  const articles = expectArray<Article>(
+  const articles = expectArray<unknown>(
     container.result,
     "article.list.articles",
     MAX_ARTICLE_LIST_ITEMS,
+  ).map((article, index) =>
+    validateArticle(article, `article.list.articles[${String(index)}]`),
   );
   expectFiniteNumber(root.status, "article.list.status");
   expectFiniteNumber(root.time, "article.list.time");
@@ -74,16 +83,17 @@ function validateArticleListEnvelope(value: unknown) {
 }
 
 function validateArticleReplies(value: unknown) {
+  validateBoundedPayload(value, "article.replies");
   const root = expectRecord(value, "article.replies");
+  const replies = expectArray<unknown>(
+    root.replySlice,
+    "article.replies",
+    MAX_ARTICLE_REPLIES,
+  ).map((reply, index) =>
+    validateReply(reply, `article.replies[${String(index)}]`),
+  );
   return {
-    replySlice: expectArray<
-      Parameters<typeof saveUserSnapshots>[0][number] & {
-        id: number;
-        time: number;
-        content: string;
-        author: Parameters<typeof saveUserSnapshots>[0][number];
-      }
-    >(root.replySlice, "article.replies", MAX_ARTICLE_REPLIES),
+    replySlice: replies,
   };
 }
 
@@ -130,6 +140,9 @@ async function saveArticles(articles: Article[], now: Date) {
         replyCount: article.replyCount,
         favorCount: article.favorCount,
         public: article.status === 2,
+        visibilityState: article.status === 2 ? "public" : "restricted",
+        visibilityCheckedAt: now,
+        visibilitySource: ANONYMOUS_SOURCE,
         updatedAt: now,
       })),
     )
@@ -142,6 +155,15 @@ async function saveArticles(articles: Article[], now: Date) {
         replyCount: sql.raw(`excluded."${schema.Article.replyCount.name}"`),
         favorCount: sql.raw(`excluded."${schema.Article.favorCount.name}"`),
         public: sql.raw(`excluded."${schema.Article.public.name}"`),
+        visibilityState: sql.raw(
+          `excluded."${schema.Article.visibilityState.name}"`,
+        ),
+        visibilityCheckedAt: sql.raw(
+          `excluded."${schema.Article.visibilityCheckedAt.name}"`,
+        ),
+        visibilitySource: sql.raw(
+          `excluded."${schema.Article.visibilitySource.name}"`,
+        ),
         updatedAt: sql.raw(`excluded."${schema.Article.updatedAt.name}"`),
       },
     });
@@ -173,7 +195,12 @@ async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
 
     const { rowCount } = await tx
       .update(schema.ArticleSnapshot)
-      .set({ lastSeenAt: now })
+      .set({
+        lastSeenAt: now,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
+      })
       .where(
         and(
           eq(schema.ArticleSnapshot.articleId, article.lid),
@@ -207,6 +234,9 @@ async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
         collectionId: article.collection?.id ?? null,
         content: article.content,
         adminNote: article.adminNote,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
         capturedAt: now,
         lastSeenAt: now,
       });
@@ -216,7 +246,13 @@ async function saveArticleSnapshot(article: ArticleDetails, now: Date) {
 async function restrictArticle(lid: string) {
   await db
     .update(schema.Article)
-    .set({ public: false, updatedAt: new Date() })
+    .set({
+      public: false,
+      visibilityState: "restricted",
+      visibilityCheckedAt: new Date(),
+      visibilitySource: ANONYMOUS_SOURCE,
+      updatedAt: new Date(),
+    })
     .where(eq(schema.Article.lid, lid));
 }
 
@@ -380,6 +416,9 @@ export async function fetchReplies(lid: string, after?: number) {
         authorId: reply.author.uid,
         time: new Date(reply.time * 1000),
         content: reply.content,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
         updatedAt: now,
       })),
     )
@@ -390,6 +429,15 @@ export async function fetchReplies(lid: string, after?: number) {
         authorId: sql.raw(`excluded."${schema.ArticleReply.authorId.name}"`),
         time: sql.raw(`excluded."${schema.ArticleReply.time.name}"`),
         content: sql.raw(`excluded."${schema.ArticleReply.content.name}"`),
+        exposureState: sql.raw(
+          `excluded."${schema.ArticleReply.exposureState.name}"`,
+        ),
+        verifiedPublicAt: sql.raw(
+          `excluded."${schema.ArticleReply.verifiedPublicAt.name}"`,
+        ),
+        verifiedSource: sql.raw(
+          `excluded."${schema.ArticleReply.verifiedSource.name}"`,
+        ),
         updatedAt: sql.raw(`excluded."${schema.ArticleReply.updatedAt.name}"`),
       },
     });

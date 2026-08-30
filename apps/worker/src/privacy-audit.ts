@@ -5,69 +5,246 @@ import { closeDb, db, sql } from "@luogu-discussion-archive/db";
 const apply = process.argv.slice(2).includes("--apply");
 const BATCH_SIZE = 500;
 
-interface AuditRow extends Record<string, unknown> {
-  pasteId: string;
-  snapshotsWithBody: number;
-  storedBytes: string;
+type BodyType =
+  | "pasteSnapshot"
+  | "articleSnapshot"
+  | "postSnapshot"
+  | "replySnapshot"
+  | "articleReply";
+
+interface SummaryRow extends Record<string, unknown> {
+  bodyType: BodyType;
+  records: number;
+  bytes: string;
 }
 
-async function findBatch(afterId: string | null) {
+async function audit() {
   return (
-    await db.execute<AuditRow>(sql`
-      SELECT
-        ps."pasteId" AS "pasteId",
-        count(*)::int AS "snapshotsWithBody",
-        COALESCE(sum(octet_length(ps."data")), 0)::bigint AS "storedBytes"
+    await db.execute<SummaryRow>(sql`
+      SELECT 'pasteSnapshot' AS "bodyType", count(*)::int AS "records",
+        COALESCE(sum(octet_length(ps."data")), 0)::bigint AS "bytes"
       FROM "PasteSnapshot" ps
       JOIN "Paste" p ON p."id" = ps."pasteId"
-      WHERE p."public" = FALSE
-        AND ps."data" IS NOT NULL
-        AND (${afterId}::text IS NULL OR ps."pasteId" > ${afterId})
-      GROUP BY ps."pasteId"
-      ORDER BY ps."pasteId"
-      LIMIT ${BATCH_SIZE}
+      WHERE ps."data" IS NOT NULL
+        AND (
+          p."visibilityState" <> 'public'
+          OR ps."public" = FALSE
+          OR ps."exposureState" <> 'public'
+          OR ps."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+          OR ps."verifiedPublicAt" IS NULL
+        )
+      UNION ALL
+      SELECT 'articleSnapshot', count(*)::int,
+        COALESCE(sum(octet_length(s."content")), 0)::bigint
+      FROM "ArticleSnapshot" s
+      JOIN "Article" a ON a."lid" = s."articleId"
+      WHERE s."content" <> '' AND (
+        a."visibilityState" <> 'public'
+        OR s."exposureState" <> 'public'
+        OR s."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+        OR s."verifiedPublicAt" IS NULL
+      )
+      UNION ALL
+      SELECT 'postSnapshot', count(*)::int,
+        COALESCE(sum(octet_length(s."content")), 0)::bigint
+      FROM "PostSnapshot" s
+      JOIN "Post" p ON p."id" = s."postId"
+      LEFT JOIN "PostTakedown" pt ON pt."postId" = p."id"
+      WHERE s."content" <> '' AND (
+        p."visibilityState" <> 'public'
+        OR pt."postId" IS NOT NULL
+        OR s."exposureState" <> 'public'
+        OR s."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+        OR s."verifiedPublicAt" IS NULL
+      )
+      UNION ALL
+      SELECT 'replySnapshot', count(*)::int,
+        COALESCE(sum(octet_length(s."content")), 0)::bigint
+      FROM "ReplySnapshot" s
+      JOIN "Reply" r ON r."id" = s."replyId"
+      JOIN "Post" p ON p."id" = r."postId"
+      LEFT JOIN "PostTakedown" pt ON pt."postId" = p."id"
+      LEFT JOIN "ReplyTakedown" rt ON rt."replyId" = r."id"
+      WHERE s."content" <> '' AND (
+        p."visibilityState" <> 'public'
+        OR pt."postId" IS NOT NULL
+        OR rt."replyId" IS NOT NULL
+        OR s."exposureState" <> 'public'
+        OR s."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+        OR s."verifiedPublicAt" IS NULL
+      )
+      UNION ALL
+      SELECT 'articleReply', count(*)::int,
+        COALESCE(sum(octet_length(r."content")), 0)::bigint
+      FROM "ArticleReply" r
+      JOIN "Article" a ON a."lid" = r."articleId"
+      WHERE r."content" <> '' AND (
+        a."visibilityState" <> 'public'
+        OR r."exposureState" <> 'public'
+        OR r."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+        OR r."verifiedPublicAt" IS NULL
+      )
+      ORDER BY 1
     `)
   ).rows;
 }
 
-let afterId: string | null = null;
-let entities = 0;
-let snapshots = 0;
-let bytes = 0;
+async function auditPolicyFlags() {
+  return (
+    await db.execute(sql`
+      SELECT
+        (SELECT count(*)::int FROM "Article"
+          WHERE "public" = TRUE AND (
+            "visibilityState" <> 'public'
+            OR "visibilitySource" IS DISTINCT FROM 'anonymous_upstream'
+            OR "visibilityCheckedAt" IS NULL
+          )) AS "restrictedArticlesWithLegacyPublicFlag",
+        (SELECT count(*)::int FROM "Post"
+          WHERE "public" = TRUE AND (
+            "visibilityState" <> 'public'
+            OR "visibilitySource" IS DISTINCT FROM 'anonymous_upstream'
+            OR "visibilityCheckedAt" IS NULL
+          )) AS "restrictedPostsWithLegacyPublicFlag",
+        (SELECT count(*)::int FROM "Paste"
+          WHERE "public" = TRUE AND (
+            "visibilityState" <> 'public'
+            OR "visibilitySource" IS DISTINCT FROM 'anonymous_upstream'
+            OR "visibilityCheckedAt" IS NULL
+          )) AS "restrictedPastesWithLegacyPublicFlag",
+        (SELECT count(*)::int FROM "Post" p
+          JOIN "PostTakedown" pt ON pt."postId" = p."id"
+          WHERE p."public" = TRUE) AS "takedownPostsWithLegacyPublicFlag",
+        (SELECT count(*)::int FROM "Reply" r
+          JOIN "ReplyTakedown" rt ON rt."replyId" = r."id") AS "takedownReplies"
+    `)
+  ).rows[0];
+}
+
+async function clearBatch(bodyType: BodyType) {
+  switch (bodyType) {
+    case "pasteSnapshot":
+      return db.execute(sql`
+        WITH targets AS (
+          SELECT ps.ctid
+          FROM "PasteSnapshot" ps
+          JOIN "Paste" p ON p."id" = ps."pasteId"
+          WHERE ps."data" IS NOT NULL AND (
+            p."visibilityState" <> 'public'
+            OR ps."public" = FALSE
+            OR ps."exposureState" <> 'public'
+            OR ps."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+            OR ps."verifiedPublicAt" IS NULL
+          )
+          LIMIT ${BATCH_SIZE}
+        )
+        UPDATE "PasteSnapshot" ps SET "data" = NULL
+        FROM targets WHERE ps.ctid = targets.ctid
+        RETURNING 1
+      `);
+    case "articleSnapshot":
+      return db.execute(sql`
+        WITH targets AS (
+          SELECT s.ctid FROM "ArticleSnapshot" s
+          JOIN "Article" a ON a."lid" = s."articleId"
+          WHERE s."content" <> '' AND (
+            a."visibilityState" <> 'public'
+            OR s."exposureState" <> 'public'
+            OR s."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+            OR s."verifiedPublicAt" IS NULL
+          ) LIMIT ${BATCH_SIZE}
+        )
+        UPDATE "ArticleSnapshot" s SET "content" = ''
+        FROM targets WHERE s.ctid = targets.ctid RETURNING 1
+      `);
+    case "postSnapshot":
+      return db.execute(sql`
+        WITH targets AS (
+          SELECT s.ctid FROM "PostSnapshot" s
+          JOIN "Post" p ON p."id" = s."postId"
+          LEFT JOIN "PostTakedown" pt ON pt."postId" = p."id"
+          WHERE s."content" <> '' AND (
+            p."visibilityState" <> 'public' OR pt."postId" IS NOT NULL
+            OR s."exposureState" <> 'public'
+            OR s."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+            OR s."verifiedPublicAt" IS NULL
+          ) LIMIT ${BATCH_SIZE}
+        )
+        UPDATE "PostSnapshot" s SET "content" = ''
+        FROM targets WHERE s.ctid = targets.ctid RETURNING 1
+      `);
+    case "replySnapshot":
+      return db.execute(sql`
+        WITH targets AS (
+          SELECT s.ctid FROM "ReplySnapshot" s
+          JOIN "Reply" r ON r."id" = s."replyId"
+          JOIN "Post" p ON p."id" = r."postId"
+          LEFT JOIN "PostTakedown" pt ON pt."postId" = p."id"
+          LEFT JOIN "ReplyTakedown" rt ON rt."replyId" = r."id"
+          WHERE s."content" <> '' AND (
+            p."visibilityState" <> 'public'
+            OR pt."postId" IS NOT NULL OR rt."replyId" IS NOT NULL
+            OR s."exposureState" <> 'public'
+            OR s."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+            OR s."verifiedPublicAt" IS NULL
+          ) LIMIT ${BATCH_SIZE}
+        )
+        UPDATE "ReplySnapshot" s SET "content" = ''
+        FROM targets WHERE s.ctid = targets.ctid RETURNING 1
+      `);
+    case "articleReply":
+      return db.execute(sql`
+        WITH targets AS (
+          SELECT r.ctid FROM "ArticleReply" r
+          JOIN "Article" a ON a."lid" = r."articleId"
+          WHERE r."content" <> '' AND (
+            a."visibilityState" <> 'public'
+            OR r."exposureState" <> 'public'
+            OR r."verifiedSource" IS DISTINCT FROM 'anonymous_upstream'
+            OR r."verifiedPublicAt" IS NULL
+          ) LIMIT ${BATCH_SIZE}
+        )
+        UPDATE "ArticleReply" r SET "content" = ''
+        FROM targets WHERE r.ctid = targets.ctid RETURNING 1
+      `);
+  }
+}
 
 try {
-  for (;;) {
-    const rows = await findBatch(afterId);
-    if (rows.length === 0) break;
-
-    for (const row of rows) {
-      entities += 1;
-      snapshots += row.snapshotsWithBody;
-      bytes += Number(row.storedBytes);
+  const [before, policyFlags] = await Promise.all([
+    audit(),
+    auditPolicyFlags(),
+  ]);
+  const cleared: Partial<Record<BodyType, number>> = {};
+  if (apply) {
+    for (const row of before) {
+      let total = 0;
+      for (;;) {
+        const result = await clearBatch(row.bodyType);
+        total += result.rowCount ?? 0;
+        if ((result.rowCount ?? 0) < BATCH_SIZE) break;
+      }
+      cleared[row.bodyType] = total;
     }
-
-    if (apply) {
-      const pasteIds = rows.map((row) => row.pasteId);
-      await db.execute(sql`
-        UPDATE "PasteSnapshot"
-        SET "data" = NULL
-        WHERE "pasteId" = ANY(${pasteIds})
-          AND "data" IS NOT NULL
-      `);
-    }
-
-    afterId = rows.at(-1)?.pasteId ?? null;
-    if (rows.length < BATCH_SIZE) break;
   }
 
   process.stdout.write(
-    `${JSON.stringify({
-      mode: apply ? "apply" : "dry-run",
-      privateEntitiesWithStoredBody: entities,
-      snapshotsWithStoredBody: snapshots,
-      storedBodyBytes: bytes,
-      bodiesCleared: apply ? snapshots : 0,
-    })}\n`,
+    `${JSON.stringify(
+      {
+        mode: apply ? "apply" : "dry-run",
+        bodyFindings: before.map((row) => ({
+          bodyType: row.bodyType,
+          records: row.records,
+          bytes: Number(row.bytes),
+          cleared: cleared[row.bodyType] ?? 0,
+        })),
+        policyFlags,
+        warning: apply
+          ? "Body clearing completed; restore requires a database backup"
+          : "No body was changed; back up PostgreSQL before --apply",
+      },
+      null,
+      2,
+    )}\n`,
   );
 } finally {
   await closeDb();

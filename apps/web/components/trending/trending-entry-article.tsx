@@ -5,7 +5,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 
-import { ArticleDto } from "@luogu-discussion-archive/query";
+import { ArticleEntryPreviewDto } from "@luogu-discussion-archive/query";
 
 import { getCategoryInfo } from "@/lib/category-info";
 import { renderMarkdownToPlainText } from "@/lib/markdown-plain-text";
@@ -15,9 +15,9 @@ import TrendingEntryTemplate from "./trending-entry-template";
 export default function TrendingEntryArticle({
   article,
 }: {
-  article: ArticleDto;
+  article: ArticleEntryPreviewDto;
 }) {
-  const rawContent = article.content?.trim() || "";
+  const rawContent = article.preview.trim();
   const plainContent =
     rawContent.length > 0 ? renderMarkdownToPlainText(rawContent) : "";
   const summary = article.summary?.trim() || "";

@@ -5,13 +5,49 @@ import {
   db,
   desc,
   eq,
+  exists,
   inArray,
   lte,
+  notExists,
   schema,
   sql,
   sum,
   type InferEnum,
 } from "@luogu-discussion-archive/db";
+
+import {
+  publicArticleCondition,
+  publicPasteCondition,
+  publicPostCondition,
+  verifiedArticleReplyCondition,
+  verifiedArticleSnapshotCondition,
+  verifiedPasteSnapshotCondition,
+  verifiedPostSnapshotCondition,
+  verifiedReplySnapshotCondition,
+  visibilityCutoff,
+} from "./visibility.js";
+
+function visibleReplyCondition() {
+  return and(
+    notExists(
+      db
+        .select({ replyId: schema.ReplyTakedown.replyId })
+        .from(schema.ReplyTakedown)
+        .where(eq(schema.ReplyTakedown.replyId, schema.Reply.id)),
+    ),
+    exists(
+      db
+        .select({ replyId: schema.ReplySnapshot.replyId })
+        .from(schema.ReplySnapshot)
+        .where(
+          and(
+            eq(schema.ReplySnapshot.replyId, schema.Reply.id),
+            verifiedReplySnapshotCondition(),
+          ),
+        ),
+    ),
+  );
+}
 
 export type UserNameColor =
   | "purple"
@@ -278,10 +314,7 @@ async function getUserStats(userId: number) {
       })
       .from(schema.Article)
       .where(
-        and(
-          eq(schema.Article.authorId, userId),
-          eq(schema.Article.public, true),
-        ),
+        and(eq(schema.Article.authorId, userId), publicArticleCondition()),
       ),
     db
       .select({ total: countDistinct(schema.PostSnapshot.postId) })
@@ -290,7 +323,8 @@ async function getUserStats(userId: number) {
       .where(
         and(
           eq(schema.PostSnapshot.authorId, userId),
-          eq(schema.Post.public, true),
+          publicPostCondition(),
+          verifiedPostSnapshotCondition(),
         ),
       ),
     db
@@ -303,7 +337,8 @@ async function getUserStats(userId: number) {
       .where(
         and(
           eq(schema.ArticleReply.authorId, userId),
-          eq(schema.Article.public, true),
+          publicArticleCondition(),
+          verifiedArticleReplyCondition(),
         ),
       ),
     db
@@ -311,7 +346,11 @@ async function getUserStats(userId: number) {
       .from(schema.Reply)
       .innerJoin(schema.Post, eq(schema.Reply.postId, schema.Post.id))
       .where(
-        and(eq(schema.Reply.authorId, userId), eq(schema.Post.public, true)),
+        and(
+          eq(schema.Reply.authorId, userId),
+          publicPostCondition(),
+          visibleReplyCondition(),
+        ),
       ),
     db
       .select({ total: count() })
@@ -341,10 +380,10 @@ async function getUserTimelineEntries(
   const articleWhere = before
     ? and(
         eq(schema.Article.authorId, userId),
-        eq(schema.Article.public, true),
+        publicArticleCondition(),
         lte(schema.Article.time, before),
       )
-    : and(eq(schema.Article.authorId, userId), eq(schema.Article.public, true));
+    : and(eq(schema.Article.authorId, userId), publicArticleCondition());
 
   const articlePromise = db.query.Article.findMany({
     where: articleWhere,
@@ -352,6 +391,13 @@ async function getUserTimelineEntries(
     limit,
     with: {
       snapshots: {
+        where: verifiedArticleSnapshotCondition(),
+        columns: { content: false, adminNote: false },
+        extras: {
+          preview: sql<string>`left(${schema.ArticleSnapshot.content}, 512)`.as(
+            "timeline_preview",
+          ),
+        },
         orderBy: desc(schema.ArticleSnapshot.capturedAt),
         limit: 1,
       },
@@ -365,6 +411,15 @@ async function getUserTimelineEntries(
       JOIN "Post" p ON p."id" = ps."postId"
       WHERE ps."authorId" = ${userId}
         AND p."public" = TRUE
+        AND p."visibilityState" = 'public'
+        AND p."visibilitySource" = 'anonymous_upstream'
+        AND p."visibilityCheckedAt" >= ${visibilityCutoff()}
+        AND ps."exposureState" = 'public'
+        AND ps."verifiedSource" = 'anonymous_upstream'
+        AND ps."verifiedPublicAt" IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM "PostTakedown" pt WHERE pt."postId" = p."id"
+        )
         ${before ? sql`AND p."time" <= ${before}` : sql``}
       GROUP BY ps."postId"
       ORDER BY MAX(p."time") DESC
@@ -377,15 +432,11 @@ async function getUserTimelineEntries(
     : undefined;
   const postWhere = before
     ? postWhereBase
-      ? and(
-          postWhereBase,
-          eq(schema.Post.public, true),
-          lte(schema.Post.time, before),
-        )
-      : and(eq(schema.Post.public, true), lte(schema.Post.time, before))
+      ? and(postWhereBase, publicPostCondition(), lte(schema.Post.time, before))
+      : and(publicPostCondition(), lte(schema.Post.time, before))
     : postWhereBase
-      ? and(postWhereBase, eq(schema.Post.public, true))
-      : eq(schema.Post.public, true);
+      ? and(postWhereBase, publicPostCondition())
+      : publicPostCondition();
 
   const postsPromise = postIds.length
     ? db.query.Post.findMany({
@@ -394,6 +445,14 @@ async function getUserTimelineEntries(
         limit,
         with: {
           snapshots: {
+            where: verifiedPostSnapshotCondition(),
+            columns: { content: false },
+            extras: {
+              preview:
+                sql<string>`left(${schema.PostSnapshot.content}, 512)`.as(
+                  "timeline_preview",
+                ),
+            },
             orderBy: desc(schema.PostSnapshot.capturedAt),
             limit: 1,
           },
@@ -405,15 +464,49 @@ async function getUserTimelineEntries(
     where: before
       ? and(
           eq(schema.ArticleReply.authorId, userId),
+          verifiedArticleReplyCondition(),
+          exists(
+            db
+              .select({ lid: schema.Article.lid })
+              .from(schema.Article)
+              .where(
+                and(
+                  eq(schema.Article.lid, schema.ArticleReply.articleId),
+                  publicArticleCondition(),
+                ),
+              ),
+          ),
           lte(schema.ArticleReply.time, before),
         )
-      : eq(schema.ArticleReply.authorId, userId),
+      : and(
+          eq(schema.ArticleReply.authorId, userId),
+          verifiedArticleReplyCondition(),
+          exists(
+            db
+              .select({ lid: schema.Article.lid })
+              .from(schema.Article)
+              .where(
+                and(
+                  eq(schema.Article.lid, schema.ArticleReply.articleId),
+                  publicArticleCondition(),
+                ),
+              ),
+          ),
+        ),
+    columns: { content: false },
+    extras: {
+      preview: sql<string>`left(${schema.ArticleReply.content}, 512)`.as(
+        "timeline_preview",
+      ),
+    },
     orderBy: desc(schema.ArticleReply.time),
     limit,
     with: {
       article: {
         with: {
           snapshots: {
+            where: verifiedArticleSnapshotCondition(),
+            columns: { content: false, adminNote: false },
             orderBy: desc(schema.ArticleSnapshot.capturedAt),
             limit: 1,
           },
@@ -424,20 +517,58 @@ async function getUserTimelineEntries(
 
   const discussionRepliesPromise = db.query.Reply.findMany({
     where: before
-      ? and(eq(schema.Reply.authorId, userId), lte(schema.Reply.time, before))
-      : eq(schema.Reply.authorId, userId),
+      ? and(
+          eq(schema.Reply.authorId, userId),
+          visibleReplyCondition(),
+          exists(
+            db
+              .select({ id: schema.Post.id })
+              .from(schema.Post)
+              .where(
+                and(
+                  eq(schema.Post.id, schema.Reply.postId),
+                  publicPostCondition(),
+                ),
+              ),
+          ),
+          lte(schema.Reply.time, before),
+        )
+      : and(
+          eq(schema.Reply.authorId, userId),
+          visibleReplyCondition(),
+          exists(
+            db
+              .select({ id: schema.Post.id })
+              .from(schema.Post)
+              .where(
+                and(
+                  eq(schema.Post.id, schema.Reply.postId),
+                  publicPostCondition(),
+                ),
+              ),
+          ),
+        ),
     orderBy: desc(schema.Reply.time),
     limit,
     with: {
       post: {
         with: {
           snapshots: {
+            where: verifiedPostSnapshotCondition(),
+            columns: { content: false },
             orderBy: desc(schema.PostSnapshot.capturedAt),
             limit: 1,
           },
         },
       },
       snapshots: {
+        where: verifiedReplySnapshotCondition(),
+        columns: { content: false },
+        extras: {
+          preview: sql<string>`left(${schema.ReplySnapshot.content}, 512)`.as(
+            "timeline_preview",
+          ),
+        },
         orderBy: desc(schema.ReplySnapshot.capturedAt),
         limit: 1,
       },
@@ -448,14 +579,21 @@ async function getUserTimelineEntries(
     where: before
       ? and(
           eq(schema.Paste.userId, userId),
-          eq(schema.Paste.public, true),
+          publicPasteCondition(),
           lte(schema.Paste.time, before),
         )
-      : and(eq(schema.Paste.userId, userId), eq(schema.Paste.public, true)),
+      : and(eq(schema.Paste.userId, userId), publicPasteCondition()),
     orderBy: desc(schema.Paste.time),
     limit,
     with: {
       snapshots: {
+        where: verifiedPasteSnapshotCondition(),
+        columns: { data: false },
+        extras: {
+          preview: sql<
+            string | null
+          >`left(${schema.PasteSnapshot.data}, 512)`.as("timeline_preview"),
+        },
         orderBy: desc(schema.PasteSnapshot.capturedAt),
         limit: 1,
       },
@@ -466,7 +604,7 @@ async function getUserTimelineEntries(
     .select({
       time: schema.Judgement.time,
       userId: schema.Judgement.userId,
-      reason: schema.Judgement.reason,
+      reason: sql<string>`left(${schema.Judgement.reason}, 512)`,
       addedPermission: schema.Judgement.addedPermission,
       revokedPermission: schema.Judgement.revokedPermission,
     })
@@ -537,13 +675,18 @@ async function getUserTimelineEntries(
 
 function mapArticleToTimeline(
   article: typeof schema.Article.$inferInsert,
-  snapshot: typeof schema.ArticleSnapshot.$inferInsert,
+  snapshot: Omit<
+    typeof schema.ArticleSnapshot.$inferSelect,
+    "content" | "adminNote"
+  > & {
+    preview: string;
+  },
 ): TimelineEntry {
   return {
     id: `article-${article.lid}-${article.time.getTime().toString()}`,
     type: "article",
     title: snapshot.title,
-    summary: truncateContent(snapshot.content),
+    summary: truncateContent(snapshot.preview),
     href: `/a/${article.lid}`,
     reactions: article.upvote,
     comments: article.replyCount,
@@ -553,13 +696,15 @@ function mapArticleToTimeline(
 
 function mapDiscussionToTimeline(
   post: typeof schema.Post.$inferInsert,
-  snapshot: typeof schema.PostSnapshot.$inferInsert,
+  snapshot: Omit<typeof schema.PostSnapshot.$inferSelect, "content"> & {
+    preview: string;
+  },
 ): TimelineEntry {
   return {
     id: `discussion-${post.id.toString()}-${post.time.getTime().toString()}`,
     type: "discussion",
     title: snapshot.title,
-    summary: truncateContent(snapshot.content),
+    summary: truncateContent(snapshot.preview),
     href: `/d/${post.id.toString()}`,
     replies: post.replyCount,
     participants: Math.max(1, Math.min(post.replyCount, 50)),
@@ -568,9 +713,13 @@ function mapDiscussionToTimeline(
 }
 
 function mapArticleReplyToTimeline(
-  reply: typeof schema.ArticleReply.$inferInsert & {
+  reply: Omit<typeof schema.ArticleReply.$inferSelect, "content"> & {
+    preview: string;
     article: typeof schema.Article.$inferInsert & {
-      snapshots: (typeof schema.ArticleSnapshot.$inferInsert)[];
+      snapshots: Omit<
+        typeof schema.ArticleSnapshot.$inferSelect,
+        "content" | "adminNote"
+      >[];
     };
   },
 ): TimelineEntry {
@@ -579,7 +728,7 @@ function mapArticleReplyToTimeline(
     id: `article-reply-${reply.id.toString()}`,
     type: "articleComment",
     articleTitle,
-    excerpt: truncateContent(reply.content),
+    excerpt: truncateContent(reply.preview),
     href: `/a/${reply.articleId}#reply-${reply.id.toString()}`,
     createdAt: reply.time.toISOString(),
   };
@@ -587,15 +736,17 @@ function mapArticleReplyToTimeline(
 
 function mapDiscussionReplyToTimeline(
   reply: typeof schema.Reply.$inferInsert & {
-    snapshots: (typeof schema.ReplySnapshot.$inferInsert)[];
+    snapshots: (Omit<typeof schema.ReplySnapshot.$inferSelect, "content"> & {
+      preview: string;
+    })[];
     post: typeof schema.Post.$inferInsert & {
-      snapshots: (typeof schema.PostSnapshot.$inferInsert)[];
+      snapshots: Omit<typeof schema.PostSnapshot.$inferSelect, "content">[];
     };
   },
 ): TimelineEntry {
   const discussionTitle =
     reply.post.snapshots[0]?.title ?? reply.postId.toString();
-  const content = reply.snapshots[0]?.content ?? "";
+  const content = reply.snapshots[0]?.preview ?? "";
   return {
     id: `discussion-reply-${reply.id.toString()}`,
     type: "discussionReply",
@@ -608,12 +759,14 @@ function mapDiscussionReplyToTimeline(
 
 function mapPasteToTimeline(
   paste: typeof schema.Paste.$inferInsert & {
-    snapshots: (typeof schema.PasteSnapshot.$inferInsert)[];
+    snapshots: (Omit<typeof schema.PasteSnapshot.$inferSelect, "data"> & {
+      preview: string | null;
+    })[];
   },
 ): TimelineEntry {
   const snapshot = paste.snapshots[0];
-  const description = snapshot?.data
-    ? truncateContent(snapshot.data, 120)
+  const description = snapshot?.preview
+    ? truncateContent(snapshot.preview, 120)
     : "暂无内容";
   return {
     id: `paste-${paste.id}-${paste.time.getTime().toString()}`,

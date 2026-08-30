@@ -16,3 +16,21 @@ model CrawlCursor {
   @@id([entityType, entityId])
   @@index([status, updatedAt])
 }
+
+model VisibilityScanState {
+  entityType String  @id
+  afterId    String?
+  cycle      Int     @default(1)
+
+  lastCompletedAt DateTime?
+  updatedAt       DateTime  @updatedAt
+}
+
+model BackfillResumeState {
+  name String @id
+
+  afterUpdatedAt  DateTime?
+  afterEntityType String?
+  afterEntityId   String?
+  updatedAt       DateTime  @updatedAt
+}

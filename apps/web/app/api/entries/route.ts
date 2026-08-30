@@ -5,6 +5,8 @@ import {
   validateEntryRequest,
 } from "@luogu-discussion-archive/query";
 
+const MAX_ENTRY_RESPONSE_BYTES = 1024 * 1024;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const inputBytes = new TextEncoder().encode(request.url).byteLength;
@@ -18,7 +20,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    return NextResponse.json(await resolveEntries(validation.refs));
+    const serialized = JSON.stringify(await resolveEntries(validation.refs));
+    if (Buffer.byteLength(serialized, "utf8") > MAX_ENTRY_RESPONSE_BYTES) {
+      return NextResponse.json(
+        { error: "Entry response exceeds the configured limit" },
+        { status: 500 },
+      );
+    }
+    return new NextResponse(serialized, {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8" },
+    });
   } catch {
     return NextResponse.json(
       { error: "Failed to resolve entries" },

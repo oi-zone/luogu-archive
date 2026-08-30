@@ -7,7 +7,12 @@ model Article {
   upvote     Int
   replyCount Int
   favorCount Int
-  public     Boolean @default(false)
+  public     Boolean  @default(false)
+
+  visibilityState     String    @default("unverified")
+  visibilityCheckedAt DateTime?
+  visibilitySource    String?
+  visibilityVersion   Int       @default(1)
 
   updatedAt DateTime
 
@@ -22,6 +27,7 @@ model Article {
   @@index([replyCount(sort: Desc)])
   @@index([favorCount(sort: Desc)])
   @@index([public, updatedAt(sort: Desc)])
+  @@index([visibilityCheckedAt, lid], map: "Article_visibility_revalidation_idx")
 }
 
 model ArticleSnapshot {
@@ -42,12 +48,17 @@ model ArticleSnapshot {
 
   adminNote String?
 
+  exposureState    String    @default("unverified")
+  verifiedPublicAt DateTime?
+  verifiedSource   String?
+
   capturedAt DateTime
   lastSeenAt DateTime
 
   @@id([articleId, capturedAt])
   @@index([articleId])
   @@index([articleId, capturedAt(sort: Desc)])
+  @@index([articleId, exposureState, capturedAt(sort: Desc)], map: "ArticleSnapshot_exposure_idx")
 }
 
 model ArticleCollection {
@@ -65,6 +76,10 @@ model ArticleReply {
   authorId  Int
   time      DateTime @db.Timestamp(0)
   content   String
+
+  exposureState    String    @default("unverified")
+  verifiedPublicAt DateTime?
+  verifiedSource   String?
 
   updatedAt DateTime
 

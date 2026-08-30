@@ -1,11 +1,11 @@
 import { getArticleEntries } from "./article.js";
 import { getPostEntries } from "./discussion.js";
 import type {
-  ArticleDto,
-  PasteDto,
-  PostDto,
+  ArticleEntryPreviewDto,
+  PasteEntryPreviewDto,
+  PostEntryPreviewDto,
   ProblemDto,
-  UserDto,
+  PublicUserPreviewDto,
 } from "./dto.js";
 import { MAX_ENTRY_REFS } from "./entry-validation.js";
 import { getPasteEntries } from "./paste.js";
@@ -13,11 +13,11 @@ import { getProblemEntries } from "./problem.js";
 import { getUserEntries } from "./user.js";
 
 interface EntryMap {
-  user: UserDto;
-  discuss: PostDto;
-  article: ArticleDto;
+  user: PublicUserPreviewDto;
+  discuss: PostEntryPreviewDto;
+  article: ArticleEntryPreviewDto;
   problem: ProblemDto;
-  paste: PasteDto;
+  paste: PasteEntryPreviewDto;
 }
 
 export type EntryType = keyof EntryMap;

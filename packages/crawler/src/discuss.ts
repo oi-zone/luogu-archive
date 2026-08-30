@@ -19,8 +19,19 @@ import {
 
 import { publicLentille } from "./client.js";
 import { AccessError, HttpError, UnexpectedStatusError } from "./error.js";
-import { expectArray, expectFiniteNumber, expectRecord } from "./http.js";
+import {
+  expectArray,
+  expectFiniteNumber,
+  expectPositiveInteger,
+  expectRecord,
+  validateBoundedPayload,
+} from "./http.js";
 import { PgAdvisoryLock } from "./locks.js";
+import {
+  validatePost,
+  validatePostDetails,
+  validateReply,
+} from "./payload-validation.js";
 import { saveProblems } from "./problem.js";
 import { saveUserSnapshots } from "./user.js";
 import { deduplicate } from "./utils.js";
@@ -30,6 +41,7 @@ const MAX_DISCUSSION_RESPONSE_BYTES = 4 * 1024 * 1024;
 const MAX_DISCUSSION_LIST_BYTES = 2 * 1024 * 1024;
 const MAX_DISCUSSION_REPLIES = 200;
 const MAX_DISCUSSION_LIST_ITEMS = 100;
+const ANONYMOUS_SOURCE = "anonymous_upstream";
 
 function validateDiscussionResponse(value: unknown) {
   const root = expectRecord(value, "discuss.show");
@@ -37,21 +49,22 @@ function validateDiscussionResponse(value: unknown) {
   if (status !== 200) {
     return { status, time: 0, data: null };
   }
+  validateBoundedPayload(value, "discuss.show");
   const data = expectRecord(root.data, "discuss.show");
-  const post = expectRecord(
-    data.post,
-    "discuss.show",
-  ) as unknown as PostDetails;
+  const post = validatePostDetails(data.post, "discuss.show.post");
   const replies = expectRecord(data.replies, "discuss.show");
-  const result = expectArray<Reply>(
+  const result = expectArray<unknown>(
     replies.result,
     "discuss.show.replies",
     MAX_DISCUSSION_REPLIES,
+  ).map((reply, index) =>
+    validateReply(reply, `discuss.show.replies[${String(index)}]`),
   );
   const time = expectFiniteNumber(root.time, "discuss.show.time");
-  expectFiniteNumber(post.id, "discuss.show.post.id");
-  expectFiniteNumber(replies.count, "discuss.show.replies.count");
-  expectFiniteNumber(replies.perPage, "discuss.show.replies.perPage");
+  expectPositiveInteger(post.id, "discuss.show.post.id");
+  if (!Number.isSafeInteger(replies.count) || (replies.count as number) < 0)
+    throw new Error("Invalid discuss.show.replies.count");
+  expectPositiveInteger(replies.perPage, "discuss.show.replies.perPage");
   return {
     status,
     time,
@@ -67,17 +80,21 @@ function validateDiscussionResponse(value: unknown) {
 }
 
 function validateDiscussionListResponse(value: unknown) {
+  validateBoundedPayload(value, "discuss.list");
   const root = expectRecord(value, "discuss.list");
   const data = expectRecord(root.data, "discuss.list");
   const postsContainer = expectRecord(data.posts, "discuss.list");
-  const posts = expectArray<Post>(
+  const posts = expectArray<unknown>(
     postsContainer.result,
     "discuss.list.posts",
     MAX_DISCUSSION_LIST_ITEMS,
+  ).map((post, index) =>
+    validatePost(post, `discuss.list.posts[${String(index)}]`),
   );
   expectFiniteNumber(root.status, "discuss.list.status");
   expectFiniteNumber(root.time, "discuss.list.time");
-  for (const post of posts) expectFiniteNumber(post.id, "discuss.list.post.id");
+  for (const post of posts)
+    expectPositiveInteger(post.id, "discuss.list.post.id");
   return {
     status: root.status as number,
     time: root.time as number,
@@ -157,7 +174,12 @@ const saveReplySnapshot = async (reply: Reply, now: Date) =>
 
     const { rowCount } = await tx
       .update(schema.ReplySnapshot)
-      .set({ lastSeenAt: now })
+      .set({
+        lastSeenAt: now,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
+      })
       .where(
         and(
           eq(schema.ReplySnapshot.replyId, reply.id),
@@ -171,6 +193,9 @@ const saveReplySnapshot = async (reply: Reply, now: Date) =>
       return tx.insert(schema.ReplySnapshot).values({
         replyId: reply.id,
         content: reply.content,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
         capturedAt: now,
         lastSeenAt: now,
       });
@@ -190,6 +215,9 @@ async function savePosts(posts: Post[], now: Date) {
         topped: post.topped,
         locked: post.locked,
         public: true,
+        visibilityState: "public",
+        visibilityCheckedAt: now,
+        visibilitySource: ANONYMOUS_SOURCE,
         updatedAt: now,
       })),
     )
@@ -199,6 +227,15 @@ async function savePosts(posts: Post[], now: Date) {
         time: sql.raw(`excluded."${schema.Post.time.name}"`),
         replyCount: sql.raw(`excluded."${schema.Post.replyCount.name}"`),
         public: sql.raw(`excluded."${schema.Post.public.name}"`),
+        visibilityState: sql.raw(
+          `excluded."${schema.Post.visibilityState.name}"`,
+        ),
+        visibilityCheckedAt: sql.raw(
+          `excluded."${schema.Post.visibilityCheckedAt.name}"`,
+        ),
+        visibilitySource: sql.raw(
+          `excluded."${schema.Post.visibilitySource.name}"`,
+        ),
         updatedAt: sql.raw(`excluded."${schema.Post.updatedAt.name}"`),
       },
     });
@@ -219,7 +256,12 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
 
     const { rowCount } = await tx
       .update(schema.PostSnapshot)
-      .set({ lastSeenAt: now })
+      .set({
+        lastSeenAt: now,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
+      })
       .where(
         and(
           eq(schema.PostSnapshot.postId, post.id),
@@ -246,6 +288,9 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
         topped: post.topped,
         locked: post.locked,
         content: post.content,
+        exposureState: "public",
+        verifiedPublicAt: now,
+        verifiedSource: ANONYMOUS_SOURCE,
         pinnedReplyId: post.pinnedReply?.id ?? null,
         capturedAt: now,
         lastSeenAt: now,
@@ -256,7 +301,13 @@ async function savePostSnapshot(post: PostDetails, now: Date) {
 async function restrictPost(id: number) {
   await db
     .update(schema.Post)
-    .set({ public: false, updatedAt: new Date() })
+    .set({
+      public: false,
+      visibilityState: "restricted",
+      visibilityCheckedAt: new Date(),
+      visibilitySource: ANONYMOUS_SOURCE,
+      updatedAt: new Date(),
+    })
     .where(eq(schema.Post.id, id));
 }
 
@@ -301,6 +352,7 @@ export async function fetchDiscuss(id: number, page?: number) {
     throw new UnexpectedStatusError("Missing discussion data", url, status);
 
   const now = new Date(time * 1000);
+  const paginatedReplyCount = data.replies.result.length;
   const replies = data.replies.result;
   if (data.post.pinnedReply) replies.push(data.post.pinnedReply);
 
@@ -329,8 +381,9 @@ export async function fetchDiscuss(id: number, page?: number) {
 
   return {
     numPages: Math.ceil(data.replies.count / data.replies.perPage),
-    numReplies: replies.length,
-    numNewReplies: replySnapshots.filter(Boolean).length,
+    numReplies: paginatedReplyCount,
+    numNewReplies: replySnapshots.slice(0, paginatedReplyCount).filter(Boolean)
+      .length,
   };
 }
 

@@ -4,6 +4,7 @@ import { db, sql } from "@luogu-discussion-archive/db";
 
 import { normalizeCopraTags } from "./copra.js";
 import type { BasicUserSnapshot, ForumBasicInfo } from "./types.js";
+import { visibilityCutoff } from "./visibility.js";
 
 const FEED_DEFAULT_LIMIT = 60;
 const FEED_MAX_LIMIT = 80;
@@ -42,7 +43,7 @@ export interface ArticleFeedEntry extends FeedEntryBase {
   articleId: string;
   title: string;
   category: number | null;
-  content: string | null;
+  preview: string | null;
   summary: string | null;
   tags: string[] | null;
   replyCount: number;
@@ -55,7 +56,7 @@ export interface DiscussionFeedEntry extends FeedEntryBase {
   kind: "discussion";
   postId: number;
   title: string;
-  content: string | null;
+  preview: string | null;
   forum: ForumBasicInfo;
   replyCount: number;
   recentReplyCount: number;
@@ -296,7 +297,7 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
       articleId: row.articleId,
       title,
       category: typeof row.category === "number" ? row.category : null,
-      content,
+      preview: content,
       summary: row.summary,
       tags: normalizeCopraTags(row.tags),
       replyCount: row.replyCount,
@@ -343,7 +344,7 @@ async function collectCandidates(seed: string): Promise<RankedCandidate[]> {
       author,
       postId: row.postId,
       title: row.title,
-      content: row.content,
+      preview: row.content,
       forum,
       replyCount: row.replyCount,
       recentReplyCount: row.recentReplyCount,
@@ -659,8 +660,12 @@ async function executeArticleRowsQuery({
   recentSince: Date;
   includeCopra: boolean;
 }) {
-  const summarySelection = includeCopra ? sql`ac."summary"` : sql`NULL::text`;
-  const tagsSelection = includeCopra ? sql`ac."tags"` : sql`NULL::text`;
+  const summarySelection = includeCopra
+    ? sql`left(ac."summary", 512)`
+    : sql`NULL::text`;
+  // Tag arrays from legacy Copra rows are not trusted. A separately bounded
+  // tag projection can be restored later without ever selecting the full JSON.
+  const tagsSelection = sql`NULL::jsonb`;
   const copraJoin = includeCopra
     ? sql`LEFT JOIN "ArticleCopra" ac ON ac."articleId" = a."lid"`
     : sql``;
@@ -682,14 +687,20 @@ async function executeArticleRowsQuery({
         "articleId",
         "title",
         "category",
-        "content"
+        left("content", 512) AS "content"
       FROM "ArticleSnapshot"
+      WHERE "exposureState" = 'public'
+        AND "verifiedSource" = 'anonymous_upstream'
+        AND "verifiedPublicAt" IS NOT NULL
       ORDER BY "articleId", "capturedAt" DESC
     ),
     recent_article_replies AS (
       SELECT "articleId", COUNT(*)::int AS "recentReplyCount"
       FROM "ArticleReply"
       WHERE "time" >= ${recentSince}
+        AND "exposureState" = 'public'
+        AND "verifiedSource" = 'anonymous_upstream'
+        AND "verifiedPublicAt" IS NOT NULL
       GROUP BY "articleId"
     )
     SELECT
@@ -717,6 +728,9 @@ async function executeArticleRowsQuery({
     LEFT JOIN latest_user au ON au."userId" = a."authorId"
     ${copraJoin}
     WHERE a."public" = TRUE
+      AND a."visibilityState" = 'public'
+      AND a."visibilitySource" = 'anonymous_upstream'
+      AND a."visibilityCheckedAt" >= ${visibilityCutoff()}
       AND a."updatedAt" >= ${since}
     ORDER BY a."updatedAt" DESC
     LIMIT ${ARTICLE_CANDIDATE_LIMIT}
@@ -746,7 +760,7 @@ async function fetchDiscussionRows() {
       SELECT DISTINCT ON (ps."postId")
         ps."postId",
         ps."title",
-        ps."content",
+        left(ps."content", 512) AS "content",
         ps."authorId",
         ps."forumSlug",
         f."name" AS "forumName",
@@ -756,12 +770,26 @@ async function fetchDiscussionRows() {
       FROM "PostSnapshot" ps
       JOIN "Forum" f ON f."slug" = ps."forumSlug"
       LEFT JOIN "Problem" pr ON pr."pid" = f."problemId"
+      WHERE ps."exposureState" = 'public'
+        AND ps."verifiedSource" = 'anonymous_upstream'
+        AND ps."verifiedPublicAt" IS NOT NULL
       ORDER BY ps."postId", ps."capturedAt" DESC
     ),
     recent_reply_counts AS (
       SELECT "postId", COUNT(*)::int AS "recentReplyCount"
       FROM "Reply"
       WHERE "time" >= ${recentSince}
+        AND NOT EXISTS (
+          SELECT 1 FROM "ReplyTakedown" rt WHERE rt."replyId" = "Reply"."id"
+        )
+        AND EXISTS (
+          SELECT 1
+          FROM "ReplySnapshot" rs
+          WHERE rs."replyId" = "Reply"."id"
+            AND rs."exposureState" = 'public'
+            AND rs."verifiedSource" = 'anonymous_upstream'
+            AND rs."verifiedPublicAt" IS NOT NULL
+        )
       GROUP BY "postId"
     )
     SELECT
@@ -789,6 +817,9 @@ async function fetchDiscussionRows() {
     LEFT JOIN latest_user au ON au."userId" = lps."authorId"
     LEFT JOIN "PostTakedown" pt ON pt."postId" = p."id"
     WHERE p."public" = TRUE
+      AND p."visibilityState" = 'public'
+      AND p."visibilitySource" = 'anonymous_upstream'
+      AND p."visibilityCheckedAt" >= ${visibilityCutoff()}
       AND pt."postId" IS NULL
       AND p."updatedAt" >= ${since}
     ORDER BY p."updatedAt" DESC
@@ -820,8 +851,11 @@ async function fetchPasteRows() {
       SELECT DISTINCT ON ("pasteId")
         "pasteId",
         "public",
-        btrim(regexp_replace(COALESCE("data", ''), '\\s+', ' ', 'g')) AS "preview"
+        btrim(regexp_replace(left(COALESCE("data", ''), 512), '\\s+', ' ', 'g')) AS "preview"
       FROM "PasteSnapshot"
+      WHERE "exposureState" = 'public'
+        AND "verifiedSource" = 'anonymous_upstream'
+        AND "verifiedPublicAt" IS NOT NULL
       ORDER BY "pasteId", "capturedAt" DESC
     ),
     ever_privileged AS (
@@ -848,6 +882,9 @@ async function fetchPasteRows() {
     LEFT JOIN ever_privileged ep ON ep."userId" = pst."userId"
     WHERE pst."time" >= ${since}
       AND pst."public" = TRUE
+      AND pst."visibilityState" = 'public'
+      AND pst."visibilitySource" = 'anonymous_upstream'
+      AND pst."visibilityCheckedAt" >= ${visibilityCutoff()}
       AND lps."public" = TRUE
     ORDER BY pst."time" DESC
     LIMIT ${PASTE_CANDIDATE_LIMIT}
@@ -875,7 +912,7 @@ async function fetchJudgementRows() {
     SELECT
       j."userId",
       j."time",
-      j."reason",
+      left(j."reason", 512) AS "reason",
       j."addedPermission",
       j."revokedPermission",
       au."name" AS "authorName",

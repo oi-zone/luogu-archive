@@ -3,7 +3,15 @@ import type { RouteResponse } from "@lgjs/types";
 import { db, schema, sql } from "@luogu-discussion-archive/db";
 
 import { publicCn } from "./client.js";
-import { expectArray, expectRecord } from "./http.js";
+import {
+  expectArray,
+  expectFiniteNumber,
+  expectPositiveInteger,
+  expectRecord,
+  expectString,
+  validateBoundedPayload,
+} from "./http.js";
+import { validateUserSummary } from "./payload-validation.js";
 import { saveUserSnapshots } from "./user.js";
 
 export async function fetchJudgement() {
@@ -18,16 +26,31 @@ export async function fetchJudgement() {
       timeoutMs: 20_000,
       maxBytes: 2 * 1024 * 1024,
       validate(value) {
+        validateBoundedPayload(value, "judgement");
         const root = expectRecord(value, "judgement");
         const payload =
           "data" in root ? expectRecord(root.data, "judgement") : root;
-        return {
-          logs: expectArray<RouteResponse["judgement"]["data"]["logs"][number]>(
-            payload.logs,
-            "judgement.logs",
-            500,
-          ),
-        };
+        const logs = expectArray<unknown>(
+          payload.logs,
+          "judgement.logs",
+          500,
+        ).map((value, index) => {
+          const endpoint = `judgement.logs[${String(index)}]`;
+          const log = expectRecord(value, endpoint);
+          validateUserSummary(log.user, `${endpoint}.user`);
+          expectString(log.reason, `${endpoint}.reason`, 4_096);
+          expectFiniteNumber(
+            log.revokedPermission,
+            `${endpoint}.revokedPermission`,
+          );
+          expectFiniteNumber(
+            log.addedPermission,
+            `${endpoint}.addedPermission`,
+          );
+          expectPositiveInteger(log.time, `${endpoint}.time`);
+          return log as unknown as RouteResponse["judgement"]["data"]["logs"][number];
+        });
+        return { logs };
       },
     },
   );
