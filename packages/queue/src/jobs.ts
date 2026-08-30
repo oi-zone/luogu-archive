@@ -130,7 +130,5 @@ export async function queueBackfillJob(
   if (state === "completed" || state === "failed") {
     return { state: "terminal_conflict", jobId, jobState: state };
   }
-  return existing
-    ? { state: "already_live", jobId }
-    : { state: "added", jobId };
+  return { state: "added", jobId };
 }
