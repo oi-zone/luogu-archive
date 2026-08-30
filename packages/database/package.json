@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "tsc --watch -p tsconfig.build.json",
     "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy"
